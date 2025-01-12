@@ -17,11 +17,11 @@ fragen-playground is a branch of HAWKI to propose a solution strategy for featur
 4. Deployment Verfahren
 
 ## Proof of Concept
-:white_check_mark: Installation HAWKI auf Entwicklungssystem <https://hawki.vorgehen.de> 
-:white_check_mark: Python Jupyter Notebook, um mittels lang-chain ein PDF in In Memory Vektor-DB zu bringen
-:heavy_plus_sign: Entwickeln eines Python Services für die Abfrage von LLM unter Anreicherung von Chunks
-:heavy_plus_sign: Dateiupload und rudimentäre Prompt Oberfläche
-:heavy_plus_sign: Integration: Übermittlung der Aufrufe von der Oberfläche an den Python Service
+- :white_check_mark: Installation HAWKI auf Entwicklungssystem <https://hawki.vorgehen.de> 
+- :white_check_mark: Python Jupyter Notebook, um mittels lang-chain ein PDF in In Memory Vektor-DB zu bringen
+- :heavy_plus_sign: Entwickeln eines Python Services für die Abfrage von LLM unter Anreicherung von Chunks
+- :heavy_plus_sign: Dateiupload und rudimentäre Prompt Oberfläche
+- :heavy_plus_sign: Integration: Übermittlung der Aufrufe von der Oberfläche an den Python Service
 
 
 ## Contact & License
