@@ -2,7 +2,7 @@
 
 ## About
 
-fragen-playground is a branch of HAWKI to propose a solution strategy for feature "upload private files und generate question about file with the help of a llm".
+fragen-playground ist ein Branch von HAWKI, um das feature "upload private files und generate question about file with the help of a llm" zu implementieren.
 
 ## Lösungstrategie
 1. Der Datei Upload und die benötigte Oberfläche SOLL mittels PHP im Rahmenprogramm von HAWKI umgesetzt werden.  
