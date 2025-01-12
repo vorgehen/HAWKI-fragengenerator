@@ -16,4 +16,4 @@ Upload a PDF file to openAI Api Assistant and then instruct assistant to ask que
 
 ## Contact & License
 
-This project is licensed under the terms of the MIT license. If you have any questions, feel free to get in touch via [Email](mailto:vincent.timm2@hawk.de)
+This project is licensed under the terms of the MIT license.
