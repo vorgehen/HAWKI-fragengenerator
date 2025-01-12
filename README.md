@@ -11,7 +11,7 @@ fragen-playground ist ein Branch von HAWKI, um das feature "upload private files
 4. Der Service gibt dem Aufrufer eine ID zurück. Diese ID muss der Aufrufer mitgeben, wenn er "Fragen" stellen will. Die Abfrage des LLM mit den extrahierten Chunks erfolgt ebenfalls mit lang-chain in dem Python Service  
 
 ### Offene Fragen 
-1. Kann der Python Service vom Betreiber von HAWKI betrieben werden? kann ein entsprechendes Python Environment bereit gestellt werden?
+1. Kann der Python Service vom Betreiber von HAWKI betrieben werden? Kann ein entsprechendes Python Environment bereit gestellt werden?
 2. Welche Größe von PDF Dateien ist zugelassen? Welche Sicherheitsmaßnahmen müssen beim Upload beachet werden?
 3. Integration der oben erwähnten Weiterentwicklung in HAWKI
 4. Deployment Verfahren
