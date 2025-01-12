@@ -5,8 +5,8 @@
 fragen-playground is a branch of HAWKI to propose two solution strategies for feature "upload private files und generate question about file with the help of a llm".
 
 ### Option 1 - Make it
-component 1: extract text from file (and ocr images) and create (text or vector) chunks
-component 2: send chunks as context to a llm (maybe choose llm)
+component 1: extract text from file (and ocr images) and create (text or vector) chunks  
+component 2: send chunks as context to a llm (maybe choose llm)  
 
 
 ### Option 2 - Buy it
