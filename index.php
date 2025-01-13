@@ -45,6 +45,12 @@ switch($request_path){
             include_once( LIBRARY_PATH . "feedback_send.php");
         }
         exit;
+
+        case('/api/fragen_send'):
+        if($_SERVER["REQUEST_METHOD"] == "POST"){
+            include_once( LIBRARY_PATH . "fragen_send.php");
+        }
+        exit;
         
     case('/api/submit_vote'):
         if($_SERVER["REQUEST_METHOD"] == "POST"){

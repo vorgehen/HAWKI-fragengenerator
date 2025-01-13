@@ -154,6 +154,7 @@
 						<?php echo $translation["Organization"]; ?>
 					</div>
 					<div class="submenu">
+                        <div class="submenu-item" onclick="load(this, 'fragen.php')"><?php echo $translation["Fragen"]; ?></div>
 						<div class="submenu-item" onclick="load(this, 'eventmanagement.php')"><?php echo $translation["EventManagement"]; ?></div>
 						<div class="submenu-item" onclick="load(this, 'learning.php')"><?php echo $translation["LearnStrategy"]; ?></div>
 						<div class="submenu-item" onclick="load(this, 'motivation.php')"><?php echo $translation["Motivation"]; ?></div>
