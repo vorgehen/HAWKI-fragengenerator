@@ -1,4 +1,4 @@
-# HAWKI - fragen-playground
+# HAWKI - fragengenerator-playground
 
 ## About
 
