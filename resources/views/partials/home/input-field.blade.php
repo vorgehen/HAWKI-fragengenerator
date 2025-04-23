@@ -160,62 +160,84 @@
 
     </div>
     <div class="input" id="0">
-        <div class="input-wrapper">
-            <textarea  
-                class="input-field"
-                id="main-input-field" 
-                type="text"
 
+        <div class="file-attachments"></div>
+
+
+
+        <div class="input-content">
+
+            <div class="input-wrapper">
+                <textarea  
+                    class="input-field"
+                    id="main-input-field" 
+                    type="text"
+
+                    @if($activeModule === 'chat')
+
+                        placeholder="{{ $translation['Input_Placeholder_Chat'] }}" 
+                        oninput="resizeInputField(this);" 
+                        onkeypress="onHandleKeydownConv(event)"
+
+                    @elseif($activeModule === 'groupchat')
+
+                        placeholder="{{ $translation['Input_Placeholder_Room'] ." ". config('app.aiHandle')}}"
+                        oninput="resizeInputField(this); onGroupchatType()" 
+                        onkeypress="onHandleKeydownRoom(event)"
+                    
+                    @endif
+
+                    onfocus="onInputFieldFocus(this); toggleOffRelativeInputControl(this)"
+                    onfocusout="onInputFieldFocusOut(this)"></textarea>
+            </div>
+
+            <div class="input-main-btn file-upload tooltip-parent">
+                <input type="file" id="file-upload-input" style="display:none;" />
+                <div class="file-upload-btn" onclick="selectFile()">
+                    <x-icon name="paperclip"/>
+                    <div class="label tooltip tt-abs-up">
+                        upload file
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-main-btn input-send tooltip-parent">
                 @if($activeModule === 'chat')
-
-                    placeholder="{{ $translation['Input_Placeholder_Chat'] }}" 
-                    oninput="resizeInputField(this);" 
-                    onkeypress="onHandleKeydownConv(event)"
-
+                    <div id="send-btn" onClick="onSendClickConv(this)">
                 @elseif($activeModule === 'groupchat')
-
-                    placeholder="{{ $translation['Input_Placeholder_Room'] ." ". config('app.aiHandle')}}"
-                    oninput="resizeInputField(this); onGroupchatType()" 
-                    onkeypress="onHandleKeydownRoom(event)"
-                
+                    <div id="send-btn" onClick="onSendClickRoom(this)">
                 @endif
-
-                onfocus="onInputFieldFocus(this); toggleOffRelativeInputControl(this)"
-                onfocusout="onInputFieldFocusOut(this)"></textarea>
-        </div>
-
-
-        <div class="input-send tooltip-parent">
-            @if($activeModule === 'chat')
-                <div id="send-btn" onClick="onSendClickConv(this)">
-            @elseif($activeModule === 'groupchat')
-                <div id="send-btn" onClick="onSendClickRoom(this)">
-            @endif
-                    <div id="send-icon" class="send-btn-icon" >
-                        <x-icon name="arrow-up"/>
-                    </div>
-                    <div id="stop-icon" class="send-btn-icon" style="display:none">
-                        <x-icon name="stop"/>
-                    </div>
-                    <div id="loading-icon" class="send-btn-icon loading loading-lg" style="display:none">
-                        <div class="loading">
-                            <x-icon name="loading"/>
+                        <div id="send-icon" class="send-btn-icon" >
+                            <x-icon name="arrow-up"/>
                         </div>
+                        <div id="stop-icon" class="send-btn-icon" style="display:none">
+                            <x-icon name="stop"/>
+                        </div>
+                        <div id="loading-icon" class="send-btn-icon loading loading-lg" style="display:none">
+                            <div class="loading">
+                                <x-icon name="loading"/>
+                            </div>
+                        </div>
+                </div>
+
+                <div class="label tooltip tt-abs-up">
+                    {{ $translation["Send"] }}
+                </div>
+
+            </div>
+
+
+            <div class="prompt-improvement-btn tooltip-parent" onclick="requestPromptImprovement(this)">
+                <div class="input-main-btn">
+                    <x-icon name="vector"/>
+                    <div class="label tooltip tt-abs-up">
+                        {{ $translation["PromptImprovement"] }}
                     </div>
-            </div>
-
-            <div class="label tooltip tt-abs-up">
-                {{ $translation["Send"] }}
+                </div>
             </div>
 
         </div>
 
 
-        <div class="prompt-improvement-btn tooltip-parent" onclick="requestPromptImprovement(this)">
-            <x-icon name="vector"/>
-            <div class="label tooltip tt-abs-up">
-                {{ $translation["PromptImprovement"] }}
-            </div>
-        </div>
     </div>
 </div>

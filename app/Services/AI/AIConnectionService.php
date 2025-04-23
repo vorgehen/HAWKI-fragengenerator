@@ -70,9 +70,17 @@ class AIConnectionService
                     !empty($provider['ping_url'])) {
 
                         $stats = $providerInterface->getModelsStatus();
-                        foreach($stats as $stat){
-                            $models[] = $stat;
+                        if($stats){
+                            foreach($stats as $stat){
+                                $models[] = $stat;
+                            }
                         }
+                        else{
+                            foreach ($provider['models'] as $model) {
+                                $models[] = $model;
+                            } 
+                        }
+                     
                 } else {
                     foreach ($provider['models'] as $model) {
                         $models[] = $model;

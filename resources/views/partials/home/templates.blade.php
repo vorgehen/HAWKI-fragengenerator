@@ -161,3 +161,14 @@
         </th>
     </tr>
 </template>
+
+
+<template id="file-preview-thumb-template">
+	<div class="file-preview">
+		<button class="btn-sm remove-btn" onclick="removeFileAttachment(this)">
+			<x-icon name="x"/>
+		</button>
+		<img src="" alt="">
+	</div>
+</template>
+

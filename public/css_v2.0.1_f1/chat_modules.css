@@ -95,6 +95,8 @@
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+    background-color: var(--background-secondary);
+
 }
 
 .dy-main-content{
@@ -105,8 +107,11 @@
 
     height: 100%;
     background-color: var(--background-secondary);
+    max-width: calc(100vw - 24rem);
 }
-
+.dy-main-content:not(.expanded){
+    max-width: calc(100vw - 4rem);
+}
 
 
 
@@ -864,7 +869,6 @@
     padding-right:4rem;
     padding-top:0;
     padding-bottom:.5rem;
-
 }
 
 .thread.branch .input-container{
@@ -876,9 +880,8 @@
 
 .input {
     position: relative;
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    min-height: calc(var(--font-sm) + 3.5rem);
+    min-height: calc(var(--font-sm) + 4rem);
+    width: 100%;
     box-sizing: border-box;
     /* box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.1); */
     border-radius: 6px;
@@ -886,8 +889,26 @@
     border-radius: var(--border-radius-normal);
     background-color: var(--background-main);
 }
-  
+.input-content{
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    height: 100%;
+}
+.input-main-btn{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 1rem;
+    width: 4rem;
+    height: 4.5rem;
+    max-height: 5rem;
+    align-self: flex-end;
+}
+
+
 .input-wrapper {
+    flex-grow: 1;
     max-height: 30vh;
     margin-left: 1px;
     box-sizing: border-box;
@@ -895,15 +916,12 @@
     outline: none;
     overflow-y: scroll;
   
-    direction: rtl; /* flip direction to mode the scrollbar to the left side. The direction is fliped again in the inputfield*/
-
-    /* container: inputWrapper / inline-size;
-    contain: layout inline-size; */
+    direction: rtl; 
 }
   
 .input-field {
     width: 100%;
-    height: 3rem;
+    height: 4.5rem;
 
     padding-top:1rem;
     padding-bottom:.5rem;
@@ -913,7 +931,7 @@
 
     font-size: var(--font-sm);
 
-    overflow-x:hidden;
+    overflow:hidden;
 
     outline: none;
     border: 0;
@@ -925,20 +943,11 @@
     transition: padding var(--transition-medium);
 }
   
-/* @container inputWrapper (width < 20rem) {
-    .input-field {
-        background-color: red;
-        padding-left: 2rem;
-    }
-} */
-
-
 .input-field::placeholder{
     color: var(--text-color);
     opacity: 0.5;
     text-wrap: nowrap;
     text-overflow:ellipsis;
-    
 }
 
 .input-field:focus,
@@ -948,12 +957,6 @@
 
   
 .input-send {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    width: 4rem;
-
     background-color: var(--secondary-color);
 }
 [contenteditable] {
@@ -1022,13 +1025,8 @@
   
 .prompt-improvement-btn{
     display: flex;
-    width: fit-content;
+    width: 4rem;
     border-left: var(--border-stroke-thin);
-    padding: 0 1rem;
-
-    box-sizing: border-box;
-    align-items: center;
-    cursor: pointer;
 }
 .prompt-improvement-btn svg{
     width: 1rem;
@@ -1050,6 +1048,16 @@
     background-color: transparent;
 }
 
+.file-upload{
+
+}
+.file-upload svg{
+    display: flex;
+    align-items: center;
+    transition: all var(--transition-fast);
+}
+
+
 .warning{
     width: 100%;
     padding: 0rem 0 .5rem 0;
@@ -1057,6 +1065,98 @@
     text-align: center;
     font-size: var(--font-xs);
     opacity: 0.5;
+}
+
+
+
+.file-attachments{
+    display: none;
+    height: fit-content;
+
+    max-width: 100%;
+    overflow-x: auto;
+    grid-auto-flow: column;
+    
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+    margin: 0 1rem;
+
+    border-bottom: var(--border-stroke-hairline);
+}
+.file-attachments.active{
+    display: grid;
+}
+
+.file-preview{
+    position: relative;
+    display: flex;
+    column-gap: 1.5rem;
+    align-items: center;
+
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+
+    margin: .5rem;
+    border-radius: var(--border-radius-normal);
+    border: var(--border-stroke-bold);
+
+    overflow: hidden;
+}
+
+.file-preview img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.file-preview .remove-btn{
+    display: none;
+
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%,rgba(0,0,0,.5) 50%,rgba(0,0,0,.8) 100%);
+}
+.file-preview:hover .remove-btn{
+    display: flex;
+}
+
+
+.drag-drop-overlay{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* opacity: 0.7; */
+    background-color: rgba(1, 1, 1, .7)
+
+
+}
+.drag-drop-overlay .content{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+}
+.drag-drop-overlay .icon svg{
+    width: 5rem;
+    height: 5rem;
+    stroke: var(--invert-Text-color)
+}
+.drag-drop-overlay h1{
+    color: var(--invert-Text-color);
 }
 
 

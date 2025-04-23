@@ -188,9 +188,12 @@ class GWDGProvider extends OpenAIProvider
      * @return string
      * @throws \Exception
      */
-    public function getModelsStatus(): array
+    public function getModelsStatus()
     {
         $response = $this->pingProvider();
+        if(!$response){
+            return null;
+        }
         $referenceList = json_decode($response, true)['data'];
         $models = $this->config['models'];
     
@@ -218,8 +221,13 @@ class GWDGProvider extends OpenAIProvider
     public function checkAllModelsStatus(): array
     {
         $response = $this->pingProvider();
-        $referenceList = json_decode($response, true)['data'];
-        return $referenceList;
+        if($response){
+            $referenceList = json_decode($response, true)['data'];
+            return $referenceList;   
+        }
+        else{
+            return null;
+        }
     }
 
 
@@ -228,8 +236,9 @@ class GWDGProvider extends OpenAIProvider
      *
      * @return string
      */
-    protected function pingProvider(): string
+    protected function pingProvider()
     {        
+        return null;
         $url = $this->config['ping_url'];
         $apiKey = $this->config['api_key'];
 
