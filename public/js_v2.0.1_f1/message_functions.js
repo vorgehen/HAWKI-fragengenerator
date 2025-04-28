@@ -235,7 +235,6 @@ function updateMessageElement(messageElement, messageObj, updateContent = false)
     const msgTxtElement = messageElement.querySelector(".message-text");
 
     if(messageElement.classList.contains('AI')){
-        console.log(messageObj);
         const username = messageElement.dataset.author;
         model = modelsList.find(m => m.id === messageObj.model);
         messageElement.querySelector('.message-author').innerHTML = 
