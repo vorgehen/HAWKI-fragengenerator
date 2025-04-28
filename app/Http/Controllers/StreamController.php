@@ -150,7 +150,7 @@ class StreamController extends Controller
                     ],
                     'model' => $validatedData['payload']['model'],
                     'isDone' => true,
-                    'content' => $result['content'],
+                    'content' => json_encode($result['content']),
                 ]);
             }
         }
