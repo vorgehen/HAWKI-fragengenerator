@@ -75,7 +75,7 @@ function handleSelectedFiles(files) {
     
     const allowedTypes = [
         // Images
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+        'image/jpeg','image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
         // Documents
         'application/pdf', 'application/msword', 
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -114,6 +114,7 @@ function handleSelectedFiles(files) {
 
         window.pendingUploads.push(fileData);
         console.log(window.pendingUploads);
+        uploadFileToServer(fileData);
     });
 }
 
@@ -153,16 +154,23 @@ function addFileToUI(fileData) {
     const filePreview = prevClone.querySelector(".file-preview");
     filePreview.dataset.fileId = fileData.id;
 
+    console.log(fileData.type);
+
+    let imgPreview = '';
     // Different preview based on file type
     if (fileData.type.startsWith('image/')) {
         // Image preview
-        const imgPreview =  URL.createObjectURL(fileData.file);
-        filePreview.querySelector('img').setAttribute('src', imgPreview);
-    } else {
-        // Document/other file preview
-        const docPreview = createDocumentPreview(fileData);
-        filePreview.appendChild(docPreview);
+        imgPreview =  URL.createObjectURL(fileData.file);
+    } if(fileData.type.startsWith('application/pdf')){
+        //pdf
+        imgPreview = createPdfPreview(fileData.file)
     }
+    else {
+        // Document/other file preview
+        // const docPreview = createDocumentPreview(fileData);
+        // filePreview.appendChild(docPreview);
+    }
+    filePreview.querySelector('img').setAttribute('src', imgPreview);
 
     
     // Add to file preview container
@@ -227,24 +235,58 @@ function removeFileAttachment(providerBtn) {
 // }
 
 // Create preview for document files
-// function createDocumentPreview(fileData) {
-//     const preview = document.createElement('div');
-//     preview.className = 'document-preview';
+function createDocumentPreview(fileData) {
+    const preview = document.createElement('div');
+    preview.className = 'document-preview';
     
-//     // Add file icon based on type
-//     const icon = document.createElement('div');
-//     icon.className = 'file-icon';
-//     icon.textContent = getFileIconText(fileData.type);
-//     preview.appendChild(icon);
+    // Add file icon based on type
+    const icon = document.createElement('div');
+    icon.className = 'file-icon';
+    icon.textContent = getFileIconText(fileData.type);
+    preview.appendChild(icon);
     
-//     // Add file info
-//     const info = document.createElement('div');
-//     info.className = 'file-info';
-//     info.textContent = `${fileData.name} (${formatFileSize(fileData.size)})`;
-//     preview.appendChild(info);
+    // Add file info
+    const info = document.createElement('div');
+    info.className = 'file-info';
+    info.textContent = `${fileData.name} (${formatFileSize(fileData.size)})`;
+    preview.appendChild(info);
     
-//     return preview;
-// }
+    return preview;
+}
+
+/**
+ * Generates a thumbnail image DataURL of the first page of a PDF file.
+ * @param {File} pdfFile - The PDF file from an <input type="file"> event.
+ * @param {Number} [scale=0.5] - Render scale for the thumbnail (adjust as desired).
+ * @returns {Promise<string>} - Resolves to a dataURL of the thumbnail image.
+ */
+async function createPdfPreview(pdfFile, scale = 0.5) {
+    console.log(pdfFile);
+
+    // Read file to ArrayBuffer
+    const arrayBuffer = await pdfFile.arrayBuffer();
+    // Load PDF document
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    // Get first page
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale });
+
+    // Prepare canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    // Render page onto canvas
+    const context = canvas.getContext('2d');
+    await page.render({ canvasContext: context, viewport }).promise;
+
+    // Get image dataURL
+    const dataUrl = canvas.toDataURL('image/png');
+    console.log(dataUrl);
+    return dataUrl;
+}
+
+
 
 // Get file icon text based on file type
 // function getFileIconText(fileType) {
@@ -258,86 +300,127 @@ function removeFileAttachment(providerBtn) {
 // }
 
 
-// // Upload file to server
-// function uploadFileToServer(fileData) {
-//     // Create FormData
-//     const formData = new FormData();
-//     formData.append('file', fileData.file);
-//     formData.append('name', fileData.name);
-//     formData.append('type', fileData.type);
+// Upload file to server
+function uploadFileToServer(fileData) {
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', fileData.file);
+    formData.append('name', fileData.name);
+    formData.append('type', fileData.type);
     
-//     // Update status to uploading
-//     updateFileStatus(fileData.id, 'uploading');
+    // Update status to uploading
+    updateFileStatus(fileData.id, 'uploading');
     
-//     // Send request to server
-//     fetch('/api/upload', {
-//         method: 'POST',
-//         headers: {
-//             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-//         },
-//         body: formData
-//     })
-//     .then(response => {
-//         if (!response.ok) {
-//             throw new Error('Network response was not ok');
-//         }
-//         return response.json();
-//     })
-//     .then(data => {
-//         // Update with server file info
-//         updateFileStatus(fileData.id, 'complete', data.fileUrl);
-//         return data;
-//     })
-//     .catch(error => {
-//         console.error('Upload error:', error);
-//         updateFileStatus(fileData.id, 'error');
-//         showFileError('Failed to upload file. Please try again.');
-//     });
-// }
+    // Send request to server
+    fetch('/req/upload-file', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+
+        console.log(data);
+        // // Update with server file info
+        // updateFileStatus(fileData.id, 'complete', data.fileUrl);
+        // return data;
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        updateFileStatus(fileData.id, 'error');
+        showFileError('Failed to upload file. Please try again.');
+    });
+}
+
+
+function uploadFileToServer(fileData) {
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', fileData.file);
+    formData.append('name', fileData.name);
+    formData.append('type', fileData.type);
+    
+    // Update status to uploading
+    updateFileStatus(fileData.id, 'uploading');
+    
+    // Send request to server
+    fetch('/req/upload-file', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+
+        console.log(data);
+        // // Update with server file info
+        // updateFileStatus(fileData.id, 'complete', data.fileUrl);
+        // return data;
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        updateFileStatus(fileData.id, 'error');
+        showFileError('Failed to upload file. Please try again.');
+    });
+}
 
 // Update file status in UI
-// function updateFileStatus(fileId, status, fileUrl = null) {
-//     const fileElement = document.querySelector(`.file-preview[data-file-id="${fileId}"]`);
-//     if (!fileElement) return;
+function updateFileStatus(fileId, status, fileUrl = null) {
+    const fileElement = document.querySelector(`.file-preview[data-file-id="${fileId}"]`);
+    if (!fileElement) return;
     
-//     // Remove existing status classes
-//     fileElement.classList.remove('status-pending', 'status-uploading', 'status-complete', 'status-error');
-//     fileElement.classList.add(`status-${status}`);
+    // Remove existing status classes
+    fileElement.classList.remove('status-pending', 'status-uploading', 'status-complete', 'status-error');
+    fileElement.classList.add(`status-${status}`);
     
-//     // Update any status indicators in the UI
-//     const statusIndicator = fileElement.querySelector('.file-status');
-//     if (statusIndicator) {
-//         switch (status) {
-//             case 'pending':
-//                 statusIndicator.textContent = 'Ready to upload';
-//                 break;
-//             case 'uploading':
-//                 statusIndicator.textContent = 'Uploading...';
-//                 break;
-//             case 'complete':
-//                 statusIndicator.textContent = 'Uploaded';
-//                 break;
-//             case 'error':
-//                 statusIndicator.textContent = 'Error';
-//                 break;
-//         }
-//     }
+    // Update any status indicators in the UI
+    const statusIndicator = fileElement.querySelector('.file-status');
+    if (statusIndicator) {
+        switch (status) {
+            case 'pending':
+                statusIndicator.textContent = 'Ready to upload';
+                break;
+            case 'uploading':
+                statusIndicator.textContent = 'Uploading...';
+                break;
+            case 'complete':
+                statusIndicator.textContent = 'Uploaded';
+                break;
+            case 'error':
+                statusIndicator.textContent = 'Error';
+                break;
+        }
+    }
     
-//     // If we have the uploaded file URL, store it
-//     if (fileUrl && fileElement.dataset) {
-//         fileElement.dataset.fileUrl = fileUrl;
-//     }
+    // If we have the uploaded file URL, store it
+    if (fileUrl && fileElement.dataset) {
+        fileElement.dataset.fileUrl = fileUrl;
+    }
     
-//     // Update in pending uploads array
-//     if (window.pendingUploads) {
-//         window.pendingUploads.forEach(item => {
-//             if (item.id === fileId) {
-//                 item.status = status;
-//                 if (fileUrl) item.fileUrl = fileUrl;
-//             }
-//         });
-//     }
-// }
+    // Update in pending uploads array
+    if (window.pendingUploads) {
+        window.pendingUploads.forEach(item => {
+            if (item.id === fileId) {
+                item.status = status;
+                if (fileUrl) item.fileUrl = fileUrl;
+            }
+        });
+    }
+}
 
 // Get all attached files in a format ready to send with message
 // function getAttachedFiles() {

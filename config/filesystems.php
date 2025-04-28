@@ -11,9 +11,13 @@ return [
     | by the framework. The "local" disk, as well as a variety of cloud
     | based disks are available to your application for file storage.
     |
+    | default filesystem handles the main system files
+    | storage handles the data repo for storing large and numerous files such as user uploaded files.
     */
 
     'default' => env('FILESYSTEM_DISK', 'local'),
+    
+    'storage_service' => env('STORAGE_DISK', 'local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -44,16 +48,16 @@ return [
             'throw' => false,
         ],
 
-        's3' => [
+
+
+        'minio' => [
             'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
-            'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            'key' => env('MINIO_ACCESS_KEY'),
+            'secret' => env('MINIO_SECRET_KEY'),
+            'region' => env('MINIO_REGION'),
+            'bucket' => env('MINIO_DEFAULT_BUCKET'),
+            'endpoint' => env('MINIO_ENDPOINT'),
+            'use_path_style_endpoint' => true,
         ],
 
     ],

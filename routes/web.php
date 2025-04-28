@@ -14,6 +14,7 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\StreamController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\FileController;
 
 use App\Http\Middleware\RegistrationAccess;
 use App\Http\Middleware\AdminAccess;
@@ -128,7 +129,9 @@ Route::middleware('prevent_back')->group(function () {
     
         Route::get('/req/search', [SearchController::class, 'search']);
     
-  
+        Route::post('/req/upload-file', [FileController::class, 'handleUploadedFile']);
+        Route::post('/req/delete-file', [FileController::class, 'deleteFile']);
+
     
     
     });

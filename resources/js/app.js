@@ -13,6 +13,10 @@ window.Cropper = Cropper;
 import jsPDF from 'jspdf';
 window.jsPDF = jsPDF;
 
+import * as pdfjsLib from 'pdfjs-dist';
+window.pdfjsLib = pdfjsLib;
+pdfjsLib.GlobalWorkerOptions.workerSrc = window.location.origin + '/js/pdf.worker.js';
+
 import * as docx from "docx";
 window.docx = docx;
 
