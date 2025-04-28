@@ -319,6 +319,7 @@ class StreamController extends Controller
                 'iv' => $encryptiedData['iv'],
                 'tag' => $encryptiedData['tag'],
                 'content' => $encryptiedData['ciphertext'],
+                'model' => $data['payload']['model'],
             ]);
         } else {
             $nextMessageId = $roomController->generateMessageID($room, $data['threadIndex']);
