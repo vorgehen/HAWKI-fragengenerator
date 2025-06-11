@@ -1,8 +1,8 @@
 function initFileUploader(dropElement, fileInput) {
 
-    window.pendingUploads = [];
+    window.uploadQueue = [];
 
-
+    
     const overlay = dropElement.querySelector('.drag-drop-overlay');
     let dragCounter = 0;
 
@@ -51,7 +51,7 @@ function initFileUploader(dropElement, fileInput) {
 
 // Initialize file uploader for the main interface
 function initMainFileUploader() {
-    // Initialize the window.pendingUploads array
+    // Initialize the window.uploadQueue array
     
     // Get elements
     const dropElement = document.getElementById('input-container');
@@ -72,37 +72,40 @@ function selectFile() {
 function handleSelectedFiles(files) {
 
     if (!files || files.length === 0) return;
-    
+    if(window.uploadQueue.length > 10){
+        showError('Number of attached files exeeded');
+    }
+
     const allowedTypes = [
         // Images
         'image/jpeg','image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
         // Documents
-        'application/pdf', 'application/msword', 
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        // Text
-        'text/plain', 'text/csv', 'application/json',
-        'text/html', 'text/css', 'text/javascript',
-        // Archives (if supported)
-        'application/zip', 'application/x-rar-compressed'
+        'application/pdf', 
+        // 'application/msword', 
+        // 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        // 'application/vnd.ms-excel',
+        // 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        // 'application/vnd.ms-powerpoint',
+        // 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        // // Text
+        // 'text/plain', 'text/csv', 'application/json',
+        // 'text/html', 'text/css', 'text/javascript',
     ];
     
-    const maxFileSize = 10 * 1024 * 1024; // 10MB limit
+    const maxMB = 10;
+    const maxFileSize = maxMB * 1024 * 1024; // 10MB limit
     
     // Process each file
     Array.from(files).forEach(file => {
         // File type validation
         if (!allowedTypes.includes(file.type)) {
-            showFileError(`File type ${file.type} not supported.`);
+            showError(`File type ${file.type} not supported.`);
             return;
         }
         
         // File size validation
         if (file.size > maxFileSize) {
-            showFileError(`File size exceeds 10MB limit.`);
+            showError(`File size exceeds ${maxMB}MB limit.`);
             return;
         }
         
@@ -112,14 +115,13 @@ function handleSelectedFiles(files) {
         // Add file to UI
         addFileToUI(fileData);
 
-        window.pendingUploads.push(fileData);
-        console.log(window.pendingUploads);
-        uploadFileToServer(fileData);
+        window.uploadQueue.push(fileData);
+        // uploadFileToServer(fileData);
     });
 }
 
 // Show error message when file validation fails
-function showFileError(message) {
+function showError(message) {
     // You can implement this based on your UI design
     console.error(message);
     // Example: display toast notification
@@ -147,31 +149,27 @@ function generateUniqueId() {
 }
 
 // Add file to the UI for display
-function addFileToUI(fileData) {
+async function addFileToUI(fileData) {
 
     const prevTemp = document.getElementById('file-preview-thumb-template')
     const prevClone = prevTemp.content.cloneNode(true);
     const filePreview = prevClone.querySelector(".file-preview");
     filePreview.dataset.fileId = fileData.id;
-
-    console.log(fileData.type);
+    filePreview.querySelector('.file-type').innerText = getFileIconText(fileData.type)
 
     let imgPreview = '';
     // Different preview based on file type
     if (fileData.type.startsWith('image/')) {
         // Image preview
         imgPreview =  URL.createObjectURL(fileData.file);
-    } if(fileData.type.startsWith('application/pdf')){
+        // imgPreview = createImagePreview(fileData)
+    } 
+    if(fileData.type.startsWith('application/pdf')){
         //pdf
-        imgPreview = createPdfPreview(fileData.file)
+        imgPreview = await createPdfPreview(fileData.file)
     }
-    else {
-        // Document/other file preview
-        // const docPreview = createDocumentPreview(fileData);
-        // filePreview.appendChild(docPreview);
-    }
-    filePreview.querySelector('img').setAttribute('src', imgPreview);
 
+    filePreview.querySelector('img').setAttribute('src', imgPreview);
     
     // Add to file preview container
     const previewContainer = document.querySelector('.file-attachments');
@@ -179,13 +177,6 @@ function addFileToUI(fileData) {
     if(!previewContainer.classList.contains('active')){
         previewContainer.classList.add('active')
     }
-}
-
-// Format file size for display
-function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
 
@@ -199,8 +190,8 @@ function removeFileAttachment(providerBtn) {
     }
     
     // Remove from pending uploads array
-    if (window.pendingUploads) {
-        window.pendingUploads = window.pendingUploads.filter(item => item.id !== fileId);
+    if (window.uploadQueue) {
+        window.uploadQueue = window.uploadQueue.filter(item => item.id !== fileId);
     }
     
     // If no more attachments, remove container
@@ -211,97 +202,62 @@ function removeFileAttachment(providerBtn) {
 }
 
 
-// Create preview for image files
-// function createImagePreview(fileData) {
-//     const preview = document.createElement('div');
-//     preview.className = 'image-preview';
-    
-//     // Create thumbnail
-//     const img = document.createElement('img');
-//     img.src = URL.createObjectURL(fileData.file);
-//     img.src = URL.createObjectURL(fileData.file);
-//     img.onload = function() {
-//         URL.revokeObjectURL(this.src);
-//     };
-//     preview.appendChild(img);
-    
-//     // Add file info
-//     const info = document.createElement('div');
-//     info.className = 'file-info';
-//     info.textContent = `${fileData.name} (${formatFileSize(fileData.size)})`;
-//     preview.appendChild(info);
-    
-//     return preview;
-// }
-
-// Create preview for document files
-function createDocumentPreview(fileData) {
-    const preview = document.createElement('div');
-    preview.className = 'document-preview';
-    
-    // Add file icon based on type
-    const icon = document.createElement('div');
-    icon.className = 'file-icon';
-    icon.textContent = getFileIconText(fileData.type);
-    preview.appendChild(icon);
-    
-    // Add file info
-    const info = document.createElement('div');
-    info.className = 'file-info';
-    info.textContent = `${fileData.name} (${formatFileSize(fileData.size)})`;
-    preview.appendChild(info);
-    
-    return preview;
-}
-
 /**
- * Generates a thumbnail image DataURL of the first page of a PDF file.
- * @param {File} pdfFile - The PDF file from an <input type="file"> event.
- * @param {Number} [scale=0.5] - Render scale for the thumbnail (adjust as desired).
- * @returns {Promise<string>} - Resolves to a dataURL of the thumbnail image.
+ * Renders the first page of a PDF file as a PNG data URL.
+ * @param {File} pdfFile - A File object representing a user-uploaded PDF.
+ * @param {Number} [thumbnailWidth=200] - Desired thumbnail width in pixels.
+ * @returns {Promise<string>} - Resolves to a PNG data URL.
  */
-async function createPdfPreview(pdfFile, scale = 0.5) {
-    console.log(pdfFile);
-
+async function createPdfPreview(pdfFile, thumbnailWidth = 200) {
     // Read file to ArrayBuffer
     const arrayBuffer = await pdfFile.arrayBuffer();
+
     // Load PDF document
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    // Get first page
     const page = await pdf.getPage(1);
+
+    // Compute viewport for the desired width
+    const initialViewport = page.getViewport({ scale: 1 });
+    const scale = thumbnailWidth / initialViewport.width;
     const viewport = page.getViewport({ scale });
 
-    // Prepare canvas
-    const canvas = document.createElement('canvas');
+    // Create canvas
+    const canvas = document.createElement("canvas");
     canvas.width = viewport.width;
     canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
 
-    // Render page onto canvas
-    const context = canvas.getContext('2d');
-    await page.render({ canvasContext: context, viewport }).promise;
+    // Render page
+    await page.render({ canvasContext: ctx, viewport }).promise;
 
-    // Get image dataURL
-    const dataUrl = canvas.toDataURL('image/png');
-    console.log(dataUrl);
-    return dataUrl;
+    // Get PNG dataURL
+    return canvas.toDataURL("image/png");
+}
+
+// Format file size for display
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
 
 
 // Get file icon text based on file type
-// function getFileIconText(fileType) {
-//     if (fileType.includes('pdf')) return 'PDF';
-//     if (fileType.includes('word')) return 'DOC';
-//     if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'XLS';
-//     if (fileType.includes('powerpoint') || fileType.includes('presentation')) return 'PPT';
-//     if (fileType.includes('zip') || fileType.includes('compressed')) return 'ZIP';
-//     if (fileType.includes('text')) return 'TXT';
-//     return 'FILE';
-// }
+function getFileIconText(fileType) {
+    if (fileType.includes('pdf')) return 'PDF';
+    if (fileType.includes('word')) return 'DOC';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'XLS';
+    if (fileType.includes('powerpoint') || fileType.includes('presentation')) return 'PPT';
+    if (fileType.includes('zip') || fileType.includes('compressed')) return 'ZIP';
+    if (fileType.includes('text')) return 'TXT';
+    if (fileType.includes('image')) return 'IMG';
+    return 'FILE';
+}
 
 
 // Upload file to server
-function uploadFileToServer(fileData) {
+async function uploadFileToServer(fileData) {
     // Create FormData
     const formData = new FormData();
     formData.append('file', fileData.file);
@@ -312,7 +268,7 @@ function uploadFileToServer(fileData) {
     updateFileStatus(fileData.id, 'uploading');
     
     // Send request to server
-    fetch('/req/upload-file', {
+    await fetch('/req/upload-file', {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -335,7 +291,7 @@ function uploadFileToServer(fileData) {
     .catch(error => {
         console.error('Upload error:', error);
         updateFileStatus(fileData.id, 'error');
-        showFileError('Failed to upload file. Please try again.');
+        showError('Failed to upload file. Please try again.');
     });
 }
 
@@ -367,14 +323,14 @@ function uploadFileToServer(fileData) {
     .then(data => {
 
         console.log(data);
-        // // Update with server file info
-        // updateFileStatus(fileData.id, 'complete', data.fileUrl);
-        // return data;
+        // Update with server file info
+        updateFileStatus(fileData.id, 'complete', data.fileUrl);
+        return data;
     })
     .catch(error => {
         console.error('Upload error:', error);
         updateFileStatus(fileData.id, 'error');
-        showFileError('Failed to upload file. Please try again.');
+        showError('Failed to upload file. Please try again.');
     });
 }
 
@@ -388,20 +344,23 @@ function updateFileStatus(fileId, status, fileUrl = null) {
     fileElement.classList.add(`status-${status}`);
     
     // Update any status indicators in the UI
-    const statusIndicator = fileElement.querySelector('.file-status');
+    const statusIndicator = fileElement.querySelector('.status-indicator');
+    const stats = statusIndicator.querySelectorAll('.status');
+    stats.forEach(stat => {
+        stat.style.visibility = "hidden";
+    });
+
     if (statusIndicator) {
         switch (status) {
-            case 'pending':
-                statusIndicator.textContent = 'Ready to upload';
-                break;
             case 'uploading':
-                statusIndicator.textContent = 'Uploading...';
+                statusIndicator.querySelector('#upload-stat').style.visibility = 'visible'
                 break;
             case 'complete':
-                statusIndicator.textContent = 'Uploaded';
+                statusIndicator.querySelector('#complete-stat').style.visibility = 'visible'
                 break;
             case 'error':
-                statusIndicator.textContent = 'Error';
+                statusIndicator.querySelector('#error-stat').style.visibility = 'visible'
+                showError('')
                 break;
         }
     }
@@ -412,8 +371,8 @@ function updateFileStatus(fileId, status, fileUrl = null) {
     }
     
     // Update in pending uploads array
-    if (window.pendingUploads) {
-        window.pendingUploads.forEach(item => {
+    if (window.uploadQueue) {
+        window.uploadQueue.forEach(item => {
             if (item.id === fileId) {
                 item.status = status;
                 if (fileUrl) item.fileUrl = fileUrl;
@@ -423,39 +382,49 @@ function updateFileStatus(fileId, status, fileUrl = null) {
 }
 
 // Get all attached files in a format ready to send with message
-// function getAttachedFiles() {
-//     const fileElements = document.querySelectorAll('.file-preview');
-//     const files = [];
+function getAttachedFiles() {
+    const fileElements = document.querySelectorAll('.file-preview');
+    const files = [];
     
-//     fileElements.forEach(element => {
-//         files.push({
-//             id: element.dataset.fileId,
-//             url: element.dataset.fileUrl || null,
-//             name: element.querySelector('.file-info').textContent.split(' (')[0],
-//             status: element.className.includes('status-complete') ? 'complete' : 'pending'
-//         });
-//     });
+    fileElements.forEach(element => {
+        files.push({
+            id: element.dataset.fileId,
+            url: element.dataset.fileUrl || null,
+            name: element.querySelector('.file-info').textContent.split(' (')[0],
+            status: element.className.includes('status-complete') ? 'complete' : 'pending'
+        });
+    });
     
-//     return files;
-// }
+    return files;
+}
 
 // Check if there are any pending file uploads
-// function hasPendingUploads() {
-//     const pendingFiles = document.querySelectorAll('.file-preview:not(.status-complete):not(.status-error)');
-//     return pendingFiles.length > 0;
-// }
+function getPendingUploads() {
+    let pendingUploads = [];
+
+    window.uploadQueue.forEach(file => {
+        if(file.status === 'pending'){
+            pendingUploads.push(file);
+        }
+    });
+    return pendingUploads;
+}
 
 // Upload all pending files
-// function uploadAllPendingFiles() {
-//     const pendingFiles = document.querySelectorAll('.file-preview.status-pending');
+async function uploadAllPendingFiles() {
+    const pendingFiles = getPendingUploads();
     
-//     pendingFiles.forEach(element => {
-//         const fileId = element.dataset.fileId;
-//         const fileData = window.pendingUploads.find(item => item.id === fileId);
-//         if (fileData) {
-//             uploadFileToServer(fileData);
-//         }
-//     });
+
+
+
+
+    pendingFiles.forEach(element => {
+        const fileId = element.dataset.fileId;
+        const fileData = window.uploadQueue.find(item => item.id === fileId);
+        if (fileData) {
+            uploadFileToServer(fileData);
+        }
+    });
     
-//     return pendingFiles.length > 0;
-// }
+    return pendingFiles.length > 0;
+}

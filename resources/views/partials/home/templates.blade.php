@@ -165,6 +165,23 @@
 
 <template id="file-preview-thumb-template">
 	<div class="file-preview">
+		<h4 class="file-type"></h4>
+		<div class="status-indicator">
+			<div class="status" id="upload-stat">
+				<div id="loading-icon" class="send-btn-icon loading">
+					<div class="loading">
+						<x-icon name="loading"/>
+					</div>
+				</div>
+			</div>
+			<div class="status" id="complete-stat">
+				<x-icon name="check"/>
+			</div>
+			<div class="status" id="error-stat">
+				<x-icon name="alert-circle"/>
+			</div>
+			
+		</div>
 		<button class="btn-sm remove-btn" onclick="removeFileAttachment(this)">
 			<x-icon name="x"/>
 		</button>

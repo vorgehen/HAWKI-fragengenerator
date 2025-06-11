@@ -15,7 +15,13 @@ window.jsPDF = jsPDF;
 
 import * as pdfjsLib from 'pdfjs-dist';
 window.pdfjsLib = pdfjsLib;
-pdfjsLib.GlobalWorkerOptions.workerSrc = window.location.origin + '/js/pdf.worker.js';
+// pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+
+
+
 
 import * as docx from "docx";
 window.docx = docx;
