@@ -6,6 +6,7 @@
 // 4. replace markdown syntaxes for interface rendering
 
 let summedText = '';
+let randomId = '';
 
 function initializeMessageFormating() {
   summedText = '';
@@ -421,7 +422,9 @@ function formatGoogleCitations(content, groundingMetadata = '') {
     }
 
     let text = segment.value;
-    let unique_footnote_id = groundingMetadata.groundingSupports[0].confidenceScores[0].toString().replace('.', '').replace(/^0+/, '');
+    
+    randomId = "";
+    randomId = Math.random().toString(36).substring(2, 15);
 
     // Insert footnotes
     if (groundingMetadata?.groundingSupports?.length) {
@@ -436,7 +439,7 @@ function formatGoogleCitations(content, groundingMetadata = '') {
             indices
               .map(
                 (idx) =>
-                  `<a class="inline-citation" href="#source${unique_footnote_id}:${idx + 1}">${idx + 1}</a>`
+                  `<a class="inline-citation" href="#source${randomId}:${idx + 1}">${idx + 1}</a>`
               )
               .join(', ') +
             `</span></sup>\n`;
@@ -466,7 +469,6 @@ function formatGoogleCitations(content, groundingMetadata = '') {
   });
 
   let processedContent = segments.join('');
-  let unique_footnote_id = groundingMetadata.groundingSupports[0].confidenceScores[0].toString().replace('.', '').replace(/^0+/, '');
 
   // Add sources if available
   if (groundingMetadata?.groundingChunks?.length) {
@@ -474,7 +476,7 @@ function formatGoogleCitations(content, groundingMetadata = '') {
 
     groundingMetadata.groundingChunks.forEach((chunk, index) => {
       if (chunk.web?.uri && chunk.web?.title) {
-        const sourceLink = `${index + 1}. <a id="source${unique_footnote_id}:${index + 1}" href="${chunk.web.uri}" target="_blank" class="source-link"><b>${chunk.web.title}</b></a>\n`;
+        const sourceLink = `${index + 1}. <a id="source${randomId}:${index + 1}" href="${chunk.web.uri}" target="_blank" class="source-link"><b>${chunk.web.title}</b></a>\n`;
         const id = preservedHTML.length;
         preservedHTML.push(sourceLink);
         sourcesMarkdown += `%%HTML_PRESERVED_${id}%%`;
