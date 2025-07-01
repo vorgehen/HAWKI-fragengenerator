@@ -16,7 +16,7 @@ class LocalStorageService implements StorageServiceInterface
      * @param string|null $category Optional category/directory to store the file in
      * @return bool Whether the file was successfully stored
      */
-    public function storeFile($file, string $filename, ?string $category = null): bool
+    public function storeFile($file, string $filename, string $uuid, ?string $category): bool
     {
         $path = $this->resolvePath($category);
         
@@ -84,18 +84,6 @@ class LocalStorageService implements StorageServiceInterface
         }
         
         return null;
-    }
-    
-    /**
-     * Generate a unique filename with the original extension
-     * 
-     * @param string $originalFilename The original filename
-     * @return string A unique filename
-     */
-    public function generateUniqueFilename(string $originalFilename): string
-    {
-        $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
-        return Str::uuid() . ($extension ? '.' . $extension : '');
     }
 
     /**

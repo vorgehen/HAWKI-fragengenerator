@@ -1,7 +1,7 @@
 
 function addMessageToChatlog(messageObj, isFromServer = false){
-
-    const {messageText, groundingMetadata} = deconstContent(messageObj.content);
+    console.log(messageObj);
+    const {messageText, groundingMetadata} = deconstContent(messageObj.content.text);
 
     /// CLONE
     // clone message element
@@ -125,11 +125,31 @@ function addMessageToChatlog(messageObj, isFromServer = false){
     }
     setDateSpan(activeThread, msgDate);
 
+
+    ///ATTACHMENTS
+    console.log(messageObj.attachments);
+    if(messageObj.attachments && messageObj.attachments.length != 0){
+
+        const attachmentContainer = messageElement.querySelector('.attachments');
+
+        messageObj.attachments.forEach(attachment => {
+            const thumbnail = createAttachmentThumbnail(attachment.fileData);
+            thumbnail.addEventListener('click', ()=> {
+                downloadFile(attachment.fileData.uuid, 'private', attachment.fileData.name)
+            });
+            // Add to file preview container
+            attachmentContainer.appendChild(thumbnail);
+            // if(!attachment.imgPreview){
+
+            //     // const element = attachmentContainer.querySelector(`.attachment-icon[data-file-id="${attachment.fileData.uuid}"]`)
+            //     // cueFilePreviewCreator(attachment.fileData, element);
+            // }
+        });
+    }
+
     /// CONTENT
     // Setup Message Content
     const msgTxtElement = messageElement.querySelector(".message-text");
-
-    
 
     if(!messageElement.classList.contains('AI')){
         let processedContent = detectMentioning(messageText).modifiedText;
@@ -192,6 +212,9 @@ function addMessageToChatlog(messageObj, isFromServer = false){
         if(messageObj.message_id){
             threadDiv.id = messageObj.message_id.split('.')[0];
         }
+
+        const input = threadDiv.querySelector('.input');
+	    initFileUploader(input);
 
         messageElement.appendChild(threadDiv);
         activeThread.appendChild(messageElement);

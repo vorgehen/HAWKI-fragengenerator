@@ -131,6 +131,7 @@ Route::middleware('prevent_back')->group(function () {
     
         Route::post('/req/upload-file', [FileController::class, 'handleUploadedFile']);
         Route::post('/req/delete-file', [FileController::class, 'deleteFile']);
+        Route::post('/req/create-download-link', [FileController::class, 'createDownloadLinkToFile']);
 
     
     

@@ -55,6 +55,8 @@
 				<div class="message-author"></div>
 			</div>
 
+			<div class="attachments"></div>
+			
 			<div class="message-content">
 				<span class="assistant-mention"></span>
 				<span class="message-text"></span>
@@ -163,29 +165,33 @@
 </template>
 
 
-<template id="file-preview-thumb-template">
-	<div class="file-preview">
-		<h4 class="file-type"></h4>
-		<div class="status-indicator">
-			<div class="status" id="upload-stat">
-				<div id="loading-icon" class="send-btn-icon loading">
-					<div class="loading">
-						<x-icon name="loading"/>
+<template id="attachment-template">
+	 <div class="attachment">
+		<div class="attachment-icon">
+			{{-- <h4 class="file-type"></h4> --}}
+			<div class="status-indicator">
+				<div class="status" id="upload-stat">
+					<div id="loading-icon" class="loading">
+						<div class="loading">
+							<x-icon name="loading"/>
+						</div>
 					</div>
 				</div>
+				<div class="status" id="complete-stat">
+					<x-icon name="check"/>
+				</div>
+				<div class="status" id="error-stat">
+					<x-icon name="alert-circle"/>
+				</div>
+				
 			</div>
-			<div class="status" id="complete-stat">
-				<x-icon name="check"/>
-			</div>
-			<div class="status" id="error-stat">
-				<x-icon name="alert-circle"/>
-			</div>
-			
+			<img src="" alt="">
+		</div>
+		<div class="name-tag-cont">
+			<p class="name-tag"></p>
 		</div>
 		<button class="btn-sm remove-btn" onclick="removeFileAttachment(this)">
 			<x-icon name="x"/>
 		</button>
-		<img src="" alt="">
 	</div>
 </template>
-

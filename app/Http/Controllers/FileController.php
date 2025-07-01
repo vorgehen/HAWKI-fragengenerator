@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\StorageServices\StorageServiceFactory;
+use App\Services\StorageServices\FileHandler;
 use App\Services\StorageServices\Interfaces\StorageServiceInterface;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class FileController extends Controller
 {
@@ -26,41 +29,54 @@ class FileController extends Controller
     public function handleUploadedFile(Request $request)
     {
         // Validate uploaded file
-        $request->validate([
+        $validateData = $request->validate([
             'file' => 'required|file|max:10240', // 10MB max file size
             'name' => 'required|string',
-            'type' => 'required|string'
+            'category' => 'required|string',
+            'requestId' => 'required|string',
+            'type'=>'required|string'
         ]);
 
         try {
             // Get the uploaded file
-            $file = $request->file('file');
-            $originalName = $request->input('name');
+            $file = $validateData['file'];
+            $originalName = $validateData['name'];
             
             // Generate a unique filename to prevent overwriting
-            $uniqueFileName = $this->storageService->generateUniqueFilename($originalName);
+            $uuid = Str::uuid();
             
             // Store file in user-specific directory
-            $category = 'test'; // Can be configured based on file type or user requirements
+            $category = $validateData['category'];
             $userId = Auth::id(); // Get authenticated user ID
-            $filePath = $userId ? $userId . '/' . $uniqueFileName : $uniqueFileName;
-            
-            // Store the file using the storage service
-            $stored = $this->storageService->storeFile($file, $filePath, $category);
-            error_log('stored');
+
+            // Store the file
+            $stored = $this->storageService->storeFile($file, $originalName, $uuid, $category);
+
             if (!$stored) {
                 throw new \Exception('Failed to store file.');
             }
-            
-            // Get the URL for the stored file
-            $fileUrl = $this->storageService->getFileUrl($filePath, $category);
-            
+
+            if(str_contains($validateData['type'], 'pdf') || str_contains($validateData['type'], 'word')){
+                $fileHandler = new FileHandler();
+                $results = $fileHandler->requestPdfToMarkdown($file);
+        
+                if ($results) {
+                    foreach($results as $relativePath => $content){
+                        $filename = 'output/' . basename($relativePath);
+                        $stored = $this->storageService->storeFile($content, $filename, $uuid, $category);
+                    }
+                }
+                else{
+                    throw new \Exception('Failed to convert file.');
+                }
+            }
+
+
             return response()->json([
                 'success' => true,
                 'message' => 'File uploaded successfully',
-                'fileUrl' => $fileUrl,
-                'originalName' => $originalName,
-                'storedName' => $uniqueFileName
+                'uuid' => $uuid,
+                'requestId' => $validateData['requestId'],
             ]);
             
         } catch (\Exception $e) {
@@ -107,5 +123,36 @@ class FileController extends Controller
                 'message' => 'Failed to delete file: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+
+
+
+
+    public function createDownloadLinkToFile(Request $request){
+
+        $validateData = $request->validate([
+            'uuid' => 'required|uuid',
+            'category' => 'required|string'
+        ]);
+
+
+        $url = $this->storageService->getFileUrl(
+            $validateData['uuid'],
+            $validateData['category']
+        );
+
+        if (!$url) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found or unauthorized access'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'url' => $url
+        ]);
+
     }
 }

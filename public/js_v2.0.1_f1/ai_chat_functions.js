@@ -66,57 +66,86 @@ async function sendMessageConv(inputField) {
         return;
     }
     inputText = String(escapeHTML(inputField.value.trim()));
+    
+    const input = inputField.closest('.input');
+    const attachments = uploadQueues.get(input.id);
 
     setSendBtnStatus(SendBtnStatus.LOADING);
 
-    //create a message object.
-    let messageObj = {
-        message_role: 'user',
-        content: inputText,
-        filteredContent: detectMentioning(inputText),
-        author: {
-            username: userInfo.username,
-            name: userInfo.name,
-            avatar_url: userInfo.avatar_url,
-        }
+
+    // //create a message object.
+    // let messageObj = {
+    //     message_role: 'user',
+    //     content: {
+    //         text: inputText,
+    //         attachments: attachments,
+    //     },
+    //     filteredContent: detectMentioning(inputText),
+    //     author: {
+    //         username: userInfo.username,
+    //         name: userInfo.name,
+    //         avatar_url: userInfo.avatar_url,
+    //     }
+    // };
+
+    // if the chat is empty we need to initialize a new chatlog.
+    if (document.querySelector('.trunk').childElementCount === 0) {
+        await initNewConv(inputText);  
+    }
+
+    /// UPLOAD ATTACHMENTS
+    console.log('checkpoint');
+    const uploadTasks = Array.from(attachments).map(async attachment => {
+        const data = await uploadFileToServer(attachment.fileData, 'private');
+        attachment.fileData.uuid = data.uuid;
+    });
+    // Wait for all tasks to complete
+    await Promise.all(uploadTasks);
+
+
+    /// Encrypt message
+    const convKey = await keychainGet('aiConvKey');
+    const cryptoMsg = await encryptWithSymKey(convKey, inputText, false);
+    const ciphertext = cryptoMsg.ciphertext;
+    const iv = cryptoMsg.iv;
+    const tag = cryptoMsg.tag;
+
+    // Submit Message to server.
+    const requestObj = {
+        'isAi': false,
+        'threadID': activeThreadIndex,
+        'completion': true,
+        
+        'content': {
+            "text": ciphertext,
+            "iv": iv,
+            "tag": tag,
+        },
+        "attachments": Object.fromEntries(
+                        Object.entries(attachments).map(([key, value]) => [key, value.fileData ]))
+    }
+
+    const messageObj = await submitMessageToServer(requestObj, `/req/conv/sendMessage/${activeConv.slug}`);
+
+    messageObj.content= {
+        'text': inputText
     };
+    messageObj.attachments = attachments;
+
+    
+    
     // empty input field
     inputField.value = "";
     resizeInputField(inputField);
+    input.querySelector('.file-attachments').innerHTML = "";
 
-    // if the chat is empty we need to initialize a new chatlog.
-    let initConvPromise;
-    if (document.querySelector('.trunk').childElementCount === 0) {
-        await initNewConv(messageObj);  
-    }
-    else{
-        // ADDING MESSAGE TO CHATLOG
-        // encrypt message
-        const convKey = await keychainGet('aiConvKey');
-        const cryptoMsg = await encryptWithSymKey(convKey, messageObj.content, false);
-        messageObj.ciphertext = cryptoMsg.ciphertext;
-        messageObj.iv = cryptoMsg.iv;
-        messageObj.tag = cryptoMsg.tag;
 
-        // Submit Message to server.
+    const messageElement = addMessageToChatlog(messageObj);
 
-        const requestObj = {
-            'isAi': false,
-            'threadID': activeThreadIndex,
-            'content': messageObj.ciphertext,
-            'iv': messageObj.iv,
-            'tag': messageObj.tag,
-            'completion': true,
-        }
-        const submittedObj = await submitMessageToServer(requestObj, `/req/conv/sendMessage/${activeConv.slug}`);
-        submittedObj.content = messageObj.content;
-        submittedObj.username = userInfo.username
+    // create and add message element to chatlog.
+    messageElement.dataset.rawMsg = messageObj.content.text;
+    scrollToLast(true, messageElement);
 
-        // create and add message element to chatlog.
-        const messageElement = addMessageToChatlog(submittedObj);
-        messageElement.dataset.rawMsg = submittedObj.content;
-        scrollToLast(true, messageElement);
-    }
 
     const msgAttributes = {
         'threadIndex': activeThreadIndex,
@@ -126,7 +155,7 @@ async function sendMessageConv(inputField) {
         'model': activeModel.id,
     }
 
-    buildRequestObjectForAiConv(msgAttributes);
+    // buildRequestObjectForAiConv(msgAttributes);
 }
 
 
@@ -244,7 +273,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
 //#region CONVERSATION FUNCTIONS
 
 /// Initializing a new conversation.
-async function initNewConv(messageObj){
+async function initNewConv(firstMessage){
     
     // if start State panel is there remove it.
     chatlogElement.classList.remove('start-state');
@@ -253,16 +282,13 @@ async function initNewConv(messageObj){
     clearChatlog();
     // 
     history.replaceState(null, '', `/chat`);
-
-    //add new message Element.
-    const messageElement = addMessageToChatlog(messageObj, false);
     
     //create conversation button in the list.
     const convItem = createChatItem();
     convItem.classList.add('active');
 
     //create conversation name.
-    const convName = await generateChatName(messageObj.content, convItem);
+    const convName = await generateChatName(firstMessage, convItem);
     // console.log(convName);
     //submit conv to server.
     // after the server has accepted Submission conv data will be updated.
@@ -276,35 +302,7 @@ async function initNewConv(messageObj){
     //update active conv cache.
     activeConv = convData;
 
-    //Encyrpt message
-    const convKey = await keychainGet('aiConvKey');
-    const contData = await encryptWithSymKey(convKey, messageObj.content);
-    messageObj.ciphertext = contData.ciphertext;
-    messageObj.iv = contData.iv;
-    messageObj.tag = contData.tag;
-
-    //submit message to server
-    const requestObj = {
-        'isAi': false,
-        'threadID': activeThreadIndex,
-        'content': messageObj.ciphertext,
-        'iv': messageObj.iv,
-        'tag': messageObj.tag,
-        'completion': true,
-    }
-    const submittedObj = await submitMessageToServer(requestObj, `/req/conv/sendMessage/${activeConv.slug}`);
-
-    // submitted message content is encrypted.
-    // since we already have it we assign the unencrypted from messageObj.
-    submittedObj.content = messageObj.content;
-    // messageObj.content is still not processed. it equals the rawData.
-    messageElement.dataset.rawMsg = submittedObj.content;
-
-    // set the unassigned attirbutes to the temporarily made message Element.
-    updateMessageElement(messageElement, submittedObj);
-    // unlock message controls.
-    activateMessageControls(messageElement);
-
+    return;
 }
 
 
@@ -479,12 +477,15 @@ async function loadConv(btn=null, slug=null){
         field.textContent = systemPrompt;
     });
 
-
     const msgs = convData.messages;
     for (const msg of msgs) {
+
         const decryptedContent =  await decryptWithSymKey(convKey, msg.content, msg.iv, msg.tag);
-        msg.content = decryptedContent;
+        msg.content = [];
+        msg.content.text = decryptedContent;
         // console.log(msg.content);
+        console.log(msg);
+
     };
 
     if(msgs.length > 0){

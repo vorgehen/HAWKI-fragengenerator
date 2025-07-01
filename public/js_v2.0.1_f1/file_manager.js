@@ -1,18 +1,19 @@
-function initFileUploader(dropElement, fileInput) {
-
-    window.uploadQueue = [];
-
+//#region UPLOAD FILE
+const uploadQueues = new Map();
+function initFileUploader(inputField) {
     
-    const overlay = dropElement.querySelector('.drag-drop-overlay');
+
+    const overlay = inputField.querySelector('.drag-drop-overlay');
+    const fileInput = inputField.querySelector('#file-upload-input');
     let dragCounter = 0;
 
     // Drag and drop handling
-    dropElement.addEventListener('dragover', function(e) {
+    inputField.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.stopPropagation();
     });
 
-    dropElement.addEventListener('dragenter', function(e) {
+    inputField.addEventListener('dragenter', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -20,7 +21,7 @@ function initFileUploader(dropElement, fileInput) {
         overlay.style.display = 'flex';
     });
 
-    dropElement.addEventListener('dragleave', function(e) {
+    inputField.addEventListener('dragleave', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -31,14 +32,14 @@ function initFileUploader(dropElement, fileInput) {
         }
     });
 
-    dropElement.addEventListener('drop', function(e) {
+    inputField.addEventListener('drop', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
         dragCounter = 0;
         overlay.style.display = 'none';
 
-        handleSelectedFiles(e.dataTransfer.files);
+        handleSelectedFiles(e.dataTransfer.files, inputField);
     });
 
     // File input button handling
@@ -68,72 +69,84 @@ function selectFile() {
     document.getElementById('file-upload-input').click();
 }
 
-// Handle files from drag-drop or file picker
-function handleSelectedFiles(files) {
 
+
+// Handle files from drag-drop or file picker
+async function handleSelectedFiles(files, inputField) {
+    const fieldId = inputField.id;
     if (!files || files.length === 0) return;
-    if(window.uploadQueue.length > 10){
-        showError('Number of attached files exeeded');
-    }
 
     const allowedTypes = [
         // Images
-        'image/jpeg','image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
         // Documents
-        'application/pdf', 
-        // 'application/msword', 
-        // 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/pdf',
+        'application/msword', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         // 'application/vnd.ms-excel',
         // 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         // 'application/vnd.ms-powerpoint',
         // 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         // // Text
         // 'text/plain', 'text/csv', 'application/json',
-        // 'text/html', 'text/css', 'text/javascript',
     ];
-    
     const maxMB = 10;
     const maxFileSize = maxMB * 1024 * 1024; // 10MB limit
-    
-    // Process each file
-    Array.from(files).forEach(file => {
+
+    // Convert FileList to Array and process all files in parallel
+    const tasks = Array.from(files).map(async file => {
+
+        console.log(file.type);
         // File type validation
         if (!allowedTypes.includes(file.type)) {
             showError(`File type ${file.type} not supported.`);
-            return;
+            return null; // Early exit from this file's processing
         }
-        
+
         // File size validation
         if (file.size > maxFileSize) {
             showError(`File size exceeds ${maxMB}MB limit.`);
-            return;
+            return null;
         }
-        
-        // Prepare file for upload
-        const fileData = prepareFileForUpload(file);
-        
-        // Add file to UI
-        addFileToUI(fileData);
 
-        window.uploadQueue.push(fileData);
-        // uploadFileToServer(fileData);
+        // Prepare file for upload
+        const fileData = createFileStruct(file);
+        const attachment = createAttachmentThumbnail(fileData);
+        // Add to file preview container
+        const attachmentContainer = inputField.querySelector('.file-attachments');
+        if(!attachmentContainer.classList.contains('active')){
+            attachmentContainer.classList.add('active');
+        }
+        if (!uploadQueues.has(fieldId)) {
+            uploadQueues.set(fieldId, []);
+        }
+        uploadQueues.get(fieldId).push({ fileData });
+        attachmentContainer.querySelector('.attachments-list').appendChild(attachment);
+        // Return something useful if needed (optional)
+        return { fileData, attachment };
+        // uploadFileToServer(fileData); // Enable if you want to upload after
     });
+
+    // Wait for all tasks to complete
+    await Promise.all(tasks);
 }
+
+
 
 // Show error message when file validation fails
 function showError(message) {
     // You can implement this based on your UI design
     console.error(message);
     // Example: display toast notification
-    if (window.showToast) {
-        window.showToast(message, 'error');
-    }
+    // if (window.showToast) {
+    //     window.showToast(message, 'error');
+    // }
 }
 
 // Prepare file for upload by creating needed metadata
-function prepareFileForUpload(file) {
+function createFileStruct(file) {
     return {
-        id: generateUniqueId(),
+        tempId: generateUniqueId(),
         file: file,
         name: file.name,
         size: file.size,
@@ -149,42 +162,42 @@ function generateUniqueId() {
 }
 
 // Add file to the UI for display
-async function addFileToUI(fileData) {
+function createAttachmentThumbnail(fileData) {
 
-    const prevTemp = document.getElementById('file-preview-thumb-template')
-    const prevClone = prevTemp.content.cloneNode(true);
-    const filePreview = prevClone.querySelector(".file-preview");
-    filePreview.dataset.fileId = fileData.id;
-    filePreview.querySelector('.file-type').innerText = getFileIconText(fileData.type)
+    const attachTemp = document.getElementById('attachment-template')
+    const attachClone = attachTemp.content.cloneNode(true);
+    const attachment = attachClone.querySelector(".attachment");
+    attachment.dataset.fileId = fileData.uuid;
+    attachment.querySelector('.name-tag').innerText = fileData.name;
 
+    const imgElement = attachment.querySelector('img');
     let imgPreview = '';
     // Different preview based on file type
     if (fileData.type.startsWith('image/')) {
         // Image preview
-        imgPreview =  URL.createObjectURL(fileData.file);
-        // imgPreview = createImagePreview(fileData)
+        if(fileData.file){
+            imgPreview =  URL.createObjectURL(fileData.file);
+        }
+        attachment.querySelector('.attachment-icon').classList.add('boarder');
     } 
     if(fileData.type.startsWith('application/pdf')){
         //pdf
-        imgPreview = await createPdfPreview(fileData.file)
+        imgPreview = '/img/pdf-icon.png'
     }
 
-    filePreview.querySelector('img').setAttribute('src', imgPreview);
-    
-    // Add to file preview container
-    const previewContainer = document.querySelector('.file-attachments');
-    previewContainer.appendChild(filePreview);
-    if(!previewContainer.classList.contains('active')){
-        previewContainer.classList.add('active')
-    }
+    imgElement.setAttribute('src', imgPreview);
+
+    return attachment;
 }
-
 
 // Remove file attachment from UI and storage
 function removeFileAttachment(providerBtn) {
+    const input = providerBtn.closest('.input');
+    const list = providerBtn.closest('.attachment-list');
+    console.log('remove');
     const fileId = providerBtn.parentElement.dataset.fileId;
     // Remove from UI
-    const fileElement = document.querySelector(`.file-preview[data-file-id="${fileId}"]`);
+    const fileElement = input.querySelector(`.attachment[data-file-id="${fileId}"]`);
     if (fileElement) {
         fileElement.remove();
     }
@@ -195,53 +208,10 @@ function removeFileAttachment(providerBtn) {
     }
     
     // If no more attachments, remove container
-    const container = document.querySelector('.file-attachments');
-    if (container && container.children.length === 0) {
+    if (list && list.children.length === 0) {
         container.classList.remove('active');
     }
 }
-
-
-/**
- * Renders the first page of a PDF file as a PNG data URL.
- * @param {File} pdfFile - A File object representing a user-uploaded PDF.
- * @param {Number} [thumbnailWidth=200] - Desired thumbnail width in pixels.
- * @returns {Promise<string>} - Resolves to a PNG data URL.
- */
-async function createPdfPreview(pdfFile, thumbnailWidth = 200) {
-    // Read file to ArrayBuffer
-    const arrayBuffer = await pdfFile.arrayBuffer();
-
-    // Load PDF document
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const page = await pdf.getPage(1);
-
-    // Compute viewport for the desired width
-    const initialViewport = page.getViewport({ scale: 1 });
-    const scale = thumbnailWidth / initialViewport.width;
-    const viewport = page.getViewport({ scale });
-
-    // Create canvas
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
-
-    // Render page
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    // Get PNG dataURL
-    return canvas.toDataURL("image/png");
-}
-
-// Format file size for display
-function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
-}
-
-
 
 // Get file icon text based on file type
 function getFileIconText(fileType) {
@@ -255,88 +225,47 @@ function getFileIconText(fileType) {
     return 'FILE';
 }
 
-
 // Upload file to server
-async function uploadFileToServer(fileData) {
+async function uploadFileToServer(fileData, category) {
     // Create FormData
     const formData = new FormData();
+    formData.append('requestId', fileData.tempId);
     formData.append('file', fileData.file);
     formData.append('name', fileData.name);
     formData.append('type', fileData.type);
-    
+    formData.append('category', category);
+
     // Update status to uploading
-    updateFileStatus(fileData.id, 'uploading');
+    updateFileStatus(fileData.tempId, 'uploading');
     
-    // Send request to server
-    await fetch('/req/upload-file', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: formData
-    })
-    .then(response => {
+    try {
+        // Send request to server
+        const response = await fetch('/req/upload-file', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: formData
+        });
+
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
-        return response.json();
-    })
-    .then(data => {
-
-        console.log(data);
-        // // Update with server file info
-        // updateFileStatus(fileData.id, 'complete', data.fileUrl);
-        // return data;
-    })
-    .catch(error => {
-        console.error('Upload error:', error);
-        updateFileStatus(fileData.id, 'error');
-        showError('Failed to upload file. Please try again.');
-    });
-}
-
-
-function uploadFileToServer(fileData) {
-    // Create FormData
-    const formData = new FormData();
-    formData.append('file', fileData.file);
-    formData.append('name', fileData.name);
-    formData.append('type', fileData.type);
-    
-    // Update status to uploading
-    updateFileStatus(fileData.id, 'uploading');
-    
-    // Send request to server
-    fetch('/req/upload-file', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-
-        console.log(data);
-        // Update with server file info
-        updateFileStatus(fileData.id, 'complete', data.fileUrl);
+        const data = await response.json();
+        console.log(data)
+        updateFileStatus(data.requestId, 'complete', data.fileUrl);
         return data;
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Upload error:', error);
-        updateFileStatus(fileData.id, 'error');
-        showError('Failed to upload file. Please try again.');
-    });
+        updateFileStatus(fileData.tempId, 'error');
+        showError(`Failed to upload file ${fileData.name}. Please try again.`);
+        throw error; // Re-throw to allow Promise.allSettled to catch it
+    }
 }
 
 // Update file status in UI
 function updateFileStatus(fileId, status, fileUrl = null) {
-    const fileElement = document.querySelector(`.file-preview[data-file-id="${fileId}"]`);
+    const fileElement = document.querySelector(`.attachment-icon[data-file-id="${fileId}"]`);
     if (!fileElement) return;
     
     // Remove existing status classes
@@ -364,67 +293,166 @@ function updateFileStatus(fileId, status, fileUrl = null) {
                 break;
         }
     }
-    
-    // If we have the uploaded file URL, store it
-    if (fileUrl && fileElement.dataset) {
-        fileElement.dataset.fileUrl = fileUrl;
-    }
-    
+
     // Update in pending uploads array
     if (window.uploadQueue) {
         window.uploadQueue.forEach(item => {
             if (item.id === fileId) {
                 item.status = status;
-                if (fileUrl) item.fileUrl = fileUrl;
             }
         });
     }
 }
+//#endregion
 
-// Get all attached files in a format ready to send with message
-function getAttachedFiles() {
-    const fileElements = document.querySelectorAll('.file-preview');
-    const files = [];
+
+
+
+//#region DOWNLOAD FILE
+
+
+
+// async function downloadAttachment(uuid, category){
+
+//     const requestObj = json.stringify({
+//         'category': category,
+//         'uuid': uuid
+//     });
     
-    fileElements.forEach(element => {
-        files.push({
-            id: element.dataset.fileId,
-            url: element.dataset.fileUrl || null,
-            name: element.querySelector('.file-info').textContent.split(' (')[0],
-            status: element.className.includes('status-complete') ? 'complete' : 'pending'
+//     try {
+//         // Send request to server
+//         const response = await fetch('/req/download-file', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+//             },
+//             body: requestObj
+//         });
+
+//         if (!response.ok) {
+//             throw new Error('Network response was not ok');
+//         }
+//         const data = await response.json();
+//         console.log(data)
+//         updateFileStatus(data.requestId, 'complete', data.fileUrl);
+//         return data;
+//     } catch (error) {
+//         console.error('Upload error:', error);
+//         updateFileStatus(fileData.tempId, 'error');
+//         showError(`Failed to upload file ${fileData.name}. Please try again.`);
+//         throw error; // Re-throw to allow Promise.allSettled to catch it
+//     }
+
+
+
+// }
+
+
+
+
+async function downloadFile(uuid, category, filename) {
+    const url = await requestFileUrl(uuid, category, filename)
+    renderPdfFromBlobUrl(url);
+
+
+}
+
+
+
+async function requestFileUrl(uuid, category, filename){
+    try {
+        const response = await fetch('/req/create-download-link', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            uuid: uuid,
+            category: category,
+            filename: filename // only needed if your backend needs it
+        })
         });
-    });
-    
-    return files;
-}
 
-// Check if there are any pending file uploads
-function getPendingUploads() {
-    let pendingUploads = [];
+        const data = await response.json();
 
-    window.uploadQueue.forEach(file => {
-        if(file.status === 'pending'){
-            pendingUploads.push(file);
+        if (data.success && data.url) {
+        // Automatically start download
+
+        console.log(data);
+        return data.url;
+        const link = document.createElement('a');
+        link.href = data.url;
+        link.download = filename; // optional, sets the filename for the download
+        } else {
+        alert('Failed to get download link');
         }
-    });
-    return pendingUploads;
+    } catch (err) {
+        console.error('Download error:', err);
+        alert('An error occurred while requesting the file.');
+    }
 }
 
-// Upload all pending files
-async function uploadAllPendingFiles() {
-    const pendingFiles = getPendingUploads();
-    
 
 
 
+async function renderPdfFromBlobUrl(url) {
+    document.querySelector('#file-viewer-modal').style.display = "flex";
+    console.log(url)
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
 
-    pendingFiles.forEach(element => {
-        const fileId = element.dataset.fileId;
-        const fileData = window.uploadQueue.find(item => item.id === fileId);
-        if (fileData) {
-            uploadFileToServer(fileData);
-        }
-    });
-    
-    return pendingFiles.length > 0;
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    const container = document.getElementById('pdf-container');
+    container.innerHTML = ''; // Clear previous pages
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const pdfPage  = await pdf.getPage(pageNum);
+        const viewport = pdfPage.getViewport({ scale: 1 });
+
+        // ── Page wrapper ───────────────────────────────────────────────
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'pdf-page';
+        pageDiv.style.position = 'relative';
+        pageDiv.style.margin = '1rem auto';
+        pageDiv.style.width = '100%';
+        pageDiv.style.maxWidth = `${viewport.width}px`;
+
+        // ── Responsive canvas ─────────────────────────────────────────
+        const canvas   = document.createElement('canvas');
+        const context  = canvas.getContext('2d');
+        canvas.width   = viewport.width;
+        canvas.height  = viewport.height;
+        canvas.style.width  = '100%';
+        canvas.style.height = 'auto';
+        canvas.style.display = 'block';
+        pageDiv.appendChild(canvas);
+
+        await pdfPage.render({ canvasContext: context, viewport }).promise;
+
+        // ── Text layer ────────────────────────────────────────────────
+        // const textLayerBuilder = new TextLayerBuilder({
+        //     pdfPage,
+        //     textLayerMode: 2 // Use enhanced layout for better accuracy
+        // });
+        // console.log(textLayerBuilder)
+        // await textLayerBuilder.render({ viewport });
+        
+        // const textLayerDiv = textLayerBuilder.div;
+        // textLayerDiv.style.position = 'absolute';
+        // textLayerDiv.style.top  = '0';
+        // textLayerDiv.style.left = '0';
+        // textLayerDiv.style.width  = '100%';
+        // textLayerDiv.style.height = '100%';
+
+        // pageDiv.appendChild(textLayerDiv);
+
+        // ── Append to container ───────────────────────────────────────
+        document.getElementById('pdf-container').appendChild(pageDiv);
+    }
+
 }
+

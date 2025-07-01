@@ -63,9 +63,9 @@
 			</div>
 			<p class="warning">{{ $translation["MistakeWarning"] }}</p>
 			
-			@include('partials.home.dragDropOverlay')
 		</div>
 	</div>
+
 </div>
 
 
@@ -84,11 +84,14 @@ window.addEventListener('DOMContentLoaded', async function (){
 	else{
         switchDyMainContent('chat');
 	}
-
-	const mainPanel = document.querySelector('.dy-main-panel');
-	const fileInput = document.getElementById('file-upload-input')
-	initFileUploader(mainPanel, fileInput,);
 });
+
+
+const inputs = document.querySelectorAll('.input');
+inputs.forEach(input => {
+	initFileUploader(input);
+});
+
 
 
 </script>

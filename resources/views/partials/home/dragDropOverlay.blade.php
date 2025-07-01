@@ -1,8 +1,8 @@
-<div class="drag-drop-overlay" style="display: none">
+<div class="drag-drop-overlay">
     <div class="content">
         <div class="icon">
             <x-icon name="paperclip"/>
         </div>
-        <h1>Drop File</h1>
+        <h4>Drop File</h4>
     </div>
 </div>

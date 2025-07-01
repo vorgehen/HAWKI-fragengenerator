@@ -23,7 +23,7 @@
         "laravel-echo": "^1.16.1",
         "markdown-it": "^14.1.0",
         "pako": "^2.1.0",
-        "pdfjs-dist": "^5.1.91",
+        "pdfjs-dist": "^5.3.31",
         "pusher-js": "^8.4.0-rc2"
     },
     "optionalDependencies": {

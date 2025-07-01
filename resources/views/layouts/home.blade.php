@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="{{ asset('css_v2.0.1_f1/hljs_custom.css') }}">
 
     @vite('resources/js/app.js')
+    @vite('resources/css/app.css')
 	
 	<script src="{{ asset('js_v2.0.1_f1/functions.js') }}"></script>
 	<script src="{{ asset('js_v2.0.1_f1/home_functions.js') }}"></script>
@@ -63,6 +64,7 @@
 	@include('partials.home.modals.guidelines-modal')
 	@include('partials.home.modals.add-member-modal')
 	@include('partials.home.modals.session-expiry-modal')
+	@include('partials.home.modals.file-viewer-modal')
 	
 	@include('partials.overlay')
 	

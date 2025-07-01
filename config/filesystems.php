@@ -48,8 +48,6 @@ return [
             'throw' => false,
         ],
 
-
-
         'minio' => [
             'driver' => 's3',
             'key' => env('MINIO_ACCESS_KEY'),
@@ -58,6 +56,7 @@ return [
             'bucket' => env('MINIO_DEFAULT_BUCKET'),
             'endpoint' => env('MINIO_ENDPOINT'),
             'use_path_style_endpoint' => true,
+            'visibility' => 'private',
         ],
 
     ],

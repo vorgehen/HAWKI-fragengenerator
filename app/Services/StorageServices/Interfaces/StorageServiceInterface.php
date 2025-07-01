@@ -12,7 +12,7 @@ interface StorageServiceInterface
      * @param string|null $category Optional category to store the file in
      * @return bool Whether the file was successfully stored
      */
-    public function storeFile($file, string $filename, ?string $category = null): bool;
+    public function storeFile($file, string $filename, string $uuid, string $category): bool;
 
     /**
      * Retrieve a file from storage
@@ -21,7 +21,7 @@ interface StorageServiceInterface
      * @param string|null $category Optional category the file is stored in
      * @return string|null The file contents or null if not found
      */
-    public function retrieveFile(string $filename, ?string $category = null): ?string;
+    public function retrieveFile(string $uuid, string $category);
 
     /**
      * Delete a file from storage
@@ -30,7 +30,7 @@ interface StorageServiceInterface
      * @param string|null $category Optional category the file is stored in
      * @return bool Whether the file was successfully deleted
      */
-    public function deleteFile(string $filename, ?string $category = null): bool;
+    public function deleteFile(string $uuid, string $category): bool;
     
     /**
      * Get the public URL for a stored file
@@ -39,13 +39,6 @@ interface StorageServiceInterface
      * @param string|null $category Optional category the file is stored in
      * @return string|null The public URL or null if file not found
      */
-    public function getFileUrl(string $filename, ?string $category = null): ?string;
-    
-    /**
-     * Generate a unique filename with the original extension
-     * 
-     * @param string $originalFilename The original filename
-     * @return string A unique filename
-     */
-    public function generateUniqueFilename(string $originalFilename): string;
+    public function getFileUrl(string $uuid, string $category): ?string;
+
 }

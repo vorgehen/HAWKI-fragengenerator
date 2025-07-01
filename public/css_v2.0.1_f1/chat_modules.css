@@ -495,7 +495,12 @@
     text-justify: inter-word;
     /* border: 1px solid blue; */
 }
-
+.message-wrapper .attachments{
+    display: flex;
+    flex-direction: row;
+    column-gap: .5rem;
+    margin-bottom: .5rem;
+}
 
 .message-content {
     position: relative;
@@ -1073,6 +1078,9 @@
     display: none;
     height: fit-content;
 
+    flex-direction: row;
+    column-gap: 0.5rem;
+
     max-width: 100%;
     overflow-x: auto;
     grid-auto-flow: column;
@@ -1081,69 +1089,100 @@
     justify-content: left;
     align-items: center;
     margin: 0 1rem;
+    padding: .5rem 0;
 
     border-bottom: var(--border-stroke-hairline);
 }
 .file-attachments.active{
-    display: grid;
-}
-
-.file-preview{
-    position: relative;
     display: flex;
-    column-gap: 1.5rem;
-    align-items: center;
-
-    width: 2.5rem;
-    height: 2.5rem;
-    min-width: 2.5rem;
-    min-height: 2.5rem;
-
-    margin: .5rem;
-    border-radius: var(--border-radius-normal);
-    border: var(--border-stroke-bold);
-
+}
+.attachments-list{
+    display: flex;
+    width: fit-content;
+    column-gap: 1rem;
+}
+.attachment {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr); /* Optimized */
+    column-gap: .5rem;
+    background-color: black;
+    border-radius: 0.5rem;
+    border: 1px solid white;
+    padding: 0 0.5rem;
+    max-width: 18rem;
+    min-width: 16rem;
     overflow: hidden;
 }
 
-.file-preview img{
+.attachment-icon {
+    position: relative;
+    display: flex;
+    align-self: center;
+    gap: 1.5rem;
+    align-items: center;
+    height: 2.2rem;
+    min-width: 2.2rem;
+    min-height: 2.2rem;
+    margin: 0.5rem 0;
+    overflow: hidden;
+}
+
+.attachment-icon.boarder {
+    width: 2.5rem;
+    border-radius: var(--border-radius-normal);
+    border: var(--border-stroke-bold);
+}
+
+.attachment-icon img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center;
 }
 
-.file-preview .remove-btn{
+.attachment .remove-btn {
     display: none;
-
     position: absolute;
-    width: 100%;
-    height: 100%;
+    width: 2.2rem;
+    height: 2.2rem;
+    top: 0;
+    right: 0;
     justify-content: center;
     align-items: center;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%,rgba(0,0,0,.5) 50%,rgba(0,0,0,.8) 100%);
+    z-index: 2;
+    background: 
+        radial-gradient(ellipse at center, 
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,.5) 50%,
+        rgba(0,0,0,.8) 100%);
 }
-.file-preview:hover .remove-btn{
+
+.attachment:hover .remove-btn {
     display: flex;
 }
-.file-preview .file-type{
+
+.attachment .file-type {
     position: absolute;
     display: flex;
     color: var(--invert-Text-color);
-    bottom: -.2rem;
+    bottom: -0.2rem;
     right: 0;
     margin: 0;
     padding: 0;
+    user-select: none;
 }
-.file-preview .status-indicator{
+
+.attachment-icon .status-indicator {
     position: absolute;
     width: 100%;
     height: 100%;
+    display: flex;
     justify-content: center;
     align-items: center;
-
 }
-.file-preview .status-indicator .status{
+
+.attachment-icon .status-indicator .status {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -1151,39 +1190,61 @@
     visibility: hidden;
     align-items: center;
     justify-content: center;
-    align-items: center;
 }
-.file-preview #upload-stat svg{
+
+.attachment-icon #upload-stat svg {
     fill: var(--accent-color);
 }
-.file-preview #complete-stat svg{
+.attachment-icon #complete-stat svg {
     stroke: green;
 }
-.file-preview #error-stat svg{
+.attachment-icon #error-stat svg {
     height: 1.5rem;
     stroke: red;
 }
 
+.attachment .name-tag-cont {
+    min-width: 0;          
+    overflow: hidden;      
+    white-space: nowrap;   
+    text-overflow: ellipsis;
+    width: 100%;           
+    align-self: center;    
+    display: flex;         
+    align-items: center;
+}
 
+.attachment .name-tag {
+    font-size: var(--font-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    user-select: none;
+}
 
 
 
 
 .drag-drop-overlay{
     position: absolute;
+    display: none;
+
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
 
-    display: flex;
     justify-content: center;
     align-items: center;
-    /* opacity: 0.7; */
-    background-color: rgba(1, 1, 1, .7)
-
-
-}
+    z-index: 1;
+    overflow: hidden;
+    background-color: rgba(1, 1, 1, .65);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-radius: var(--border-radius-normal);
+    border: var(--border-stroke-bold);
+}   
 .drag-drop-overlay .content{
     display: flex;
     flex-direction: column;
@@ -1192,12 +1253,14 @@
 
 }
 .drag-drop-overlay .icon svg{
-    width: 5rem;
-    height: 5rem;
-    stroke: var(--invert-Text-color)
+    width: 1.5rem;
+    height: 1.5rem;
+    opacity: .7;
+
 }
-.drag-drop-overlay h1{
-    color: var(--invert-Text-color);
+.drag-drop-overlay h4{
+    opacity: .7;
+    margin: 0;
 }
 
 

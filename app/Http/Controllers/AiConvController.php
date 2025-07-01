@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use App\Services\StorageServices\StorageServiceFactory;
 
 class AiConvController extends Controller
 {
@@ -126,7 +127,7 @@ class AiConvController extends Controller
     /// 1. find conv in DB
     /// 2. create message array
     /// 3. return message array
-    public function fetchConvMessages(AiConv $conv){
+    private function fetchConvMessages(AiConv $conv){
                 
         $messages = $conv->messages;
         $messagesData = array();
@@ -149,6 +150,7 @@ class AiConvController extends Controller
                 'iv' => $message->iv,
                 'tag' => $message->tag,
                 'content' => $message->content,
+                'attachments' => $this->fetchMessageAttachments($message),
                 'completion' => $message->completion,
                 'created_at' => $message->created_at->format('Y-m-d+H:i'),
                 'updated_at' => $message->updated_at->format('Y-m-d+H:i'),
@@ -160,6 +162,29 @@ class AiConvController extends Controller
         
     }
 
+    private function fetchMessageAttachments(AiConvMsg $message){
+        
+        $storageService = StorageServiceFactory::create();
+        $attachments = $message->attachments;
+        if(count($attachments) === 0){
+            return null;
+        }
+        $files = [];
+        foreach($attachments as $attach){
+            $file = [
+                'fileData' => [
+                    'uuid' => $attach->uuid, 
+                    'name' => $attach->name, 
+                    'category' => $attach->category,
+                    'type' => $attach->type,
+                    'url' => $storageService->getFileUrl($attach->uuid, 
+                                                         $attach->category)
+                ]
+            ];
+            array_push($files, $file);
+        }
+        return $files;
+    }
 
     /// 1. find the conv on DB
     /// 2. check the membership validation
@@ -172,13 +197,17 @@ class AiConvController extends Controller
         $validatedData = $request->validate([
             'isAi' => 'required|boolean',
             'threadID' => 'required|integer|min:0',
-            'content' => 'required|string',
-            'iv' => 'required|string',
-            'tag' => 'required|string',
+
+            'content' => 'required|array',
+            'content.text' => 'required|string',
+            'content.iv' => 'required|string',
+            'content.tag' => 'required|string',
+
+            'attachments' => 'array',
+
             'model' => 'string',
             'completion' => 'required|boolean',
         ]);
-
 
         $conv = AiConv::where('slug', $slug)->firstOrFail();
         if ($conv->user_id !== Auth::id()) {
@@ -196,11 +225,23 @@ class AiConvController extends Controller
 
             'message_role' => $messageRole,
             'message_id' => $nextMessageId,
-            'iv' => $validatedData['iv'],
-            'tag' => $validatedData['tag'],
-            'content' => $validatedData['content'],
+            'iv' => $validatedData['content']['iv'],
+            'tag' => $validatedData['content']['tag'],
+            'content' => $validatedData['content']['text'],
             'completion' => $validatedData['completion'],
         ]);
+
+
+        //ATTACHMENTS
+        $attachments = $validatedData['attachments'];
+        foreach($attachments as $attach){
+            $message->attachments()->create([
+                'uuid' => $attach['uuid'],
+                'name' => $attach['name'],
+                'category' => 'private',
+                'type'=> $attach['type']
+            ]);
+        }
 
         // add author data + creation and update dates to response data.
         $messageData = $message->toArray();

@@ -2,7 +2,6 @@
 
 
 <div class="input-container admin-only editor-only" id="input-container">
-
     <div class="isTypingStatus"></div>
 
     <div class="input-controls" id="input-controls">
@@ -160,8 +159,11 @@
 
     </div>
     <div class="input" id="0">
+        @include('partials.home.dragDropOverlay')
 
-        <div class="file-attachments"></div>
+        <div class="file-attachments">
+            <div class="attachments-list"></div>
+        </div>
 
 
 
