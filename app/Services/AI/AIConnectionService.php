@@ -39,7 +39,6 @@ class AIConnectionService
         
         // Format the payload according to provider requirements
         $formattedPayload = $provider->formatPayload($rawPayload);
-        
         if ($streaming && $streamCallback) {
             // Handle streaming response
             return $provider->connect($formattedPayload, $streamCallback);

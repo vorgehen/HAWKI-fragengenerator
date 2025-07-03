@@ -36,6 +36,10 @@ window.EventBus = EventBus;
 import * as docx from "docx";
 window.docx = docx;
 
+import * as docxPreview from "docx-preview"
+window.docxPreview = docxPreview;
+
+
 import hljs from "highlight.js"
 window.hljs = hljs;
 

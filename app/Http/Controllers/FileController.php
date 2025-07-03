@@ -31,16 +31,13 @@ class FileController extends Controller
         // Validate uploaded file
         $validateData = $request->validate([
             'file' => 'required|file|max:10240', // 10MB max file size
-            'name' => 'required|string',
             'category' => 'required|string',
-            'requestId' => 'required|string',
-            'type'=>'required|string'
         ]);
 
         try {
             // Get the uploaded file
             $file = $validateData['file'];
-            $originalName = $validateData['name'];
+            $originalName = $file->getClientOriginalName();
             
             // Generate a unique filename to prevent overwriting
             $uuid = Str::uuid();
@@ -56,7 +53,9 @@ class FileController extends Controller
                 throw new \Exception('Failed to store file.');
             }
 
-            if(str_contains($validateData['type'], 'pdf') || str_contains($validateData['type'], 'word')){
+            $mimeType = $file->getMimeType();
+            if(str_contains($mimeType, 'pdf') || str_contains($mimeType, 'word')){
+
                 $fileHandler = new FileHandler();
                 $results = $fileHandler->requestPdfToMarkdown($file);
         
@@ -71,12 +70,10 @@ class FileController extends Controller
                 }
             }
 
-
             return response()->json([
                 'success' => true,
                 'message' => 'File uploaded successfully',
                 'uuid' => $uuid,
-                'requestId' => $validateData['requestId'],
             ]);
             
         } catch (\Exception $e) {

@@ -218,7 +218,7 @@ class GWDGProvider extends OpenAIProvider
     // /**
     // * Ping the API to check status of all models
     // */
-    public function checkAllModelsStatus(): array
+    public function checkAllModelsStatus(): ?array
     {
         $response = $this->pingProvider();
         if($response){
@@ -238,7 +238,7 @@ class GWDGProvider extends OpenAIProvider
      */
     protected function pingProvider()
     {        
-        return null;
+
         $url = $this->config['ping_url'];
         $apiKey = $this->config['api_key'];
 

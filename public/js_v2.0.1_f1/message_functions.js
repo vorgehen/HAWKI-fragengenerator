@@ -1,6 +1,6 @@
 
 function addMessageToChatlog(messageObj, isFromServer = false){
-    console.log(messageObj);
+
     const {messageText, groundingMetadata} = deconstContent(messageObj.content.text);
 
     /// CLONE
@@ -127,7 +127,6 @@ function addMessageToChatlog(messageObj, isFromServer = false){
 
 
     ///ATTACHMENTS
-    console.log(messageObj.attachments);
     if(messageObj.attachments && messageObj.attachments.length != 0){
 
         const attachmentContainer = messageElement.querySelector('.attachments');
@@ -135,7 +134,7 @@ function addMessageToChatlog(messageObj, isFromServer = false){
         messageObj.attachments.forEach(attachment => {
             const thumbnail = createAttachmentThumbnail(attachment.fileData);
             thumbnail.addEventListener('click', ()=> {
-                downloadFile(attachment.fileData.uuid, 'private', attachment.fileData.name)
+                previewFile(attachment.fileData, 'private')
             });
             // Add to file preview container
             attachmentContainer.appendChild(thumbnail);
@@ -622,7 +621,6 @@ async function confirmEditMessage(provider){
     const messageElement = provider.closest('.message');
 
     if(!messageElement.classList.contains('me')){
-        // console.log('Not Your Message!');
         return;
     }
 
@@ -660,7 +658,6 @@ async function confirmEditMessage(provider){
             if(messageElement.dataset.role === 'assistant'){
                 const aiCryptoSalt = await fetchServerSalt('AI_CRYPTO_SALT');
                 key = await deriveKey(roomKey, activeRoom.slug, aiCryptoSalt);
-                // console.log(key);
             }else{
                 key = roomKey;
             }
@@ -697,7 +694,6 @@ async function onRegenerateBtn(btn){
 
 async function regenerateMessage(messageElement, Done = null){
     if(!messageElement.classList.contains('AI')){
-        // console.log('Not AI Message!');
         return;
     }
     const threadIndex = messageElement.closest('.thread').id;
@@ -715,7 +711,7 @@ async function regenerateMessage(messageElement, Done = null){
                 'broadcasting': false,
                 'slug': '',
                 'regenerationElement': messageElement,
-                'stream': activeModel.streamable ? true : false,
+                'stream': activeModel.tools.stream ? true : false,
                 'model': activeModel.id,
             }
 
@@ -741,7 +737,6 @@ async function regenerateMessage(messageElement, Done = null){
                 'stream': false,
                 'model': activeModel.id,
             }
-            // console.log('buildRequestObject');
             buildRequestObject(msgAttributes,  async (updatedText, done) => {});
         break;
     }

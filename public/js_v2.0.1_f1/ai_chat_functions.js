@@ -72,35 +72,20 @@ async function sendMessageConv(inputField) {
 
     setSendBtnStatus(SendBtnStatus.LOADING);
 
-
-    // //create a message object.
-    // let messageObj = {
-    //     message_role: 'user',
-    //     content: {
-    //         text: inputText,
-    //         attachments: attachments,
-    //     },
-    //     filteredContent: detectMentioning(inputText),
-    //     author: {
-    //         username: userInfo.username,
-    //         name: userInfo.name,
-    //         avatar_url: userInfo.avatar_url,
-    //     }
-    // };
-
     // if the chat is empty we need to initialize a new chatlog.
     if (document.querySelector('.trunk').childElementCount === 0) {
         await initNewConv(inputText);  
     }
 
     /// UPLOAD ATTACHMENTS
-    console.log('checkpoint');
-    const uploadTasks = Array.from(attachments).map(async attachment => {
-        const data = await uploadFileToServer(attachment.fileData, 'private');
-        attachment.fileData.uuid = data.uuid;
-    });
-    // Wait for all tasks to complete
-    await Promise.all(uploadTasks);
+    if(attachments && attachments.length > 0){
+        const uploadTasks = Array.from(attachments).map(async attachment => {
+            const data = await uploadFileToServer(attachment.fileData, 'private');
+            attachment.fileData.uuid = data.uuid;
+        });
+        // Wait for all tasks to complete
+        await Promise.all(uploadTasks);
+    }
 
 
     /// Encrypt message
@@ -110,6 +95,11 @@ async function sendMessageConv(inputField) {
     const iv = cryptoMsg.iv;
     const tag = cryptoMsg.tag;
 
+
+    const attachlist = attachments && attachments.length > 0 ? 
+                       Object.fromEntries(Object.entries(attachments).map(([key, value]) => [key, value.fileData ])):
+                       null;
+    console.log(attachlist);
     // Submit Message to server.
     const requestObj = {
         'isAi': false,
@@ -121,8 +111,7 @@ async function sendMessageConv(inputField) {
             "iv": iv,
             "tag": tag,
         },
-        "attachments": Object.fromEntries(
-                        Object.entries(attachments).map(([key, value]) => [key, value.fileData ]))
+        "attachments": attachlist
     }
 
     const messageObj = await submitMessageToServer(requestObj, `/req/conv/sendMessage/${activeConv.slug}`);
@@ -173,7 +162,6 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
                 setSendBtnStatus(SendBtnStatus.STOPPABLE);
             }
 
-            // console.log(data.content);
             const {messageText, groundingMetadata} = deconstContent(data.content);
             if(groundingMetadata != ""){
                 metadata = groundingMetadata;
@@ -239,11 +227,14 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
             
             const requestObj = {
                 'threadID': activeThreadIndex,
-                'content': messageObj.ciphertext,
-                'iv': messageObj.iv,
-                'tag': messageObj.tag,
+                'content':{
+                    'text': messageObj.ciphertext,
+                    'iv': messageObj.iv,
+                    'tag': messageObj.tag,
+                },
                 'model': messageObj.model,
-                'completion': messageObj.completion
+                'completion': messageObj.completion,
+                'attachments': null
             }
 
             if(isUpdate){
@@ -289,7 +280,7 @@ async function initNewConv(firstMessage){
 
     //create conversation name.
     const convName = await generateChatName(firstMessage, convItem);
-    // console.log(convName);
+
     //submit conv to server.
     // after the server has accepted Submission conv data will be updated.
     const convData = await submitConvToServer(convName);
@@ -393,7 +384,6 @@ async function generateChatName(firstMessage, convItem) {
 
 
 async function submitConvToServer(convName) {
-    // console.log(convName);
     const systemPrompt = document.querySelector('#system_prompt_field').textContent;
     const convKey = await keychainGet('aiConvKey');
     const cryptSystemPrompt = await encryptWithSymKey(convKey, systemPrompt, false);
@@ -483,8 +473,6 @@ async function loadConv(btn=null, slug=null){
         const decryptedContent =  await decryptWithSymKey(convKey, msg.content, msg.iv, msg.tag);
         msg.content = [];
         msg.content.text = decryptedContent;
-        // console.log(msg.content);
-        console.log(msg);
 
     };
 
@@ -552,12 +540,10 @@ async function requestDeleteConv() {
         const data = await response.json();
 
         if (data.success) {
-            // console.log('conv removed successfully');
-
             const listItem = document.querySelector(`.selection-item[slug="${activeConv.slug}"]`);
             const list = listItem.parentElement;
             listItem.remove();
-            // console.log(list.childElementCount);
+
             if(list.childElementCount > 0){
                 loadConv(list.firstElementChild, null);
             }

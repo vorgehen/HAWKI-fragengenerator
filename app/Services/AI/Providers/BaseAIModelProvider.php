@@ -60,9 +60,27 @@ abstract class BaseAIModelProvider implements AIModelProviderInterface
      */
     public function supportsStreaming(string $modelId): bool
     {
-        return $this->getModelDetails($modelId)['streamable'] ?? false;
+        $details = $this->getModelDetails($modelId);
+        if(in_array('stream', $details['tools'])){
+
+            return true;
+        }
+        else{
+            return false;
+        }
     }
     
+    public function hasTool(string $modelId, string $tool): bool
+    {
+        $tools = $this->getModelDetails($modelId)['tools'];
+        if(in_array($tool, $tools) && $tools[$tool] === true){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
     /**
      * Establish a connection to the AI provider's API
      *
@@ -73,9 +91,8 @@ abstract class BaseAIModelProvider implements AIModelProviderInterface
     public function connect(array $payload, ?callable $streamCallback = null)
     {
         $modelId = $payload['model'];
-        
         // Determine whether to use streaming or non-streaming
-        if ($streamCallback && $this->supportsStreaming($modelId)) {
+        if ($streamCallback && $this->hasTool($modelId, 'stream')) {
             return $this->makeStreamingRequest($payload, $streamCallback);
         } else {
             return $this->makeNonStreamingRequest($payload);

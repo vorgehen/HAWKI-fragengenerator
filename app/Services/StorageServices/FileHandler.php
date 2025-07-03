@@ -77,4 +77,18 @@ class FileHandler
         }
     }
 
+
+    public function convertToAttachmentType($type){
+
+        if(str_contains($type, 'pdf') || 
+           str_contains($type, 'word')){
+            return 'document';
+        }
+
+        if(str_contains($type, 'image')){
+            return 'image';
+        }
+    }
+
+
 }

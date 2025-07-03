@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('uuid');
             $table->string('name');
             $table->string('category');
-            $table->string('type');
+            $table->enum('type', ['image', 'document', 'audio', 'video', 'other']);
             $table->timestamps();
         });
     }

@@ -9,6 +9,7 @@ use App\Services\AI\Providers\GoogleProvider;
 use App\Services\AI\Providers\OllamaProvider;
 use App\Services\AI\Providers\OpenWebUIProvider;
 
+use Illuminate\Support\Facades\Log;
 
 class AIProviderFactory
 {

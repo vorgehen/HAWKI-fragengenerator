@@ -96,7 +96,6 @@ async function handleSelectedFiles(files, inputField) {
     // Convert FileList to Array and process all files in parallel
     const tasks = Array.from(files).map(async file => {
 
-        console.log(file.type);
         // File type validation
         if (!allowedTypes.includes(file.type)) {
             showError(`File type ${file.type} not supported.`);
@@ -172,21 +171,24 @@ function createAttachmentThumbnail(fileData) {
 
     const imgElement = attachment.querySelector('img');
     let imgPreview = '';
-    // Different preview based on file type
-    if (fileData.type.startsWith('image/')) {
-        // Image preview
-        if(fileData.file){
-            imgPreview =  URL.createObjectURL(fileData.file);
+
+    const type = checkFileFormat(fileData.type);
+    switch(type){
+        case('img'):
+        if (fileData.file) {
+            imgPreview = URL.createObjectURL(fileData.file);
         }
         attachment.querySelector('.attachment-icon').classList.add('boarder');
-    } 
-    if(fileData.type.startsWith('application/pdf')){
-        //pdf
-        imgPreview = '/img/pdf-icon.png'
+        break;
+        case('pdf'): 
+            imgPreview = '/img/fileformat/pdf.png';
+        break;
+        case('docx'):
+            imgPreview = '/img/fileformat/doc.png';
+        break;
     }
 
     imgElement.setAttribute('src', imgPreview);
-
     return attachment;
 }
 
@@ -229,10 +231,7 @@ function getFileIconText(fileType) {
 async function uploadFileToServer(fileData, category) {
     // Create FormData
     const formData = new FormData();
-    formData.append('requestId', fileData.tempId);
     formData.append('file', fileData.file);
-    formData.append('name', fileData.name);
-    formData.append('type', fileData.type);
     formData.append('category', category);
 
     // Update status to uploading
@@ -252,6 +251,7 @@ async function uploadFileToServer(fileData, category) {
             throw new Error('Network response was not ok');
         }
         const data = await response.json();
+        console.log('uploaded file data');
         console.log(data)
         updateFileStatus(data.requestId, 'complete', data.fileUrl);
         return data;
@@ -306,6 +306,28 @@ function updateFileStatus(fileId, status, fileUrl = null) {
 //#endregion
 
 
+//#region Utils
+
+function checkFileFormat(type){
+
+    if (type.startsWith('image/')) {
+        return 'img';
+    } else if (type.includes('pdf')) {
+        return 'pdf';
+    } else if (type.includes('msword') || 
+               type.includes('wordprocessingml')) {
+        return 'docx';
+    } else {
+        return null;
+    }
+
+}
+
+
+//#endregion
+
+
+
 
 
 //#region DOWNLOAD FILE
@@ -351,9 +373,32 @@ function updateFileStatus(fileId, status, fileUrl = null) {
 
 
 
-async function downloadFile(uuid, category, filename) {
-    const url = await requestFileUrl(uuid, category, filename)
-    renderPdfFromBlobUrl(url);
+async function previewFile(fileData, category) {
+    const url = await requestFileUrl(fileData.uuid, category, fileData.filename)
+    const response = await fetch(url);
+    const blob = await response.blob();
+    
+    const type = checkFileFormat(fileData.type);
+
+    switch(type){
+        case('img'):
+        if (fileData.file) {
+            imgPreview = URL.createObjectURL(fileData.file);
+        }
+        attachment.querySelector('.attachment-icon').classList.add('boarder');
+        break;
+        case('pdf'): 
+            renderPdf(blob);
+        break;
+        case('docx'):
+            renderDocx(blob);
+
+        break;
+    }
+
+
+
+    document.querySelector('#file-viewer-modal').style.display = "flex";
 
 
 }
@@ -397,16 +442,13 @@ async function requestFileUrl(uuid, category, filename){
 
 
 
-async function renderPdfFromBlobUrl(url) {
-    document.querySelector('#file-viewer-modal').style.display = "flex";
-    console.log(url)
-    const response = await fetch(url);
-    const blob = await response.blob();
+async function renderPdf(blob) {
+
     const arrayBuffer = await blob.arrayBuffer();
 
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-    const container = document.getElementById('pdf-container');
+    const container = document.getElementById('file-preview-container');
     container.innerHTML = ''; // Clear previous pages
 
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -451,8 +493,17 @@ async function renderPdfFromBlobUrl(url) {
         // pageDiv.appendChild(textLayerDiv);
 
         // ── Append to container ───────────────────────────────────────
-        document.getElementById('pdf-container').appendChild(pageDiv);
+        container.appendChild(pageDiv);
     }
 
 }
 
+
+
+async function renderDocx(blob){
+    const container = document.getElementById('file-preview-container');
+    container.innerHTML = '';
+
+    docxPreview.renderAsync(blob, container)
+        .then(x => console.log("docx: finished"));
+}

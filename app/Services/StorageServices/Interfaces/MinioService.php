@@ -168,7 +168,7 @@ class MinioService implements StorageServiceInterface
      * e.g. $fileType = 'md', 'png', 'jpg'
      * @return array [ [ 'path' => ..., 'contents' => ...], ... ]
      */
-    public function getOutputFilesByType(string $uuid, string $category, string $fileType)
+    public function retrieveOutputFilesByType(string $uuid, string $category, string $fileType)
     {
         $category = $category ?? 'default';
         $outputFolder = $this->buildFolder($category, $uuid) . '/output';

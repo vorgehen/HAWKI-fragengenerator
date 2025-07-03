@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use App\Services\StorageServices\StorageServiceFactory;
+use App\Services\StorageServices\FileHandler;
 
 class AiConvController extends Controller
 {
@@ -203,12 +204,12 @@ class AiConvController extends Controller
             'content.iv' => 'required|string',
             'content.tag' => 'required|string',
 
-            'attachments' => 'array',
+            'attachments' => 'nullable|array',
 
             'model' => 'string',
             'completion' => 'required|boolean',
         ]);
-
+        
         $conv = AiConv::where('slug', $slug)->firstOrFail();
         if ($conv->user_id !== Auth::id()) {
             return response()->json(['error' => 'Access denied'], 403);
@@ -234,13 +235,21 @@ class AiConvController extends Controller
 
         //ATTACHMENTS
         $attachments = $validatedData['attachments'];
-        foreach($attachments as $attach){
-            $message->attachments()->create([
-                'uuid' => $attach['uuid'],
-                'name' => $attach['name'],
-                'category' => 'private',
-                'type'=> $attach['type']
-            ]);
+        $fileHandler = new FileHandler();
+
+        if($attachments){
+            foreach($attachments as $attach){
+                $file = $attach['file'];
+                $type = $fileHandler->convertToAttachmentType($attach['type']);
+
+
+                $message->attachments()->create([
+                    'uuid' => $attach['uuid'],
+                    'name' => $attach['name'],
+                    'category' => 'private',
+                    'type'=> $type
+                ]);
+            }
         }
 
         // add author data + creation and update dates to response data.

@@ -7,12 +7,16 @@ use App\Http\Controllers\RoomController;
 use App\Models\User;
 use App\Models\Room;
 use App\Models\Message;
+use App\Models\Attachment;
 use App\Models\Member;
 
 
 use App\Services\AI\UsageAnalyzerService;
 use App\Services\AI\AIConnectionService;
 use App\Services\AI\AIProviderFactory;
+
+use App\Services\StorageServices\StorageServiceFactory;
+
 
 use App\Jobs\SendMessage;
 use App\Events\RoomMessageEvent;
@@ -106,6 +110,7 @@ class StreamController extends Controller
             'payload.messages.*.role' => 'required|string',
             'payload.messages.*.content' => 'required|array',
             'payload.messages.*.content.text' => 'required|string',
+            'payload.messages.*.content.attachments' => 'nullable|array',
 
             'broadcast' => 'required|boolean',
             'isUpdate' => 'nullable|boolean',
@@ -115,7 +120,8 @@ class StreamController extends Controller
             'key' => 'nullable|string',
         ]);
 
-
+        $validatedData['payload'] = $this->handleAttachments($validatedData['payload']);
+        Log::debug($validatedData);
         if ($validatedData['broadcast']) {
             $this->handleGroupChatRequest($validatedData);
         } else {
@@ -350,4 +356,73 @@ class StreamController extends Controller
         broadcast(new RoomMessageEvent($generationStatus));
     }
     
+
+private function handleAttachments($payload)
+{
+    $orgMessages = $payload['messages'];
+    $newMessages = [];
+
+    foreach ($orgMessages as $msg) {
+        if(array_key_exists('attachments', $msg['content']) && count($msg['content']['attachments']) > 0){        
+            // Assume `$msg` has a structure with optional attachments
+            $attachments = $msg['content']['attachments'] ?? [];
+
+            // Add context messages for each attachment
+            foreach ($attachments as $uuid) {
+                $model = Attachment::where('uuid', $uuid)->first();
+                if (!$model) {
+                    throw new \Exception('Attachment model not found');
+                }
+                // Retrieve Markdown contents
+                $storageService = StorageServiceFactory::create();
+
+                // (Optional) Check type here
+                if($model->type === 'image') {
+                    Log::debug('image detected');
+                    $url = $storageService->getFileUrl($uuid, 'private');
+                    $msg = [
+                        'role' => $msg['role'],
+                        'content'=> [
+                            [
+                                'text' => $msg['content']['text'],
+                                'type' => "text"
+                            ],
+                            [
+                                'image_url' => $url,
+                                'type' => 'image_url'
+                            ]
+                        ]
+                    ];
+                }
+                else{
+                    $files = $storageService->retrieveOutputFilesByType($uuid, 'private', 'md');
+                    foreach ($files as $fileData) {
+                        $fileContent = $fileData['contents'];
+                        // Compose an explicit context message - adapt roles as needed
+                        $html_safe = htmlspecialchars($fileContent);
+                        $newMessages[] = [
+                            'role' => 'user',
+                            'content' => [
+                                'text' => "ATTACHED FILE CONTEXT: \"{$model->filename}\"
+                                ---
+                                {$html_safe}
+                                ---"
+                                ]
+                            ];
+                    }
+
+                }
+            }
+        }
+        // Add the original message itself, now that its context has been inserted
+        $newMessages[] = $msg;
+
+
+    }
+
+    // Replace messages in payload
+    $payload['messages'] = $newMessages;
+    return $payload;
+}
+
 }

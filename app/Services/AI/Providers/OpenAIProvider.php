@@ -163,7 +163,6 @@ class OpenAIProvider extends BaseAIModelProvider
         }
         
         curl_close($ch);
-        
         return response($response)->header('Content-Type', 'application/json');
     }
     

@@ -4,7 +4,7 @@
                 <x-icon name="x"/>  
             </div>
             <div class="scroll-container" id="file-scroll-container">
-                <div class="scroll-panel" id="pdf-container">asda</div>
+                <div class="scroll-panel" id="file-preview-container">asda</div>
             </div>
 
 

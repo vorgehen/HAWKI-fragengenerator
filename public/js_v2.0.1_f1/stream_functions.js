@@ -8,7 +8,7 @@ function buildRequestObject(msgAttributes, onData) {
     const msgID = msgAttributes['regenerationElement'] ? msgAttributes['regenerationElement'].id : null;
     const requestModel = activeModel;
 
-    const stream = requestModel.streamable ? msgAttributes['stream'] : false;
+    const stream = requestModel.tools.stream ? msgAttributes['stream'] : false;
 
     const requestObject = {
         broadcast: msgAttributes['broadcasting'],
@@ -204,11 +204,16 @@ function createMsgObject(msg){
     // ToDo: insert search results
     // I'm not sure if the data from processStream() lands before getting plotted
     const filteredText = detectMentioning(msgTxt).filteredText;
+    
+    const attachmentEls = msg.querySelectorAll('.attachment');
+    const attachments = Array.from(attachmentEls, att => att.dataset.fileId);
+
 
     messageObject = {
         role: role,
         content:{
             text: filteredText,
+            attachments: attachments
         }
     }
     return messageObject;
