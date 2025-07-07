@@ -345,6 +345,18 @@ function setModel(modelID = null){
     activeModel = model;
     localStorage.setItem("definedModel", activeModel.id);
 
+    // If the selected model is a web search model, enable the web search button
+    if (activeModel.id === 'gemini-2.0-flash-exp') {
+        const webSearchButton = document.querySelector('.websearch-icon').parentElement;
+        if (webSearchButton) {
+            webSearchButton.classList.add('active');
+        }
+    } else {
+        const webSearchButton = document.querySelector('.websearch-icon').parentElement;
+        if (webSearchButton) {
+            webSearchButton.classList.remove('active');
+        }
+    }
 
     //UI UPDATE...
     const selectors = document.querySelectorAll('.model-selector');
@@ -362,6 +374,20 @@ function setModel(modelID = null){
             selector.classList.remove('active');
         }
     });
+
+}
+
+// Change the Model to a websearch capable model (available models atm.: gemini-2.0-flash-exp)
+function selectWebSearch(button) {
+    const isActive = button.classList.contains('active');
+
+    if (isActive) {
+        button.classList.remove('active');
+        setModel(defaultModel);
+    } else {
+        button.classList.add('active');
+        setModel('gemini-2.0-flash-exp');
+    }
 
 }
 //#endregion

@@ -1244,6 +1244,15 @@
     font-weight: 700 !important;
 }
 
+.fast-access-btn .websearch-icon {
+    color: black;
+    transition: color 0.2s ease;
+}
+
+.fast-access-btn.active .websearch-icon {
+    color: skyblue;
+}
+
 /* #model-selector-burger{
     bottom: 110%;
     right: 0;
