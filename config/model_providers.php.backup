@@ -1,0 +1,389 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    |   Default AI Model
+    |--------------------------------------------------------------------------
+    |   This Model is used by default before the user choses their
+    |   desired model.
+    */
+    'defaultModel' => 'gpt-4.1',
+
+    /*
+    |--------------------------------------------------------------------------
+    |   System Models
+    |--------------------------------------------------------------------------
+    |
+    |   The system models are responsible for different automated processes
+    |   such as title generation and prompt improvement.
+    |   Add your desired models id. Make sure that the model is included and
+    |   active in the providers list below.
+    |
+    */
+    'system_models' => [
+        'title_generator' => 'gpt-4.1-nano',
+        'prompt_improver' => 'gpt-4.1-nano',
+        'summarizer' => 'gpt-4.1-nano',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    |   Model Providers
+    |--------------------------------------------------------------------------
+    |
+    |   List of model providers available on HAWKI. Add your API Key and
+    |   activate the providers.
+    |   To include other providers in this list please refer to the
+    |   documentation of HAWKI
+    |
+    */
+    'providers' =>[
+        'openai' => [
+            'id' => 'openai',
+            'active' => true,
+            'api_key' => env('OPENAI_API_KEY'),
+            'api_url' => 'https://api.openai.com/v1/chat/completions',
+            'ping_url' => 'https://api.openai.com/v1/models',
+
+            'models' => [
+                [
+                    'id' => 'gpt-4.1',
+                    'label' => 'OpenAI GPT 4.1',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'inputs' => [
+                        'pdf'=> true,
+                        'image'=> true,
+                    ]
+                ],
+                [
+                    'id' => 'gpt-4.1-nano',
+                    'label' => 'OpenAI GPT 4.1 Nano',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'inputs' => [
+                        'pdf'=> true,
+                        'image'=> true,
+                    ]
+                ],
+                [
+                    'id' => 'o1-mini',
+                    'label' => 'OpenAI O1 mini',
+                    'streamable' => false,
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'inputs' => [
+                        'pdf'=> true,
+                        'image'=> true,
+                    ]
+                ],
+                [
+                    'id' => 'o1',
+                    'label' => 'OpenAI O1',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'inputs' => [
+                        'pdf'=> true,
+                        'image'=> true,
+                    ]
+                ],
+                [
+                    'id' => 'o3-mini',
+                    'label' => 'OpenAI O3 mini',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'inputs' => [
+                        'pdf'=> true,
+                        'image'=> true,
+                    ]
+                ],
+                [
+                    'id' => 'o3-2025-04-16',
+                    'label' => 'OpenAI O3',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'inputs' => [
+                        'pdf'=> true,
+                        'image'=> true,
+                    ]
+                ]
+            ]
+        ],
+
+        'gwdg' => [
+            'id' => 'gwdg',
+            'active' => true,
+            'api_key' => env('GWDG_API_KEY'),
+            'api_url' => 'https://chat-ai.academiccloud.de/v1/chat/completions',
+            'ping_url' => 'https://chat-ai.academiccloud.de/v1/models',
+            'status_check'=>false,
+
+            'models' => [
+                // [
+                //     'id' => 'llama-4-scout-17b-16e-instruct',
+                //     'label' => 'GWDG Llama 4 Scout 17B 16E Instruct',
+                // ],
+                [
+                    'id' => 'llama-3.3-70b-instruct',
+                    'label' => 'GWDG Meta Llama 3.3 70B Instruct',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'mistral-large-instruct',
+                    'label' => 'GWDG Mistral Large Instruct',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'qwen2.5-72b-instruct',
+                    'label' => 'GWDG Qwen 2.5 72b Instruct',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'qwen2.5-coder-32b-instruct',
+                    'label' => 'GWDG Qwen 2.5 Coder 32B Instruct',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'deepseek-r1-distill-llama-70b',
+                    'label' => 'GWDG DeepSeek R1 Distill Llama 70B',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'codestral-22b',
+                    'label' => 'GWDG Codestral 22b',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'gemma-3-27b-it',
+                    'label' => 'GWDG Gemma 3 27B Instruct',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'internvl2.5-8b',
+                    'label' => 'GWDG Internvl 2.5 8b',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+
+            ]
+        ],
+
+        'google' => [
+            'id' => 'google',
+            'active' => true,
+            'api_key' => env('GOOGLE_API_KEY'),
+            'api_url' => 'https://generativelanguage.googleapis.com/v1beta/models/',
+            'stream_url' => 'https://generativelanguage.googleapis.com/v1beta/models/',
+            'ping_url' => '',
+            'allow_search' => true,
+            'models' => [
+                [
+                    'id' => 'gemini-1.5-flash',
+                    'label' => 'Google Gemini 1.5 Flash',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'search_tool'=> false,
+                ],
+                [
+                    'id' => 'gemini-2.0-flash',
+                    'label' => 'Google Gemini 2.0 Flash',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'search_tool'=> true,
+                ],
+                [
+                    'id' => 'gemini-2.0-flash-lite',
+                    'label' => 'Google Gemini 2.0 Flash Lite',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'search_tool'=> false,
+                ],
+                [
+                    'id' => 'gemini-2.5-pro-exp-03-25',
+                    'label' => 'Google Gemini 2.5 Pro Experimental',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                    'search_tool'=> true,
+                ],
+
+            ]
+        ],
+        'ollama'=> [
+            'id' => 'ollama',
+            'active' => true,
+            'api_url' => 'https://192.168.0.161/api/generate',
+            'models' => [
+                [
+                    'id' => 'llama3.2',
+                    'label' => 'Llama 3.2',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'llava',
+                    'label' => 'Llava',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ],
+                [
+                    'id' => 'command-r',
+                    'label' => 'Command R',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ]
+
+            ]
+        ],
+
+        'openWebUi' => [
+            'id' => 'openWebUi',
+            'active' => false,
+            'api_key' => env('OPEN_WEB_UI_API_KEY'),
+            'api_url' => 'your_url/api/chat/completions',
+            'ping_url' => 'your_url/api/models',
+            'models' => [
+                [
+                    'id' => 'model-id',
+                    'label' => 'Model Name',
+                    'tools' => [
+                        'stream' => true,
+                        'image_generation' => true,
+                        'vision' => true,
+                        'search_tool' => true,
+                        'file_upload' => true,
+                    ],
+                ]
+            ]
+        ],
+        // 'rag' => [
+        //     'id' => 'rag',
+        //     'active' => true,
+        //     'api_key' => env('VECTOR_DB_API_KEY', 'localhost'),
+        //     // 'api_url' => 'http://192.168.0.161/api/search',
+        //     'api_url' => 'http://127.0.0.1:8001/api/search',
+        //     'ping_url' => '',
+        //     'models' => [
+        //         [
+        //             'id' => 'vector-db',
+        //             'label' => 'Vector Database',
+        //         ],
+        //     ]
+        // ]
+
+
+    ]
+];
