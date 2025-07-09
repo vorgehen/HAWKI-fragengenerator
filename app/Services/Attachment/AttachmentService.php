@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Services\Attachment;
+
+
+use App\Models\AiConvMsg;
+use App\Models\Message;
+use App\Models\Attachment;
+
+use App\Services\Attachment\AttachmentFactory;
+
+use App\Services\StorageServices\StorageServiceFactory;
+use App\Services\StorageServices\Interfaces\StorageServiceInterface;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+
+class AttachmentService{
+
+    protected $storageService;
+    public function __construct(){
+        $this->storageService = StorageServiceFactory::create();
+    }
+
+    public function store($file, $category)
+    {
+        // GET FILE TYPE
+        $mime = $file->getMimeType();
+        $type = $this->convertToAttachmentType($mime);
+        // CREATE HANDLER
+        $attachmentHandler = AttachmentFactory::create($type);
+        // STORE FILE BASED ON TYPE
+        $result = $attachmentHandler->store($file, $category);
+        return $result;
+    }
+
+
+
+    public function retrieve(string $uuid, string $category, $output = null, $type = null)
+    {
+        try{
+            $file = $this->storageService->retrieveFile($uuid, $category);
+            return $file;
+        }
+        catch(\Exception $e){
+            Log::error("Error retrieving file", ["UUID"=> $uuid, "category"=> $category]);
+            return null;
+        }
+    }
+
+    public function delete(string $uuid, string $category): bool
+    {
+        try{
+            $this->storageService->deleteFile($uuid, $category);
+            return true;
+        }
+        catch(\Exception $e){
+            return false;
+        }
+    }
+
+
+    public function convertToAttachmentType($mime){
+
+        if(str_contains($mime, 'pdf') ||
+           str_contains($mime, 'word')){
+            return 'document';
+        }
+        if(str_contains($mime, 'image')){
+            return 'image';
+        }
+    }
+
+
+    public function assignToMessage(AiConvMsg|Message $message, array $data): bool
+    {
+        try{
+            $type = $this->convertToAttachmentType($data['mime']);
+            $message->attachments()->create([
+                'uuid' => $data['uuid'],
+                'name' => $data['name'],
+                'category' => $message instanceof AiConvMsg ? 'private' : 'group',
+                'mime'=> $data['mime'],
+                'type'=> $type,
+                'user_id'=> Auth::id()
+            ]);
+            return true;
+        }
+        catch(e){
+            return false;
+        }
+    }
+
+
+
+}

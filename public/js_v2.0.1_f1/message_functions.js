@@ -1,6 +1,7 @@
 
 function addMessageToChatlog(messageObj, isFromServer = false){
 
+    console.log(messageObj);
     const {messageText, groundingMetadata} = deconstContent(messageObj.content.text);
 
     /// CLONE
@@ -16,14 +17,14 @@ function addMessageToChatlog(messageObj, isFromServer = false){
     messageElement.dataset.role = messageObj.message_role;
     messageElement.dataset.rawMsg = messageText;
     // messageElement.dataset.groundingMetadata = JSON.stringify(groundingMetadata);
-    
+
     //if date and time is confirmed from the server add them
     if(messageObj.created_at) messageElement.dataset.created_at = messageObj.created_at;
 
     // set id (whole . deci format)
     if(messageObj.message_id){
         messageElement.id = messageObj.message_id;
-    } 
+    }
 
     /// CLASSES & AVATARS
     // add classes AI ME MEMBER to the element
@@ -70,7 +71,7 @@ function addMessageToChatlog(messageObj, isFromServer = false){
     /// Set Author Name
     if(messageObj.model && messageObj.message_role === 'assistant'){
         model = modelsList.find(m => m.id === messageObj.model);
-        messageElement.querySelector('.message-author').innerHTML = 
+        messageElement.querySelector('.message-author').innerHTML =
             model ?
             `<span>${messageObj.author.username} </span><span class="message-author-model">(${model.label})</span>`:
             `<span>${messageObj.author.username} </span><span class="message-author-model">(${messageObj.model}) !!! Obsolete !!!</span>`;
@@ -127,11 +128,12 @@ function addMessageToChatlog(messageObj, isFromServer = false){
 
 
     ///ATTACHMENTS
-    if(messageObj.attachments && messageObj.attachments.length != 0){
+    if(messageObj.content.attachments && messageObj.content.attachments.length != 0){
 
         const attachmentContainer = messageElement.querySelector('.attachments');
 
-        messageObj.attachments.forEach(attachment => {
+        messageObj.content.attachments.forEach(attachment => {
+            console.log(attachment)
             const thumbnail = createAttachmentThumbnail(attachment.fileData);
             thumbnail.addEventListener('click', ()=> {
                 previewFile(attachment.fileData, 'private')
@@ -159,10 +161,10 @@ function addMessageToChatlog(messageObj, isFromServer = false){
         let markdownProcessed = formatMessage(messageText, groundingMetadata);
         msgTxtElement.innerHTML = markdownProcessed;
         formatMathFormulas(msgTxtElement);
-        
-        if (groundingMetadata && 
-            groundingMetadata != '' && 
-            groundingMetadata.searchEntryPoint && 
+
+        if (groundingMetadata &&
+            groundingMetadata != '' &&
+            groundingMetadata.searchEntryPoint &&
             groundingMetadata.searchEntryPoint.renderedContent) {
 
             addGoogleRenderedContent(messageElement, groundingMetadata);
@@ -195,7 +197,7 @@ function addMessageToChatlog(messageObj, isFromServer = false){
             setMessageStatusAsRead(messageElement);
         }
     }
- 
+
 
     /// INSERT IN CHATLOG
     // insert into target thread
@@ -259,7 +261,7 @@ function updateMessageElement(messageElement, messageObj, updateContent = false)
     if(messageElement.classList.contains('AI')){
         const username = messageElement.dataset.author;
         model = modelsList.find(m => m.id === messageObj.model);
-        messageElement.querySelector('.message-author').innerHTML = 
+        messageElement.querySelector('.message-author').innerHTML =
             model ?
             `<span>${username} </span><span class="message-author-model">(${model.label})</span>`:
             `<span>${username} </span><span class="message-author-model">(${messageObj.model}) !!! Obsolete !!!</span>`;
@@ -268,7 +270,7 @@ function updateMessageElement(messageElement, messageObj, updateContent = false)
 
     if(updateContent){
         const {messageText, groundingMetadata} = deconstContent(messageObj.content);
-        
+
         const filteredContent = detectMentioning(messageText);
         messageElement.dataset.rawMsg = messageText;
         // messageElement.dataset.groundingMetadata = JSON.stringify(groundingMetadata);
@@ -281,11 +283,11 @@ function updateMessageElement(messageElement, messageObj, updateContent = false)
             let markdownProcessed = formatMessage(messageText, groundingMetadata);
             msgTxtElement.innerHTML = markdownProcessed;
             formatMathFormulas(msgTxtElement);
-            if (groundingMetadata && 
-                groundingMetadata != '' && 
-                groundingMetadata.searchEntryPoint && 
+            if (groundingMetadata &&
+                groundingMetadata != '' &&
+                groundingMetadata.searchEntryPoint &&
                 groundingMetadata.searchEntryPoint.renderedContent) {
-    
+
                 addGoogleRenderedContent(messageElement, groundingMetadata);
             }
             else{
@@ -344,11 +346,11 @@ function setDateSpan(activeThread, msgDate, formatDay = true){
         const formattedDate = `${msgDateObj.getDate()}.${msgDateObj.getMonth()+1}.${msgDateObj.getFullYear()}`
         dateText = formattedDate;
     }
-    
+
     // Find the last date span in the thread
     const lastThreadDateSpan = activeThread.querySelector('span.date_span:last-of-type');
     const lastDate = lastThreadDateSpan ? lastThreadDateSpan.getAttribute('data-date') : null;
-    
+
     // Initialize variable to keep track of the last found date_span
     let lastTrunkDate = null;
     //if in a banch then find out the last time span in the main thread
@@ -388,10 +390,10 @@ function setDateSpan(activeThread, msgDate, formatDay = true){
 
 
 function deconstContent(inputContent){
-    
+
     let messageText = '';
     let groundingMetadata = '';
-    
+
     if(isValidJson(inputContent)){
         const json = JSON.parse(inputContent);
         if(json.hasOwnProperty('groundingMetadata')){
@@ -452,7 +454,7 @@ function detectMentioning(rawText){
 
     if (mentionMatches) {
         let processedText = rawText;
-        
+
         for (const mention of mentionMatches) {
             if (mention.toLowerCase() === aiHandle.toLowerCase()) {
                 returnObj.aiMentioned = true;
@@ -570,16 +572,16 @@ function editMessage(provider){
     msgControls.querySelector('.edit-controls').style.display = 'flex';
     const wrapper = provider.closest('.message-wrapper');
     wrapper.classList.add('edit-mode');
-    
+
     const content = wrapper.querySelector('.message-content');
 
     content.setAttribute('contenteditable', true);
     content.dataset.tempContent = content.innerHTML;
-    
+
     const rawMsg = content.closest('.message').dataset.rawMsg;
-    
+
     content.innerHTML = escapeHTML(rawMsg).replace(/\n/g, '<br>');
-    
+
     content.focus();
 
     var range,selection;
@@ -593,7 +595,7 @@ function editMessage(provider){
         selection.addRange(range);
     }
     else if(document.selection)
-    { 
+    {
         range = document.body.createTextRange();
         range.moveToElementText(content);
         range.collapse(false);
@@ -627,7 +629,7 @@ async function confirmEditMessage(provider){
     msgControls.querySelector('.controls').style.opacity = '1';
     msgControls.querySelector('.edit-controls').style.opacity = '0';
     msgControls.querySelector('.edit-controls').style.display = 'none';
-    
+
     const wrapper = provider.closest('.message-wrapper');
     wrapper.classList.remove('edit-mode');
 
@@ -788,7 +790,7 @@ function messageReadAloud(provider) {
     provider.innerHTML = stopReadIcon;
 
     synth.speak(utterance);
-    
+
     // Reset icon when speech ends
     utterance.onend = () => {
         if (provider === previousProvider) {

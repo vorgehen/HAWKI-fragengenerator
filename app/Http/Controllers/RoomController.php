@@ -28,16 +28,16 @@ class RoomController extends Controller
     public function loadRoom($slug)
     {
         $room = Room::where('slug', $slug)->firstOrFail();
-    
+
         // Optionally, check if the authenticated user is a member of the room
         if (!auth()->check() || !$room->isMember(auth()->id())) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-        
+
         // Prepare the data to send back
 
-        $roomIcon = ($room->room_icon !== '' && $room->room_icon !== null) 
-        ? Storage::disk('public')->url('room_avatars/' . $room->room_icon) 
+        $roomIcon = ($room->room_icon !== '' && $room->room_icon !== null)
+        ? Storage::disk('public')->url('room_avatars/' . $room->room_icon)
         : null;
 
 
@@ -65,13 +65,13 @@ class RoomController extends Controller
                     'avatar_url' => $member->user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $member->user->avatar_id) : null,
                 ];
             }),
-        
+
             'messagesData' => $this->fetchRoomMessages($room)
         ];
-    
+
         return response()->json($data);
     }
-    
+
 
 
     /// Create new room template upon user request
@@ -82,7 +82,7 @@ class RoomController extends Controller
             'room_name' => 'required|string|max:255',
         ]);
 
-        
+
         // Create the room with name and description
         $room = Room::create([
             'room_name' => $validatedData['room_name'],
@@ -111,20 +111,20 @@ class RoomController extends Controller
     public function removeRoom($slug){
         $user = Auth::user();
         $room = Room::where('slug', $slug)->firstOrFail();
-        
-        
+
+
         // Check if the room exists
         if (!$room) {
             return response()->json(['success' => false, 'message' => 'Room not found'], 404);
         }
-    
+
         // Delete related messages and members
         $room->messages()->delete();
         $room->members()->delete();
-    
+
         // Delete the room itself
         $room->delete();
-    
+
         return response()->json(['success' => true, 'message' => 'Room deleted successfully']);
     }
 
@@ -183,7 +183,7 @@ class RoomController extends Controller
     }
 
 
-    
+
     /// ADD MEMBER TO THE ROOM
     public function addMember(Request $request)
     {
@@ -260,7 +260,7 @@ class RoomController extends Controller
     {
         // Remove the member from the room
         $room->removeMember($member->user_id);
-    
+
         //Check if All the members have left the room.
         if ($room->members()->count() === 1) {
             $this->removeRoom($room->slug);
@@ -293,42 +293,14 @@ class RoomController extends Controller
     }
 
 
-    /// Format and return messages data of the room 
+    /// Format and return messages data of the room
     public function fetchRoomMessages(Room $room){
 
         $messages = $room->messages;
 
         $messagesData = array();
         foreach ($messages as $message){
-            $member = Member::find($message->member_id);
-            $requestMember = $room->membersAll()->where('user_id', Auth::id())->firstOrFail();
-
-            $readStat = $message->isReadBy($requestMember);
-
-            $msgData = [
-                'id' => $message->id,
-                'room_id' => $message->room_id,
-                'member_id' => $member->id,
-                'member_name' => $member->user->name,
-                'message_role' => $message->message_role,
-                'message_id' => $message->message_id,
-                'read_status'=> $readStat,
-
-                'author' => [
-                    'username' => $member->user->username,
-                    'name' => $member->user->name,
-                    'isRemoved' => $member->isRemoved,
-                    'avatar_url' => $member->user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $member->user->avatar_id) : null,
-                ],
-                'model' => $message->model,
-
-                'content' => $message->content,
-                'iv' => $message->iv,
-                'tag' => $message->tag,
-                'created_at' => $message->created_at->format('Y-m-d+H:i'),
-                'updated_at' => $message->updated_at->format('Y-m-d+H:i'),
-            ]; 
-
+            $msgData = $this->messageHandler->createMessageObject($message);
             array_push($messagesData, $msgData);
         }
         return $messagesData;
@@ -345,7 +317,7 @@ class RoomController extends Controller
     /// 5. qeue message for broadcasting
     /// 6. send response to the sender
     public function sendMessage(Request $request, $slug) {
-        
+
         $validatedData = $request->validate([
             'content' => 'required|string',
             'iv' => 'required|string',
@@ -353,33 +325,10 @@ class RoomController extends Controller
             'threadID' => 'required|int',
         ]);
 
-        $room = Room::where('slug', $slug)->firstOrFail();
-        $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
-        $messageRole = 'user';
 
-        $nextMessageId = $this->generateMessageID($room, $validatedData['threadID']);
-
-        $message = Message::create([
-            'room_id' => $room->id,
-            'member_id' => $member->id,
-            'user_id' => Auth::id(),
-            'message_id' => $nextMessageId,
-            'message_role' => $messageRole,
-            'iv' => $validatedData['iv'],
-            'tag' => $validatedData['tag'],
-            'content' => $validatedData['content'],
-        ]);
-        $message->addReadSignature($member);
-
+        /// NOTE: Message Service create
 
         SendMessage::dispatch($message, false)->onQueue('message_broadcast');
-
-        if(!$room || !$member){
-            return response()->json([
-                'success' => false,
-                'response' => "Failed to send message",
-            ]);
-        }
 
         $messageData = [
             'id' => $message->id,
@@ -394,14 +343,14 @@ class RoomController extends Controller
                 'name' => $member->user->name,
                 'avatar_url' => $member->user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $member->user->avatar_id) : null,
             ],
-            
+
             'content' => $message->content,
             'iv' => $message->iv,
             'tag' => $message->tag,
 
             'created_at' => $message->created_at->format('Y-m-d+H:i'),
             'updated_at' => $message->updated_at->format('Y-m-d+H:i'),
-        ]; 
+        ];
 
 
         return response()->json([
@@ -422,18 +371,8 @@ class RoomController extends Controller
             'message_id' => 'required|string',
         ]);
 
-        $room = Room::where('slug', $slug)->firstOrFail();
-        $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
 
-
-        $message = $room->messages->where('message_id', $validatedData['message_id'])->first();
-
-        $message->update([
-            'content' => $validatedData['content'],
-            'iv' => $validatedData['iv'],
-            'tag' => $validatedData['tag']
-        ]);
-
+        /// NOTE: Message Servie update -> $message
         SendMessage::dispatch($message, true)->onQueue('message_broadcast');
 
         $messageData = $message->toArray();
@@ -445,7 +384,7 @@ class RoomController extends Controller
             'messageData' => $messageData,
             'response' => "Message updated.",
         ]);
-        
+
     }
 
 
@@ -453,65 +392,10 @@ class RoomController extends Controller
         $validatedData = $request->validate([
             'message_id' => 'required|string',
         ]);
-        $room = Room::where('slug', $slug)->firstOrFail();
-        $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
-        $message = $room->messages->where('message_id', $validatedData['message_id'])->first();
-
-        $message->addReadSignature($member);
+///NOTE: Msg service markAsRead
 
         return response()->json([
                 'success' => true,
             ]);
     }
-
-    /// Generates a message ID based on the previous messages of the thread.
-    public function generateMessageID(Room $room, int $threadID) {
-        $decimalPadding = 3; // Decide how much padding you need. 3 could pad up to 999.
-        
-        if ($threadID == 0) {
-            // Fetch all messages with whole number IDs (e.g., "0.0", "1.0", etc.)
-            $allMessages = $room->messages()
-                                ->get()
-                                ->filter(function ($message) {
-                                    return floor(floatval($message->message_id)) == floatval($message->message_id);
-                                });
-    
-            if ($allMessages->isNotEmpty()) {
-                // Find the message with the highest whole number
-                $lastMessage = $allMessages->sortByDesc(function ($message) {
-                    return intval($message->message_id);
-                })->first();
-    
-                // Increment the whole number part
-                $newWholeNumber = intval($lastMessage->message_id) + 1;
-                $newMessageId = $newWholeNumber . '.000'; // Start with 3 zeros
-            } else {
-                // If no messages exist, start from 1.000
-                $newMessageId = '1.000';
-            }
-        } else {
-            // Fetch all messages that belong to the specified threadID
-            $allMessages = $room->messages()
-                                ->where('message_id', 'like', "$threadID.%")
-                                ->get();
-    
-            if ($allMessages->isNotEmpty()) {
-                // Find the message with the highest decimal part
-                $lastMessage = $allMessages->sortByDesc(function ($message) {
-                    return floatval($message->message_id);
-                })->first();
-    
-                // Increment the decimal part
-                $parts = explode('.', $lastMessage->message_id);
-                $newDecimal = intval($parts[1]) + 1;
-                $newMessageId = $parts[0] . '.' . str_pad($newDecimal, $decimalPadding, '0', STR_PAD_LEFT);
-            } else {
-                // If no sub-messages exist, start from threadID.001
-                $newMessageId = $threadID . '.001';
-            }
-        }
-    
-        return $newMessageId;
-    }
-
 }

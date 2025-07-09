@@ -5,8 +5,6 @@ namespace App\Services\StorageServices\Interfaces;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
-use Illuminate\Support\Collection;
 
 class MinioService implements StorageServiceInterface
 {
@@ -23,7 +21,7 @@ class MinioService implements StorageServiceInterface
 
     /**
      * Store a file in MinIO storage
-     * 
+     *
      * @param UploadedFile|string $file The file to store (either UploadedFile instance or file contents)
      * @param string $filename The name to save the file as
      * @param string|null $category Optional category/bucket to store the file in
@@ -168,7 +166,7 @@ class MinioService implements StorageServiceInterface
      * e.g. $fileType = 'md', 'png', 'jpg'
      * @return array [ [ 'path' => ..., 'contents' => ...], ... ]
      */
-    public function retrieveOutputFilesByType(string $uuid, string $category, string $fileType)
+    public function retrieveOutputFilesByType(string $uuid, string $category, string $fileType): array
     {
         $category = $category ?? 'default';
         $outputFolder = $this->buildFolder($category, $uuid) . '/output';

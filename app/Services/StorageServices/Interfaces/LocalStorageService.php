@@ -10,7 +10,7 @@ class LocalStorageService implements StorageServiceInterface
 {
     /**
      * Store a file in the local storage
-     * 
+     *
      * @param UploadedFile|string $file The file to store (either UploadedFile instance or file contents)
      * @param string $filename The name to save the file as
      * @param string|null $category Optional category/directory to store the file in
@@ -19,7 +19,7 @@ class LocalStorageService implements StorageServiceInterface
     public function storeFile($file, string $filename, string $uuid, ?string $category): bool
     {
         $path = $this->resolvePath($category);
-        
+
         // Handle different file input types
         if ($file instanceof UploadedFile) {
             return !is_null($file->storeAs($path, $filename, 'public'));
@@ -30,7 +30,7 @@ class LocalStorageService implements StorageServiceInterface
 
     /**
      * Retrieve a file from local storage
-     * 
+     *
      * @param string $filename The name of the file to retrieve
      * @param string|null $category Optional category/directory the file is stored in
      * @return string|null The file contents or null if not found
@@ -39,17 +39,17 @@ class LocalStorageService implements StorageServiceInterface
     {
         $path = $this->resolvePath($category);
         $fullPath = $path . '/' . $filename;
-        
+
         if (Storage::disk('public')->exists($fullPath)) {
             return Storage::disk('public')->get($fullPath);
         }
-        
+
         return null;
     }
 
     /**
      * Delete a file from local storage
-     * 
+     *
      * @param string $filename The name of the file to delete
      * @param string|null $category Optional category/directory the file is stored in
      * @return bool Whether the file was successfully deleted
@@ -58,18 +58,18 @@ class LocalStorageService implements StorageServiceInterface
     {
         $path = $this->resolvePath($category);
         $fullPath = $path . '/' . $filename;
-        
+
         if (Storage::disk('public')->exists($fullPath)) {
             return Storage::disk('public')->delete($fullPath);
         }
-        
+
         // File does not exist
         return false;
     }
-    
+
     /**
      * Get the public URL for a stored file
-     * 
+     *
      * @param string $filename The name of the file
      * @param string|null $category Optional category/directory the file is stored in
      * @return string|null The public URL or null if file not found
@@ -78,17 +78,17 @@ class LocalStorageService implements StorageServiceInterface
     {
         $path = $this->resolvePath($category);
         $fullPath = $path . '/' . $filename;
-        
+
         if (Storage::disk('public')->exists($fullPath)) {
             return Storage::url($fullPath);
         }
-        
+
         return null;
     }
 
     /**
      * Resolve the storage path based on category
-     * 
+     *
      * @param string|null $category
      * @return string
      */
@@ -99,7 +99,7 @@ class LocalStorageService implements StorageServiceInterface
             $category = preg_replace('/[^a-zA-Z0-9_-]/', '', $category);
             return 'storage/' . $category;
         }
-        
+
         return 'storage';
     }
 }

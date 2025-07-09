@@ -1,7 +1,7 @@
 //#region UPLOAD FILE
 const uploadQueues = new Map();
 function initFileUploader(inputField) {
-    
+
 
     const overlay = inputField.querySelector('.drag-drop-overlay');
     const fileInput = inputField.querySelector('#file-upload-input');
@@ -35,7 +35,7 @@ function initFileUploader(inputField) {
     inputField.addEventListener('drop', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         dragCounter = 0;
         overlay.style.display = 'none';
 
@@ -53,11 +53,11 @@ function initFileUploader(inputField) {
 // Initialize file uploader for the main interface
 function initMainFileUploader() {
     // Initialize the window.uploadQueue array
-    
+
     // Get elements
     const dropElement = document.getElementById('input-container');
     const fileInput = document.getElementById('file-upload-input');
-    
+
     // Initialize uploader
     if (dropElement && fileInput) {
         initFileUploader(dropElement, fileInput);
@@ -81,7 +81,7 @@ async function handleSelectedFiles(files, inputField) {
         'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
         // Documents
         'application/pdf',
-        'application/msword', 
+        'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         // 'application/vnd.ms-excel',
         // 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -90,8 +90,8 @@ async function handleSelectedFiles(files, inputField) {
         // // Text
         // 'text/plain', 'text/csv', 'application/json',
     ];
-    const maxMB = 10;
-    const maxFileSize = maxMB * 1024 * 1024; // 10MB limit
+    // const maxMB = 10;
+    // const maxFileSize = maxMB * 1024 * 1024; // 10MB limit
 
     // Convert FileList to Array and process all files in parallel
     const tasks = Array.from(files).map(async file => {
@@ -103,10 +103,10 @@ async function handleSelectedFiles(files, inputField) {
         }
 
         // File size validation
-        if (file.size > maxFileSize) {
-            showError(`File size exceeds ${maxMB}MB limit.`);
-            return null;
-        }
+        // if (file.size > maxFileSize) {
+        //     showError(`File size exceeds ${maxMB}MB limit.`);
+        //     return null;
+        // }
 
         // Prepare file for upload
         const fileData = createFileStruct(file);
@@ -149,16 +149,13 @@ function createFileStruct(file) {
         file: file,
         name: file.name,
         size: file.size,
-        type: file.type,
+        mime: file.type,
         lastModified: file.lastModified,
         status: 'pending' // pending, uploading, complete, error
     };
 }
 
-// Generate a unique ID for the file
-function generateUniqueId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-}
+
 
 // Add file to the UI for display
 function createAttachmentThumbnail(fileData) {
@@ -169,10 +166,11 @@ function createAttachmentThumbnail(fileData) {
     attachment.dataset.fileId = fileData.uuid;
     attachment.querySelector('.name-tag').innerText = fileData.name;
 
-    const imgElement = attachment.querySelector('img');
+    const iconImg = attachment.querySelector('img');
     let imgPreview = '';
+    console.log(fileData)
 
-    const type = checkFileFormat(fileData.type);
+    const type = checkFileFormat(fileData.mime);
     switch(type){
         case('img'):
         if (fileData.file) {
@@ -180,7 +178,7 @@ function createAttachmentThumbnail(fileData) {
         }
         attachment.querySelector('.attachment-icon').classList.add('boarder');
         break;
-        case('pdf'): 
+        case('pdf'):
             imgPreview = '/img/fileformat/pdf.png';
         break;
         case('docx'):
@@ -188,7 +186,7 @@ function createAttachmentThumbnail(fileData) {
         break;
     }
 
-    imgElement.setAttribute('src', imgPreview);
+    iconImg.setAttribute('src', imgPreview);
     return attachment;
 }
 
@@ -203,75 +201,30 @@ function removeFileAttachment(providerBtn) {
     if (fileElement) {
         fileElement.remove();
     }
-    
+
     // Remove from pending uploads array
     if (window.uploadQueue) {
         window.uploadQueue = window.uploadQueue.filter(item => item.id !== fileId);
     }
-    
+
     // If no more attachments, remove container
     if (list && list.children.length === 0) {
         container.classList.remove('active');
     }
 }
 
-// Get file icon text based on file type
-function getFileIconText(fileType) {
-    if (fileType.includes('pdf')) return 'PDF';
-    if (fileType.includes('word')) return 'DOC';
-    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'XLS';
-    if (fileType.includes('powerpoint') || fileType.includes('presentation')) return 'PPT';
-    if (fileType.includes('zip') || fileType.includes('compressed')) return 'ZIP';
-    if (fileType.includes('text')) return 'TXT';
-    if (fileType.includes('image')) return 'IMG';
-    return 'FILE';
-}
 
-// Upload file to server
-async function uploadFileToServer(fileData, category) {
-    // Create FormData
-    const formData = new FormData();
-    formData.append('file', fileData.file);
-    formData.append('category', category);
 
-    // Update status to uploading
-    updateFileStatus(fileData.tempId, 'uploading');
-    
-    try {
-        // Send request to server
-        const response = await fetch('/req/upload-file', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        const data = await response.json();
-        console.log('uploaded file data');
-        console.log(data)
-        updateFileStatus(data.requestId, 'complete', data.fileUrl);
-        return data;
-    } catch (error) {
-        console.error('Upload error:', error);
-        updateFileStatus(fileData.tempId, 'error');
-        showError(`Failed to upload file ${fileData.name}. Please try again.`);
-        throw error; // Re-throw to allow Promise.allSettled to catch it
-    }
-}
 
 // Update file status in UI
 function updateFileStatus(fileId, status, fileUrl = null) {
     const fileElement = document.querySelector(`.attachment-icon[data-file-id="${fileId}"]`);
     if (!fileElement) return;
-    
+
     // Remove existing status classes
     fileElement.classList.remove('status-pending', 'status-uploading', 'status-complete', 'status-error');
     fileElement.classList.add(`status-${status}`);
-    
+
     // Update any status indicators in the UI
     const statusIndicator = fileElement.querySelector('.status-indicator');
     const stats = statusIndicator.querySelectorAll('.status');
@@ -309,101 +262,112 @@ function updateFileStatus(fileId, status, fileUrl = null) {
 //#region Utils
 
 function checkFileFormat(type){
-
     if (type.startsWith('image/')) {
         return 'img';
     } else if (type.includes('pdf')) {
         return 'pdf';
-    } else if (type.includes('msword') || 
+    } else if (type.includes('msword') ||
                type.includes('wordprocessingml')) {
         return 'docx';
     } else {
         return null;
     }
-
 }
+
+
+// Generate a unique ID for the file
+function generateUniqueId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+
+
+
 
 
 //#endregion
 
+//#region UPLOAD DOWNLOAD
 
-
-
-
-//#region DOWNLOAD FILE
-
-
-
-// async function downloadAttachment(uuid, category){
-
-//     const requestObj = json.stringify({
-//         'category': category,
-//         'uuid': uuid
-//     });
-    
-//     try {
-//         // Send request to server
-//         const response = await fetch('/req/download-file', {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-//             },
-//             body: requestObj
-//         });
-
-//         if (!response.ok) {
-//             throw new Error('Network response was not ok');
-//         }
-//         const data = await response.json();
-//         console.log(data)
-//         updateFileStatus(data.requestId, 'complete', data.fileUrl);
-//         return data;
-//     } catch (error) {
-//         console.error('Upload error:', error);
-//         updateFileStatus(fileData.tempId, 'error');
-//         showError(`Failed to upload file ${fileData.name}. Please try again.`);
-//         throw error; // Re-throw to allow Promise.allSettled to catch it
-//     }
-
-
-
-// }
-
-
-
-
-async function previewFile(fileData, category) {
-    const url = await requestFileUrl(fileData.uuid, category, fileData.filename)
-    const response = await fetch(url);
-    const blob = await response.blob();
-    
-    const type = checkFileFormat(fileData.type);
-
-    switch(type){
-        case('img'):
-        if (fileData.file) {
-            imgPreview = URL.createObjectURL(fileData.file);
-        }
-        attachment.querySelector('.attachment-icon').classList.add('boarder');
-        break;
-        case('pdf'): 
-            renderPdf(blob);
-        break;
-        case('docx'):
-            renderDocx(blob);
-
-        break;
+async function uploadAttachmentQueue(queueId, category) {
+    const url = `/req/${category}/upload`;
+    const attachments = uploadQueues.get(queueId);
+    let attachList = [];
+    if (attachments && attachments.length > 0) {
+        const uploadTasks = Array.from(attachments).map(attachment =>
+            uploadFileToServer(attachment.fileData, url, (tempId, status, percent, fileUrl) => {
+                // UI/status updates centralized here!
+                // if (onProgress) {
+                    console.log(percent);
+                    // onProgress(tempId, status, percent, fileUrl, attachment);
+                // }
+            })
+            .then(data => {
+                attachment.fileData.uuid = data.uuid;
+                attachList.push({
+                    uuid: data.uuid,
+                    name: attachment.fileData.name,
+                    mime: attachment.fileData.mime
+                });
+            })
+            .catch(err => {
+                // Optionally: log, and attach error status
+                // if (onProgress) {
+                    // onProgress(attachment.fileData.tempId, 'error', 100, null, attachment);
+                // }
+            })
+        );
+        await Promise.all(uploadTasks);
+        return attachList;
     }
-
-
-
-    document.querySelector('#file-viewer-modal').style.display = "flex";
-
-
+    return null;
 }
 
 
+// Upload file to server with progress callback
+function uploadFileToServer(fileData, url, progressCallback) {
+    return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('file', fileData.file);
+
+        if (progressCallback) progressCallback(fileData.tempId, 'uploading', 0);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+        xhr.upload.onprogress = function(event) {
+            if (event.lengthComputable && progressCallback) {
+                const percent = Math.round((event.loaded / event.total) * 100);
+                progressCallback(fileData.tempId, 'uploading', percent);
+            }
+        };
+
+        xhr.onload = function() {
+            let data;
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    data = JSON.parse(xhr.responseText);
+                } catch (e) {
+                    if (progressCallback) progressCallback(fileData.tempId, 'error', 100);
+                    return reject('Invalid server response');
+                }
+                if (progressCallback) progressCallback(data.requestId || fileData.tempId, 'complete', 100, data.fileUrl);
+                resolve(data);
+            } else {
+                if (progressCallback) progressCallback(fileData.tempId, 'error', 100);
+                reject(xhr.statusText);
+            }
+        };
+
+        xhr.onerror = function() {
+            if (progressCallback) progressCallback(fileData.tempId, 'error', 100);
+            reject('Network error');
+        };
+
+        xhr.send(formData);
+    });
+}
 
 async function requestFileUrl(uuid, category, filename){
     try {
@@ -438,6 +402,80 @@ async function requestFileUrl(uuid, category, filename){
         alert('An error occurred while requesting the file.');
     }
 }
+
+// async function downloadAttachment(uuid, category){
+
+//     const requestObj = json.stringify({
+//         'category': category,
+//         'uuid': uuid
+//     });
+
+//     try {
+//         // Send request to server
+//         const response = await fetch('/req/download-file', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+//             },
+//             body: requestObj
+//         });
+
+//         if (!response.ok) {
+//             throw new Error('Network response was not ok');
+//         }
+//         const data = await response.json();
+//         console.log(data)
+//         updateFileStatus(data.requestId, 'complete', data.fileUrl);
+//         return data;
+//     } catch (error) {
+//         console.error('Upload error:', error);
+//         updateFileStatus(fileData.tempId, 'error');
+//         showError(`Failed to upload file ${fileData.name}. Please try again.`);
+//         throw error; // Re-throw to allow Promise.allSettled to catch it
+//     }
+
+
+
+// }
+
+//#endregion
+
+
+//#region PREVIEW
+
+async function previewFile(fileData, category) {
+    const url = await requestFileUrl(fileData.uuid, category, fileData.filename)
+    const response = await fetch(url);
+    const blob = await response.blob();
+
+    const type = checkFileFormat(fileData.mime);
+
+    switch(type){
+        case('img'):
+        if (fileData.file) {
+            imgPreview = URL.createObjectURL(fileData.file);
+        }
+        attachment.querySelector('.attachment-icon').classList.add('boarder');
+        break;
+        case('pdf'):
+            renderPdf(blob);
+        break;
+        case('docx'):
+            renderDocx(blob);
+
+        break;
+    }
+
+
+
+    document.querySelector('#file-viewer-modal').style.display = "flex";
+
+
+}
+
+
+
 
 
 
@@ -482,7 +520,7 @@ async function renderPdf(blob) {
         // });
         // console.log(textLayerBuilder)
         // await textLayerBuilder.render({ viewport });
-        
+
         // const textLayerDiv = textLayerBuilder.div;
         // textLayerDiv.style.position = 'absolute';
         // textLayerDiv.style.top  = '0';
@@ -507,3 +545,4 @@ async function renderDocx(blob){
     docxPreview.renderAsync(blob, container)
         .then(x => console.log("docx: finished"));
 }
+//#endregion

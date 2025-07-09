@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\StorageServices\StorageServiceFactory;
-use App\Services\StorageServices\FileHandler;
+use App\Services\StorageServices\DocumentConverter;
 use App\Services\StorageServices\Interfaces\StorageServiceInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -22,7 +22,7 @@ class FileController extends Controller
 
     /**
      * Handle file upload from the client
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -38,10 +38,10 @@ class FileController extends Controller
             // Get the uploaded file
             $file = $validateData['file'];
             $originalName = $file->getClientOriginalName();
-            
+
             // Generate a unique filename to prevent overwriting
             $uuid = Str::uuid();
-            
+
             // Store file in user-specific directory
             $category = $validateData['category'];
             $userId = Auth::id(); // Get authenticated user ID
@@ -56,9 +56,9 @@ class FileController extends Controller
             $mimeType = $file->getMimeType();
             if(str_contains($mimeType, 'pdf') || str_contains($mimeType, 'word')){
 
-                $fileHandler = new FileHandler();
-                $results = $fileHandler->requestPdfToMarkdown($file);
-        
+                $fileConverter = new FileConverter();
+                $results = $fileConverter->requestDocumentToMarkdown($file);
+
                 if ($results) {
                     foreach($results as $relativePath => $content){
                         $filename = 'output/' . basename($relativePath);
@@ -75,7 +75,7 @@ class FileController extends Controller
                 'message' => 'File uploaded successfully',
                 'uuid' => $uuid,
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -83,10 +83,10 @@ class FileController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Delete a file from storage
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -96,24 +96,24 @@ class FileController extends Controller
             'filename' => 'required|string',
             'category' => 'nullable|string'
         ]);
-        
+
         try {
             $filename = $request->input('filename');
             $category = $request->input('category', 'test');
             $userId = Auth::id();
-            
+
             // Ensure users can only delete their own files
             if (!str_starts_with($filename, $userId . '/')) {
                 $filename = $userId . '/' . $filename;
             }
-            
+
             $deleted = $this->storageService->deleteFile($filename, $category);
-            
+
             return response()->json([
                 'success' => $deleted,
                 'message' => $deleted ? 'File deleted successfully' : 'File not found or could not be deleted'
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Services\StorageServices;
+namespace App\Toolkit\FileConverter;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Http\UploadedFile;      
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use ZipArchive;
 use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 
 
-class FileHandler
+class DocumentConverter
 {
 
-    function requestPdfToMarkdown($file)
+    function requestDocumentToMarkdown($file)
     {
         if ($file instanceof UploadedFile) {
             $resource = fopen($file->getRealPath(), 'r');
@@ -59,8 +59,7 @@ class FileHandler
     }
 
 
-
-    function unzipContent($zipContent, $extractToDirectory)
+    private function unzipContent($zipContent, $extractToDirectory)
     {
         $tmpZip = tempnam(sys_get_temp_dir(), 'unzipped_') . '.zip';
         file_put_contents($tmpZip, $zipContent);
@@ -73,22 +72,7 @@ class FileHandler
             return true;
         } else {
             unlink($tmpZip);
-            throw new Exception("Failed to open ZIP file.");
+            throw new \Exception("Failed to open ZIP file.");
         }
     }
-
-
-    public function convertToAttachmentType($type){
-
-        if(str_contains($type, 'pdf') || 
-           str_contains($type, 'word')){
-            return 'document';
-        }
-
-        if(str_contains($type, 'image')){
-            return 'image';
-        }
-    }
-
-
 }

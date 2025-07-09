@@ -34,7 +34,7 @@ function initializeAiChatModule(chatsObject){
 
 
 function onHandleKeydownConv(event){
-    
+
     if(getSendBtnStat() === SendBtnStatus.SENDABLE){
         if(event.key == "Enter" && !event.shiftKey){
             event.preventDefault();
@@ -45,7 +45,7 @@ function onHandleKeydownConv(event){
 }
 
 function onSendClickConv(btn){
-    
+
     if(getSendBtnStat() === SendBtnStatus.SENDABLE){
 
         selectActiveThread(btn);
@@ -53,7 +53,7 @@ function onSendClickConv(btn){
         const input = btn.closest('.input');
         const inputField = input.querySelector('.input-field');
         sendMessageConv(inputField);
-    } 
+    }
     else if(getSendBtnStat() === SendBtnStatus.STOPPABLE){
         abortCtrl.abort();
     }
@@ -65,28 +65,18 @@ async function sendMessageConv(inputField) {
     if (inputField.value.trim() == "") {
         return;
     }
-    inputText = String(escapeHTML(inputField.value.trim()));
-    
     const input = inputField.closest('.input');
-    const attachments = uploadQueues.get(input.id);
+    inputText = String(escapeHTML(inputField.value.trim()));
 
     setSendBtnStatus(SendBtnStatus.LOADING);
 
     // if the chat is empty we need to initialize a new chatlog.
     if (document.querySelector('.trunk').childElementCount === 0) {
-        await initNewConv(inputText);  
+        await initNewConv(inputText);
     }
 
     /// UPLOAD ATTACHMENTS
-    if(attachments && attachments.length > 0){
-        const uploadTasks = Array.from(attachments).map(async attachment => {
-            const data = await uploadFileToServer(attachment.fileData, 'private');
-            attachment.fileData.uuid = data.uuid;
-        });
-        // Wait for all tasks to complete
-        await Promise.all(uploadTasks);
-    }
-
+    const attachments = await uploadAttachmentQueue(input.id, 'conv');
 
     /// Encrypt message
     const convKey = await keychainGet('aiConvKey');
@@ -95,44 +85,37 @@ async function sendMessageConv(inputField) {
     const iv = cryptoMsg.iv;
     const tag = cryptoMsg.tag;
 
-
-    const attachlist = attachments && attachments.length > 0 ? 
-                       Object.fromEntries(Object.entries(attachments).map(([key, value]) => [key, value.fileData ])):
-                       null;
-    console.log(attachlist);
-    // Submit Message to server.
-    const requestObj = {
+    /// Submit Message to server.
+    const messageObj = {
         'isAi': false,
         'threadID': activeThreadIndex,
         'completion': true,
-        
+
         'content': {
-            "text": ciphertext,
-            "iv": iv,
-            "tag": tag,
+            "text": {
+                'ciphertext': ciphertext,
+                "iv": iv,
+                "tag": tag,
+            },
+            "attachments": attachments
         },
-        "attachments": attachlist
     }
 
-    const messageObj = await submitMessageToServer(requestObj, `/req/conv/sendMessage/${activeConv.slug}`);
+    const submissionData = await submitMessageToServer(messageObj, `/req/conv/sendMessage/${activeConv.slug}`);
 
-    messageObj.content= {
-        'text': inputText
-    };
-    messageObj.attachments = attachments;
+    // Replace the original text
+    submissionData.content.text = inputText;
 
-    
-    
     // empty input field
     inputField.value = "";
     resizeInputField(inputField);
     input.querySelector('.file-attachments').innerHTML = "";
 
-
-    const messageElement = addMessageToChatlog(messageObj);
+    console.log(submissionData);
+    const messageElement = addMessageToChatlog(submissionData);
 
     // create and add message element to chatlog.
-    messageElement.dataset.rawMsg = messageObj.content.text;
+    messageElement.dataset.rawMsg = submissionData.content.text;
     scrollToLast(true, messageElement);
 
 
@@ -144,7 +127,7 @@ async function sendMessageConv(inputField) {
         'model': activeModel.id,
     }
 
-    // buildRequestObjectForAiConv(msgAttributes);
+    buildRequestObjectForAiConv(msgAttributes);
 }
 
 
@@ -166,7 +149,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
             if(groundingMetadata != ""){
                 metadata = groundingMetadata;
             }
-            
+
             const content = messageText;
             msg += content;
             messageObj = data;
@@ -180,18 +163,18 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
                 messageElement = addMessageToChatlog(messageObj, false);
             }
             messageElement.dataset.rawMsg = msg;
-    
+
             const msgTxtElement = messageElement.querySelector(".message-text");
-    
+
             msgTxtElement.innerHTML = formatChunk(content, groundingMetadata);
             formatMathFormulas(msgTxtElement);
             formatHljs(messageElement);
 
-            if (groundingMetadata && 
-                groundingMetadata != '' && 
-                groundingMetadata.searchEntryPoint && 
+            if (groundingMetadata &&
+                groundingMetadata != '' &&
+                groundingMetadata.searchEntryPoint &&
                 groundingMetadata.searchEntryPoint.renderedContent) {
-    
+
                 addGoogleRenderedContent(messageElement, groundingMetadata);
             }
             else{
@@ -204,7 +187,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
             if(messageElement.querySelector('.think')){
                 scrollPanelToLast(messageElement.querySelector('.think').querySelector('.content-container'));
             }
-    
+
             scrollToLast(false, messageElement);
         }
 
@@ -215,7 +198,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
                 text: msg,
                 groundingMetadata : metadata
             });
-            
+
             const convKey = await keychainGet('aiConvKey');
             const cryptoMsg = await encryptWithSymKey(convKey, cryptoContent, false);
 
@@ -224,7 +207,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
             messageObj.tag = cryptoMsg.tag;
 
             activateMessageControls(messageElement);
-            
+
             const requestObj = {
                 'threadID': activeThreadIndex,
                 'content':{
@@ -252,7 +235,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
                 updateMessageElement(messageElement, submittedObj);
                 activateMessageControls(messageElement);
             }
-            
+
             if(isDone){
                 isDone(true);
             }
@@ -265,15 +248,15 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
 
 /// Initializing a new conversation.
 async function initNewConv(firstMessage){
-    
+
     // if start State panel is there remove it.
     chatlogElement.classList.remove('start-state');
 
     // empty chatlog
     clearChatlog();
-    // 
+    //
     history.replaceState(null, '', `/chat`);
-    
+
     //create conversation button in the list.
     const convItem = createChatItem();
     convItem.classList.add('active');
@@ -284,7 +267,7 @@ async function initNewConv(firstMessage){
     //submit conv to server.
     // after the server has accepted Submission conv data will be updated.
     const convData = await submitConvToServer(convName);
-    
+
     //assign Slug to conv Item.
     convItem.setAttribute('slug', convData.slug);
     //update URL
@@ -316,7 +299,7 @@ function startNewChat(){
 }
 
 function createChatItem(conv = null){
-    
+
     const convItem = chatItemTemplate.content.cloneNode(true);
     const chatsList = document.getElementById('chats-list');
     const label = convItem.querySelector('.label');
@@ -356,7 +339,7 @@ async function generateChatName(firstMessage, convItem) {
             ]
         },
         broadcast: false,
-        threadIndex: '', 
+        threadIndex: '',
         slug: '',
     };
 
@@ -392,7 +375,7 @@ async function submitConvToServer(convName) {
         'iv':cryptSystemPrompt.iv,
         'tag':cryptSystemPrompt.tag,
     });
-    
+
 
     const requestObject = {
         conv_name: convName,
@@ -404,7 +387,7 @@ async function submitConvToServer(convName) {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify(requestObject)
         });
@@ -426,12 +409,12 @@ async function submitConvToServer(convName) {
 async function loadConv(btn=null, slug=null){
 
     abortCtrl.abort();
-    
+
     if(!btn && !slug){
         return;
     }
 
-    if(!slug) slug = btn.getAttribute('slug'); 
+    if(!slug) slug = btn.getAttribute('slug');
     if(!btn) btn = document.querySelector(`.selection-item[slug="${slug}"]`);
     // switchDyMainContent('chat');
 
@@ -469,11 +452,9 @@ async function loadConv(btn=null, slug=null){
 
     const msgs = convData.messages;
     for (const msg of msgs) {
-
-        const decryptedContent =  await decryptWithSymKey(convKey, msg.content, msg.iv, msg.tag);
-        msg.content = [];
+        const decryptedContent =  await decryptWithSymKey(convKey, msg.content.text.ciphertext, msg.content.text.iv, msg.content.text.tag);
+        // msg.content = [];
         msg.content.text = decryptedContent;
-
     };
 
     if(msgs.length > 0){

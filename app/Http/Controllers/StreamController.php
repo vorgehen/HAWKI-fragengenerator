@@ -78,12 +78,12 @@ class StreamController extends Controller
             $payload,
             false
         );
-        
+
         // Record usage
         if (isset($result['usage'])) {
             $this->usageAnalyzer->submitUsageRecord(
-                $result['usage'], 
-                'api', 
+                $result['usage'],
+                'api',
                 $validatedData['payload']['model']
             );
         }
@@ -93,7 +93,7 @@ class StreamController extends Controller
             'content' => $result['content'],
         ]);
     }
-    
+
 
 
 
@@ -115,19 +115,25 @@ class StreamController extends Controller
             'broadcast' => 'required|boolean',
             'isUpdate' => 'nullable|boolean',
             'messageId' => 'nullable|string',
-            'threadIndex' => 'nullable|int', 
+            'threadIndex' => 'nullable|int',
             'slug' => 'nullable|string',
             'key' => 'nullable|string',
         ]);
 
+        // Log::debug('before');
+        // Log::debug($validatedData);
+
         $validatedData['payload'] = $this->handleAttachments($validatedData['payload']);
-        Log::debug($validatedData);
+
+
+        // Log::debug('after');
+        // Log::debug($validatedData);
         if ($validatedData['broadcast']) {
             $this->handleGroupChatRequest($validatedData);
         } else {
-            $user = User::find(1); // HAWKI user 
+            $user = User::find(1); // HAWKI user
             $avatar_url = $user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $user->avatar_id) : null;
-            
+
             if ($validatedData['payload']['stream']) {
                 // Handle streaming response
                 $this->handleStreamingRequest($validatedData['payload'], $user, $avatar_url);
@@ -137,16 +143,16 @@ class StreamController extends Controller
                     $validatedData['payload'],
                     false
                 );
-                
+
                 // Record usage
                 if (isset($result['usage'])) {
                     $this->usageAnalyzer->submitUsageRecord(
-                        $result['usage'], 
-                        'private', 
+                        $result['usage'],
+                        'private',
                         $validatedData['payload']['model']
                     );
                 }
-                
+
                 // Return response to client
                 return response()->json([
                     'author' => [
@@ -161,7 +167,7 @@ class StreamController extends Controller
             }
         }
     }
-    
+
     /**
      * Handle streaming request with the new architecture
      */
@@ -172,7 +178,7 @@ class StreamController extends Controller
         header('Cache-Control: no-cache');
         header('Connection: keep-alive');
         header('Access-Control-Allow-Origin: *');
-        
+
 
         // Create a callback function to process streaming chunks
         $onData = function ($data) use ($user, $avatar_url, $payload) {
@@ -183,16 +189,16 @@ class StreamController extends Controller
                 //Log::info('google chunk detected');
             }
 
-        
+
             // Skip non-JSON or empty chunks
             $chunks = explode("data: ", $data);
             foreach ($chunks as $chunk) {
                 if (connection_aborted()) break;
                 if (!json_decode($chunk, true) || empty($chunk)) continue;
-                
+
                 // Get the provider for this model
                 $provider = $this->aiConnectionService->getProviderForModel($payload['model']);
-                
+
                 // Format the chunk
                 $formatted = $provider->formatStreamChunk($chunk);
                 // Log::info('Formatted Chunk:' . json_encode($formatted));
@@ -200,12 +206,12 @@ class StreamController extends Controller
                 // Record usage if available
                 if ($formatted['usage']) {
                     $this->usageAnalyzer->submitUsageRecord(
-                        $formatted['usage'], 
-                        'private', 
+                        $formatted['usage'],
+                        'private',
                         $payload['model']
                     );
                 }
-                
+
                 // Send the formatted response to the client
                 $messageData = [
                     'author' => [
@@ -220,11 +226,11 @@ class StreamController extends Controller
                 echo json_encode($messageData) . "\n";
             }
         };
-        
+
         // Process the streaming request
         $this->aiConnectionService->processRequest(
-            $payload, 
-            true, 
+            $payload,
+            true,
             $onData
         );
     }
@@ -282,7 +288,7 @@ class StreamController extends Controller
     {
         $isUpdate = (bool) ($data['isUpdate'] ?? false);
         $room = Room::where('slug', $data['slug'])->firstOrFail();
-        
+
         // Broadcast initial generation status
         $generationStatus = [
             'type' => 'aiGenerationStatus',
@@ -293,32 +299,32 @@ class StreamController extends Controller
             ]
         ];
         broadcast(new RoomMessageEvent($generationStatus));
-        
+
         // Process the request
         $result = $this->aiConnectionService->processRequest(
             $data['payload'],
             false
         );
-        
+
         // Record usage
         if (isset($result['usage'])) {
             $this->usageAnalyzer->submitUsageRecord(
-                $result['usage'], 
-                'group', 
+                $result['usage'],
+                'group',
                 $data['payload']['model'],
                 $room->id
             );
         }
-        
+
         // Encrypt content for storage
         $cryptoController = new EncryptionController();
         $encKey = base64_decode($data['key']);
         $encryptiedData = $cryptoController->encryptWithSymKey($encKey, json_encode($result['content']), false);
-        
+
         // Store message
         $roomController = new RoomController();
         $member = $room->members()->where('user_id', 1)->firstOrFail();
-        
+
         if ($isUpdate) {
             $message = $room->messages->where('message_id', $data['messageId'])->first();
             $message->update([
@@ -340,10 +346,10 @@ class StreamController extends Controller
                 'content' => $encryptiedData['ciphertext'],
             ]);
         }
-        
+
         // Queue message for broadcast
         SendMessage::dispatch($message, $isUpdate)->onQueue('message_broadcast');
-        
+
         // Update and broadcast final generation status
         $generationStatus = [
             'type' => 'aiGenerationStatus',
@@ -355,74 +361,6 @@ class StreamController extends Controller
         ];
         broadcast(new RoomMessageEvent($generationStatus));
     }
-    
 
-private function handleAttachments($payload)
-{
-    $orgMessages = $payload['messages'];
-    $newMessages = [];
-
-    foreach ($orgMessages as $msg) {
-        if(array_key_exists('attachments', $msg['content']) && count($msg['content']['attachments']) > 0){        
-            // Assume `$msg` has a structure with optional attachments
-            $attachments = $msg['content']['attachments'] ?? [];
-
-            // Add context messages for each attachment
-            foreach ($attachments as $uuid) {
-                $model = Attachment::where('uuid', $uuid)->first();
-                if (!$model) {
-                    throw new \Exception('Attachment model not found');
-                }
-                // Retrieve Markdown contents
-                $storageService = StorageServiceFactory::create();
-
-                // (Optional) Check type here
-                if($model->type === 'image') {
-                    Log::debug('image detected');
-                    $url = $storageService->getFileUrl($uuid, 'private');
-                    $msg = [
-                        'role' => $msg['role'],
-                        'content'=> [
-                            [
-                                'text' => $msg['content']['text'],
-                                'type' => "text"
-                            ],
-                            [
-                                'image_url' => $url,
-                                'type' => 'image_url'
-                            ]
-                        ]
-                    ];
-                }
-                else{
-                    $files = $storageService->retrieveOutputFilesByType($uuid, 'private', 'md');
-                    foreach ($files as $fileData) {
-                        $fileContent = $fileData['contents'];
-                        // Compose an explicit context message - adapt roles as needed
-                        $html_safe = htmlspecialchars($fileContent);
-                        $newMessages[] = [
-                            'role' => 'user',
-                            'content' => [
-                                'text' => "ATTACHED FILE CONTEXT: \"{$model->filename}\"
-                                ---
-                                {$html_safe}
-                                ---"
-                                ]
-                            ];
-                    }
-
-                }
-            }
-        }
-        // Add the original message itself, now that its context has been inserted
-        $newMessages[] = $msg;
-
-
-    }
-
-    // Replace messages in payload
-    $payload['messages'] = $newMessages;
-    return $payload;
-}
 
 }

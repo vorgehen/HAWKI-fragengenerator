@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Attachment extends Model
 {
-    protected $fillable = 
+    protected $fillable =
     [
-        'uuid', 
-        'name', 
+        'uuid',
+        'name',
         'category',
-        'type'
+        'type',
+        'mime',
+        'user_id',
     ];
 
     // Let Attachment belong to ANY attachable model (Message, AiConvMsg)
@@ -19,4 +21,9 @@ class Attachment extends Model
     {
         return $this->morphTo();
     }
+
+    public function user(){
+        return $this->belongsTo(User::class);
+    }
+
 }
