@@ -104,8 +104,7 @@ async function requestMsgUpdate(messageObj, messageElement, url){
         const data = await response.json();
 
         if (data.success) {
-            // console.log(data);
-            // console.log('Message updated.')
+
             updateMessageElement(messageElement, data.messageData);
         } else {
             // Handle unexpected response
