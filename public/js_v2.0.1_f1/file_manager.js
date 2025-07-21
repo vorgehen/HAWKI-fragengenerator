@@ -168,7 +168,7 @@ function createAttachmentThumbnail(fileData) {
 
     const iconImg = attachment.querySelector('img');
     let imgPreview = '';
-    console.log(fileData)
+    // console.log(fileData)
 
     const type = checkFileFormat(fileData.mime);
     switch(type){
@@ -194,7 +194,7 @@ function createAttachmentThumbnail(fileData) {
 function removeFileAttachment(providerBtn) {
     const input = providerBtn.closest('.input');
     const list = providerBtn.closest('.attachment-list');
-    console.log('remove');
+    // console.log('remove');
     const fileId = providerBtn.parentElement.dataset.fileId;
     // Remove from UI
     const fileElement = input.querySelector(`.attachment[data-file-id="${fileId}"]`);
@@ -298,7 +298,7 @@ async function uploadAttachmentQueue(queueId, category) {
             uploadFileToServer(attachment.fileData, url, (tempId, status, percent, fileUrl) => {
                 // UI/status updates centralized here!
                 // if (onProgress) {
-                    console.log(percent);
+                    // console.log(percent);
                     // onProgress(tempId, status, percent, fileUrl, attachment);
                 // }
             })
@@ -389,7 +389,7 @@ async function requestFileUrl(uuid, category, filename){
         if (data.success && data.url) {
         // Automatically start download
 
-        console.log(data);
+        // console.log(data);
         return data.url;
         const link = document.createElement('a');
         link.href = data.url;

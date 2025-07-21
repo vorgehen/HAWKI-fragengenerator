@@ -119,9 +119,4 @@ class AIConnectionService
     {
         return $this->providerFactory->getProviderForModel($modelId);
     }
-
-
-    public function checkModelsStatus(){
-
-    }
 }

@@ -35,17 +35,50 @@ class AttachmentService{
 
 
 
-    public function retrieve(string $uuid, string $category, $output = null, $type = null)
+    public function retrieve(Attachment $attachment, $outputType = null)
     {
-        try{
-            $file = $this->storageService->retrieveFile($uuid, $category);
-            return $file;
+        $uuid = $attachment->uuid;
+        $category = $attachment->category;
+
+        if($outputType){
+            $attachmentHandler = AttachmentFactory::create($attachment->type);
+            return $file = $attachmentHandler->retrieveContext($uuid, $category, $outputType);
         }
-        catch(\Exception $e){
-            Log::error("Error retrieving file", ["UUID"=> $uuid, "category"=> $category]);
-            return null;
+        else{
+            try{
+                $file = $this->storageService->retrieveFile($uuid, $category);
+                return $file;
+            }
+            catch(\Exception $e){
+                Log::error("Error retrieving file", ["UUID"=> $uuid, "category"=> $category]);
+                return null;
+            }
         }
     }
+
+
+    public function getFileUrl(Attachment $attachment, $outputType = null)
+    {
+        $uuid = $attachment->uuid;
+        $category = $attachment->category;
+
+        if($outputType){
+            $urls = $this->storageService->getOutputFilesUrls($uuid, $category, $outputType);
+            return $urls[0];
+        }
+        else{
+            try{
+                $url = $this->storageService->getFileUrl($uuid, $category);
+                return $url;
+            }
+            catch(\Exception $e){
+                Log::error("Error retrieving file", ["UUID"=> $uuid, "category"=> $category]);
+                return null;
+            }
+        }
+    }
+
+
 
     public function delete(string $uuid, string $category): bool
     {

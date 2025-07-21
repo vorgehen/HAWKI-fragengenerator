@@ -67,15 +67,15 @@ class AtchDocumentHandler implements AttachmentInterface
         }
     }
 
-    public function retrieveContext(string $uuid, string $category): ?string{
-        $files = $this->storageService->retrieveOutputFilesByType($uuid, 'private', 'md');
+    public function retrieveContext(string $uuid, string $category, $fileType = 'md'): ?string{
+        $files = $this->storageService->retrieveOutputFilesByType($uuid, 'private', $fileType);
         $results = [];
         foreach($files as $file){
             $content = $file['contents'];
             $html_safe = htmlspecialchars($content);
             $results[] = $html_safe;
         }
-        return $results;
+        return $results[0];
     }
 
 }

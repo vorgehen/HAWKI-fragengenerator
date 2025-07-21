@@ -3,11 +3,11 @@
 namespace App\Services\AI;
 
 use App\Services\AI\Interfaces\AIModelProviderInterface;
-use App\Services\AI\Providers\OpenAIProvider;
-use App\Services\AI\Providers\GWDGProvider;
-use App\Services\AI\Providers\GoogleProvider;
-use App\Services\AI\Providers\OllamaProvider;
-use App\Services\AI\Providers\OpenWebUIProvider;
+use App\Services\AI\Providers\OpenAI\OpenAIProvider;
+use App\Services\AI\Providers\GWDG\GWDGProvider;
+use App\Services\AI\Providers\Google\GoogleProvider;
+use App\Services\AI\Providers\Ollama\OllamaProvider;
+use App\Services\AI\Providers\OpenWebUI\OpenWebUIProvider;
 
 use Illuminate\Support\Facades\Log;
 
@@ -15,24 +15,24 @@ class AIProviderFactory
 {
     /**
      * Configuration from model_providers.php
-     * 
+     *
      * @var array
      */
     private $config;
-    
+
     /**
      * Create a new provider factory
-     * 
+     *
      * @param array $config
      */
     public function __construct()
     {
         $this->config = config('model_providers');
     }
-    
+
     /**
      * Get the appropriate provider for a model
-     * 
+     *
      * @param string $modelId
      * @return AIModelProviderInterface
      * @throws \Exception
@@ -42,7 +42,7 @@ class AIProviderFactory
         $providerId = $this->getProviderId($modelId);
         return $this->getProviderInterface($providerId);
     }
-    
+
     public function getProviderInterface(string $providerId): AIModelProviderInterface
     {
         switch ($providerId) {
@@ -63,7 +63,7 @@ class AIProviderFactory
 
     /**
      * Determine the provider ID based on the model ID
-     * 
+     *
      * @param string $modelId
      * @return string
      * @throws \Exception
@@ -72,14 +72,14 @@ class AIProviderFactory
     {
         foreach ($this->config['providers'] as $providerId => $provider) {
             if (!$provider['active']) continue;
-            
+
             foreach ($provider['models'] as $model) {
                 if ($model['id'] === $modelId) {
                     return $providerId;
                 }
             }
         }
-        
+
         throw new \Exception("Unknown model ID: {$modelId}");
     }
 }

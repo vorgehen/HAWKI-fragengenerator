@@ -111,7 +111,6 @@ async function sendMessageConv(inputField) {
     resizeInputField(inputField);
     input.querySelector('.file-attachments').innerHTML = "";
 
-    console.log(submissionData);
     const messageElement = addMessageToChatlog(submissionData);
 
     // create and add message element to chatlog.
@@ -126,6 +125,7 @@ async function sendMessageConv(inputField) {
         'stream': true,
         'model': activeModel.id,
     }
+
 
     buildRequestObjectForAiConv(msgAttributes);
 }
@@ -219,7 +219,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
                 'completion': messageObj.completion,
                 'attachments': null
             }
-
+            return
             if(isUpdate){
                 requestObj.message_id = messageElement.id;
                 await requestMsgUpdate(requestObj, messageElement, `/req/conv/updateMessage/${activeConv.slug}`)

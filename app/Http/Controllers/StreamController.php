@@ -120,14 +120,7 @@ class StreamController extends Controller
             'key' => 'nullable|string',
         ]);
 
-        // Log::debug('before');
-        // Log::debug($validatedData);
 
-        $validatedData['payload'] = $this->handleAttachments($validatedData['payload']);
-
-
-        // Log::debug('after');
-        // Log::debug($validatedData);
         if ($validatedData['broadcast']) {
             $this->handleGroupChatRequest($validatedData);
         } else {
@@ -188,7 +181,6 @@ class StreamController extends Controller
                 $data = $this->normalizeDataChunk($data);
                 //Log::info('google chunk detected');
             }
-
 
             // Skip non-JSON or empty chunks
             $chunks = explode("data: ", $data);
