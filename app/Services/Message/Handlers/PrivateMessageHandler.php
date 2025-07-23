@@ -51,10 +51,12 @@ class PrivateMessageHandler extends BaseMessageHandler{
         ]);
 
         //ATTACHMENTS
-        $attachments = $data['content']['attachments'];
-        if($attachments){
-            foreach($attachments as $attach){
-                $this->attachmentService->assignToMessage($message, $attach);
+        if(array_key_exists('attachments', $data['content'])){
+            $attachments = $data['content']['attachments'];
+            if($attachments){
+                foreach($attachments as $attach){
+                    $this->attachmentService->assignToMessage($message, $attach);
+                }
             }
         }
 
@@ -113,7 +115,6 @@ class PrivateMessageHandler extends BaseMessageHandler{
 
     public function createMessageObject($message): array
     {
-
         //if AI is the author, then username and name are the same.
         //if User has created the message then fetch the name from model.
         $user =  $message->user;

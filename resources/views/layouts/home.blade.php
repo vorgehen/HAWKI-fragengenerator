@@ -2,18 +2,18 @@
 <!DOCTYPE html>
 <html class="lightMode">
 <head>
-	
+
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
 	<meta name="csrf-token" content="{{ csrf_token() }}">
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
-    
+
 	<title>{{ env('APP_NAME') }}</title>
 
 	<link rel="icon" href="{{ asset('favicon.ico') }}">
-	
+
     <link rel="stylesheet" href="{{ asset('css_v2.0.1_f1/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css_v2.0.1_f1/home-style.css') }}">
     <link rel="stylesheet" href="{{ asset('css_v2.0.1_f1/settings_style.css') }}">
@@ -21,7 +21,7 @@
 
     @vite('resources/js/app.js')
     @vite('resources/css/app.css')
-	
+
 	<script src="{{ asset('js_v2.0.1_f1/functions.js') }}"></script>
 	<script src="{{ asset('js_v2.0.1_f1/home_functions.js') }}"></script>
 	<script src="{{ asset('js_v2.0.1_f1/stream_functions.js') }}"></script>
@@ -37,6 +37,7 @@
     <script src="{{ asset('js_v2.0.1_f1/export.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/user_profile.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/file_manager.js') }}"></script>
+    <script src="{{ asset('js_v2.0.1_f1/attachment_handler.js') }}"></script>
 
 	@if(config('sanctum.allow_external_communication'))
 		<script src="{{ asset('js_v2.0.1_f1/sanctum_functions.js') }}"></script>
@@ -51,7 +52,7 @@
 
 </head>
 <body>
-	
+
 	<div class="wrapper">
 
 		@include('partials.home.sidebar')
@@ -65,11 +66,17 @@
 	@include('partials.home.modals.add-member-modal')
 	@include('partials.home.modals.session-expiry-modal')
 	@include('partials.home.modals.file-viewer-modal')
-	
-	@include('partials.overlay')
-	
 
-	@include('partials.home.templates')
+	@include('partials.overlay')
+
+    @php
+        $templates = collect(File::files(resource_path('views/partials/home/templates')))
+            ->sortBy(fn($file) => $file->getFilename())
+            ->values();
+    @endphp
+    @foreach ($templates as $temp)
+        @include('partials.home.templates.' . $viewName = str_replace('.blade', '',  $temp->getFilenameWithoutExtension()))
+    @endforeach
 
 </body>
 </html>
@@ -80,18 +87,18 @@
 	const userAvatarUrl = @json($userData['avatar_url']);
 	const hawkiAvatarUrl = @json($userData['hawki_avatar_url']);
 	const activeModule = @json($activeModule);
-	
+
     const activeLocale = {!! json_encode(Session::get('language')) !!};
 	const translation = @json($translation);
 
 	const modelsList = @json($models).models;
 	const defaultModel = @json($models).defaultModel;
 	const systemModels = @json($models).systemModels;
-
+    console.log(modelsList)
 
 	const aiHandle = "{{ config('app.aiHandle') }}";
 
-	
+
 	window.addEventListener('DOMContentLoaded', async (event) => {
 
 		setSessionCheckerTimer(0);
@@ -103,7 +110,7 @@
 		}
 
 		handleUserInvitations();
-		
+
 		//Module Checkup
 		setActiveSidebarButton(activeModule);
 

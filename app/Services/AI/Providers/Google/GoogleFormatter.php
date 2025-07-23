@@ -60,7 +60,7 @@ class GoogleFormatter implements FormatterInterface
             'model' => $modelId,
             'system_instruction' => $systemInstruction,
             'contents' => $formattedMessages,
-            'stream' => $rawPayload['stream'] && $this->utils->supportsStreaming($modelId),
+            'stream' => $rawPayload['stream'] && $this->utils->hasTool($modelId, 'stream'),
         ];
 
         // Set complete optional fields with content (default values if not present in $rawPayload)
@@ -81,7 +81,7 @@ class GoogleFormatter implements FormatterInterface
 
         // Google Search only works with gemini >= 2.0
         // Search tool is context sensitive, this means the llm decides if a search is necessary for an answer
-        if ($this->config['allow_search'] && $this->utils->getModelDetails($modelId)['search_tool']){
+        if ($this->utils->getModelDetails($modelId)['tools']['internet_search']){
             $payload['tools'] = $rawPayload['tools'] ?? [
                 [
                     "google_search" => new \stdClass()
@@ -134,7 +134,6 @@ class GoogleFormatter implements FormatterInterface
                         $html_safe = htmlspecialchars($fileContent);
 
                         $formatted[] = [
-                            'type' => 'text',
                             'text' => "[\"ATTACHED FILE CONTEXT: \" { $attachment->name }\"]
                                         ---
                                         { {$html_safe} }.

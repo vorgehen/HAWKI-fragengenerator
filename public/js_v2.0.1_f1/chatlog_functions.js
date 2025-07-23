@@ -364,6 +364,56 @@ function setModel(modelID = null){
     });
 
 }
+
+
+
+let modelFilters = new Map();
+function addToModelFilters(filterName, fieldId){
+    console.log(filterName)
+    if (!modelFilters.has(fieldId)) {
+        modelFilters.set(fieldId, []);
+    }
+    console.log(modelFilters.get(fieldId));
+    const index = modelFilters.get(fieldId).indexOf(filterName);
+    console.log(index);
+    if (index === -1) {
+        modelFilters.get(fieldId).push(filterName);
+        updateModelSelectors(fieldId);
+    }
+}
+
+function removeFromModelFilters(filterName, fieldId){
+    if (!modelFilters.has(fieldId)) {
+        return;
+    }
+
+    const index = modelFilters.get(fieldId).indexOf(filterName);
+    if (index !== -1) {
+        modelFilters.get(fieldId).splice(index, 1);
+        updateModelSelectors(fieldId);
+    }
+}
+
+// UI update logic
+function updateModelSelectors(fieldId) {
+    const filtered = filterModels(fieldId);
+    console.log(filtered)
+    const allowedIds = new Set(filtered.map(m => m.id));
+
+    inputCont = document.querySelector(`.input[id="${fieldId}"`).closest('.input-container');
+    inputCont.querySelectorAll('.model-selector').forEach(button => {
+        const modelId = button.dataset.modelId;
+        button.disabled = !allowedIds.has(modelId);
+    });
+}
+
+function filterModels(fieldId) {
+    return modelsList.filter(model =>
+        modelFilters.get(fieldId).every(tool => model.tools[tool])
+    );
+}
+
+
 //#endregion
 
 

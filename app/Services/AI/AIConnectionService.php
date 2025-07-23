@@ -64,29 +64,31 @@ class AIConnectionService
         foreach ($providers as $provider) {
             if ($provider['active']) {
 
-                $providerInterface = $this->providerFactory->getProviderInterface($provider['id']);
+                // $providerInterface = $this->providerFactory->getProviderInterface($provider['id']);
 
-                if (method_exists($providerInterface, 'getModelsStatus') &&
-                    $provider['status_check'] &&
-                    !empty($provider['ping_url'])) {
+                // if (method_exists($providerInterface, 'getModelsStatus') &&
+                //     $provider['status_check'] &&
+                //     !empty($provider['ping_url'])) {
 
-                        $stats = $providerInterface->getModelsStatus();
-                        if($stats){
-                            foreach($stats as $stat){
-                                $models[] = $stat;
-                            }
-                        }
-                        else{
-                            foreach ($provider['models'] as $model) {
-                                $models[] = $model;
-                            }
-                        }
+                //         $stats = $providerInterface->getModelsStatus();
+                //         if($stats){
+                //             foreach($stats as $stat){
+                //                 $models[] = $stat;
+                //             }
+                //         }
+                //         else{
+                //             foreach ($provider['models'] as $model) {
+                //                 $models[] = $model;
+                //             }
+                //         }
 
-                } else {
+                // } else {
                     foreach ($provider['models'] as $model) {
-                        $models[] = $model;
+                        if($model['active']) {
+                            $models[] = $model;
+                        }
                     }
-                }
+                // }
             }
         }
 

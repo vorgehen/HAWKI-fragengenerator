@@ -18,8 +18,6 @@ class GWDGProvider extends BaseAIModelProvider
     {
         $formatter = new GWDGFormatter($this->config);
         $payload = $formatter->format($rawPayload);
-        Log::debug($payload['messages']);
-
         return $payload;
     }
 
@@ -52,7 +50,6 @@ class GWDGProvider extends BaseAIModelProvider
      */
      public function formatStreamChunk(string $chunk): array
     {
-        Log::debug($chunk);
         $jsonChunk = json_decode($chunk, true);
         $content = '';
         $isDone = false;

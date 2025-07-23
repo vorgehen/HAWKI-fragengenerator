@@ -17,25 +17,6 @@ class ModelUtilities{
         $this->config = $config;
     }
 
-
-    /**
-     * Check if a model supports streaming
-     *
-     * @param string $modelId Model identifier
-     * @return bool True if streaming is supported
-     */
-    public function supportsStreaming(string $modelId): bool
-    {
-        $details = $this->getModelDetails($modelId);
-        if(in_array('stream', $details['tools'])){
-            return true;
-        }
-        else{
-            return false;
-        }
-    }
-
-
     public function hasTool(string $modelId, string $tool): bool
     {
         $tools = $this->getModelDetails($modelId)['tools'];
@@ -47,7 +28,17 @@ class ModelUtilities{
         }
     }
 
-        /**
+    public function hasInput(string $modelId, string $input): bool{
+        $inputs = $this->getModelDetails($modelId)['input'];
+        if(in_array($input, $inputs)){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+    /**
      * Get details for a specific model
      *
      * @param string $modelId Model identifier
@@ -60,7 +51,6 @@ class ModelUtilities{
                 return $model;
             }
         }
-
         throw new \Exception("Unknown model ID: {$modelId}");
     }
 

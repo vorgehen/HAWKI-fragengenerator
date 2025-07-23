@@ -1,4 +1,3 @@
-
 let convMessageTemplate;
 let chatItemTemplate;
 let activeConv;
@@ -27,6 +26,12 @@ function initializeAiChatModule(chatsObject){
     if(document.querySelector('.trunk').childElementCount == 0){
         chatlogElement.classList.add('start-state');
     }
+
+
+    const input = document.getElementById('input-container');
+    initFileUploader(input);
+
+
 
     initializeChatlogFunctions();
 
@@ -100,6 +105,7 @@ async function sendMessageConv(inputField) {
             "attachments": attachments
         },
     }
+    console.log('submissionData');
 
     const submissionData = await submitMessageToServer(messageObj, `/req/conv/sendMessage/${activeConv.slug}`);
 
@@ -112,6 +118,7 @@ async function sendMessageConv(inputField) {
     input.querySelector('.file-attachments').innerHTML = "";
 
     const messageElement = addMessageToChatlog(submissionData);
+    console.log('addMessageToChatlog finish');
 
     // create and add message element to chatlog.
     messageElement.dataset.rawMsg = submissionData.content.text;
@@ -126,8 +133,9 @@ async function sendMessageConv(inputField) {
         'model': activeModel.id,
     }
 
+    console.log('buildRequestObjectForAiConv');
 
-    buildRequestObjectForAiConv(msgAttributes);
+    // buildRequestObjectForAiConv(msgAttributes);
 }
 
 
@@ -211,15 +219,15 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
             const requestObj = {
                 'threadID': activeThreadIndex,
                 'content':{
-                    'text': messageObj.ciphertext,
-                    'iv': messageObj.iv,
-                    'tag': messageObj.tag,
+                    'text': {
+                        'ciphertext': messageObj.ciphertext,
+                        'iv': messageObj.iv,
+                        'tag': messageObj.tag,
+                    }
                 },
                 'model': messageObj.model,
                 'completion': messageObj.completion,
-                'attachments': null
             }
-            return
             if(isUpdate){
                 requestObj.message_id = messageElement.id;
                 await requestMsgUpdate(requestObj, messageElement, `/req/conv/updateMessage/${activeConv.slug}`)

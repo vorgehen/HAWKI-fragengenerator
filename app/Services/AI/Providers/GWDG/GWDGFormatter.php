@@ -45,7 +45,7 @@ class GWDGFormatter implements FormatterInterface
         $payload = [
             'model' => $modelId,
             'messages' => $formattedMessages,
-            'stream' => $rawPayload['stream'] && $this->utils->supportsStreaming($modelId),
+            'stream' => $rawPayload['stream'] && $this->utils->hasTool($modelId, 'stream'),
         ];
 
         return $payload;

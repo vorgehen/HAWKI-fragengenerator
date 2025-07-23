@@ -50,7 +50,6 @@ class GoogleProvider extends BaseAIModelProvider
      */
     public function formatStreamChunk(string $chunk): array
     {
-
         $jsonChunk = json_decode($chunk, true);
 
         $content = '';

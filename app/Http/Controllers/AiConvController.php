@@ -193,7 +193,7 @@ class AiConvController extends Controller
 
         $validatedData = $request->validate([
             'message_id' => 'required|string',
-            'content' => 'required|string|max:10000',
+            'content' => 'required|string',
             'iv' => 'required|string',
             'tag' => 'required|string',
             'model' => 'nullable|string',
@@ -213,9 +213,8 @@ class AiConvController extends Controller
 
     public function storeAttachment(Request $request) {
         $validateData = $request->validate([
-            'file' => 'required|file|max:10240'
+            'file' => 'required|file|max:20480'
         ]);
-
         try {
             $result = $this->attachmentService->store($validateData['file'], 'private');
             return response()->json($result);

@@ -30,6 +30,7 @@ class AttachmentService{
         $attachmentHandler = AttachmentFactory::create($type);
         // STORE FILE BASED ON TYPE
         $result = $attachmentHandler->store($file, $category);
+
         return $result;
     }
 

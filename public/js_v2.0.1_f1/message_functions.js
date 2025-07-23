@@ -1,7 +1,6 @@
 
 function addMessageToChatlog(messageObj, isFromServer = false){
 
-    console.log(messageObj);
     const {messageText, groundingMetadata} = deconstContent(messageObj.content.text);
 
     /// CLONE
@@ -133,18 +132,13 @@ function addMessageToChatlog(messageObj, isFromServer = false){
         const attachmentContainer = messageElement.querySelector('.attachments');
 
         messageObj.content.attachments.forEach(attachment => {
-            console.log(attachment)
+
             const thumbnail = createAttachmentThumbnail(attachment.fileData);
             thumbnail.addEventListener('click', ()=> {
                 previewFile(attachment.fileData, 'private')
             });
             // Add to file preview container
             attachmentContainer.appendChild(thumbnail);
-            // if(!attachment.imgPreview){
-
-            //     // const element = attachmentContainer.querySelector(`.attachment-icon[data-file-id="${attachment.fileData.uuid}"]`)
-            //     // cueFilePreviewCreator(attachment.fileData, element);
-            // }
         });
     }
 
@@ -212,9 +206,11 @@ function addMessageToChatlog(messageObj, isFromServer = false){
 
         if(messageObj.message_id){
             threadDiv.id = messageObj.message_id.split('.')[0];
+            threadDiv.querySelector('.input').id = threadDiv.id;
+
         }
 
-        const input = threadDiv.querySelector('.input');
+        const input = threadDiv.querySelector('.input-container');
 	    initFileUploader(input);
 
         messageElement.appendChild(threadDiv);

@@ -29,16 +29,17 @@ class AtchDocumentHandler implements AttachmentInterface
         $stored = $this->storageService->storeFile($file, $originalName, $uuid, $category);
         if (!$stored) {
             return [
-                'succes' => false,
+                'success' => false,
                 'message'=> 'Failed to store file.'
             ];
             // throw new \Exception('Failed to store file.');
         }
+        $url = $this->storageService->getFileUrl($uuid, $category);
 
         $results = $this->extractFileContent($file);
         if (!$results) {
             return [
-                'succes' => false,
+                'success' => false,
                 'message'=> 'Failed to extract text from file'
             ];
             // throw new \Exception('Failed to store file.');
@@ -50,9 +51,9 @@ class AtchDocumentHandler implements AttachmentInterface
         }
 
         return [
-            'succes' => true,
+            'success' => true,
             'uuid' => $uuid,
-            'name' => $originalName,
+            'url'=> $url
         ];
     }
 

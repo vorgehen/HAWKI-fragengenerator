@@ -45,7 +45,7 @@ class OpenAIFormatter implements FormatterInterface
         $payload = [
             'model' => $modelId,
             'messages' => $formattedMessages,
-            'stream' => $rawPayload['stream'] && $this->utils->supportsStreaming($modelId),
+            'stream' => $rawPayload['stream'] && $this->utils->hasTool($modelId,'stream'),
         ];
 
         // Add optional parameters if present in the raw payload
@@ -79,8 +79,6 @@ class OpenAIFormatter implements FormatterInterface
             ];
         }
 
-
-
         // Handle attachments
         if (!empty($content['attachments'])) {
 
@@ -91,8 +89,6 @@ class OpenAIFormatter implements FormatterInterface
                 if (!$attachment) {
                     continue; // skip invalid
                 }
-
-
 
                 switch ($attachment->type) {
                     case 'image':
@@ -123,7 +119,7 @@ class OpenAIFormatter implements FormatterInterface
                         break;
 
                     default:
-                        Log::error('bad attachment type');
+                        Log::error("bad attachment type: {$attachment->type}");
                         break;
                 }
             }

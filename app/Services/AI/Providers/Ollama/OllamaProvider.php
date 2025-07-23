@@ -30,7 +30,7 @@ class OllamaProvider extends BaseAIModelProvider
         return [
             'model' => $modelId,
             'messages' => $formattedMessages,
-            'stream' => $rawPayload['stream'] && $this->supportsStreaming($modelId),
+            'stream' => $rawPayload['stream'] && $this->utils->hasTool($modelId, 'stream'),
         ];
     }
 

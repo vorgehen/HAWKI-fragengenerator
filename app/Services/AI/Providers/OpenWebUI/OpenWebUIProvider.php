@@ -34,7 +34,7 @@ class OpenWebUIProvider extends BaseAIModelProvider
         $payload = [
             'model' => $modelId,
             'messages' => $formattedMessages,
-            'stream' => $rawPayload['stream'] && $this->supportsStreaming($modelId),
+            'stream' => $rawPayload['stream'] && $this->utils->hasTool($modelId, 'stream'),
         ];
 
         // Add optional parameters if present in the raw payload
@@ -68,8 +68,8 @@ class OpenWebUIProvider extends BaseAIModelProvider
         $responseContent = $response->getContent();
         $jsonContent = json_decode($responseContent, true);
 
-        if (containsKey($jsonContent, 'content')){
-            $content = getValueForKey($jsonContent, 'content');
+        if ($this->containsKey($jsonContent, 'content')){
+            $content = $this->getValueForKey($jsonContent, 'content');
         }
 
         return [

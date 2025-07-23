@@ -19,12 +19,12 @@
 			<div class="dy-sidebar-content-panel">
 				<div class="dy-sidebar-scroll-panel">
 					<div class="selection-list" id="chats-list">
-				
-						
+
+
 					</div>
 				</div>
 			</div>
-		
+
 			<div class="dy-sidebar-expand-btn" onclick="togglePanelClass('chat-sidebar', 'expanded')">
 				<x-icon name="chevron-right"/>
 			</div>
@@ -54,7 +54,7 @@
 							</div>
 						</div>
 					</div>
-					
+
 				</div>
 				<h1 id="start-title">{{ $translation["StartBanner"] }}</h1>
 
@@ -62,7 +62,7 @@
 
 			</div>
 			<p class="warning">{{ $translation["MistakeWarning"] }}</p>
-			
+
 		</div>
 	</div>
 
@@ -84,12 +84,6 @@ window.addEventListener('DOMContentLoaded', async function (){
 	else{
         switchDyMainContent('chat');
 	}
-});
-
-
-const inputs = document.querySelectorAll('.input');
-inputs.forEach(input => {
-	initFileUploader(input);
 });
 
 

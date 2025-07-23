@@ -26,14 +26,16 @@ class AtchImageHandler implements AttachmentInterface
         $originalName = $file->getClientOriginalName();
 
         $stored = $this->storageService->storeFile($file,$originalName, $uuid, $category);
+        $url = $this->storageService->getFileUrl($uuid, $category);
 
         if (!$stored) {
             throw new \Exception('Failed to store file.');
         }
 
         return [
-            'succes' => true,
-            'uuid' => $uuid
+            'success' => true,
+            'uuid' => $uuid,
+            'url'=> $url,
         ];
     }
 }
