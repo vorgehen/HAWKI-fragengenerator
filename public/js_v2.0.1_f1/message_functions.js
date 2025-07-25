@@ -134,9 +134,14 @@ function addMessageToChatlog(messageObj, isFromServer = false){
         messageObj.content.attachments.forEach(attachment => {
 
             const thumbnail = createAttachmentThumbnail(attachment.fileData);
-            thumbnail.addEventListener('click', ()=> {
-                previewFile(attachment.fileData, 'private')
-            });
+            // thumbnail.addEventListener('click', ()=> {
+            //     previewFile(attachment.fileData, 'private')
+            // });
+            const rmBtn = thumbnail.querySelector('.remove-btn');
+            rmBtn.removeAttribute('onclick');
+            rmBtn.style.display = 'none';
+            rmBtn.disabled = true;
+
             // Add to file preview container
             attachmentContainer.appendChild(thumbnail);
         });
@@ -563,19 +568,75 @@ function copyCodeBlockToClipboard(provider) {
 
 function editMessage(provider){
     const msgControls = provider.closest('.message-controls');
-    msgControls.querySelector('.controls').style.opacity = '0';
-    msgControls.querySelector('.edit-controls').style.opacity = '1';
-    msgControls.querySelector('.edit-controls').style.display = 'flex';
-    const wrapper = provider.closest('.message-wrapper');
+    const controls = msgControls.querySelector('.controls');
+    const editControls = msgControls.querySelector('.edit-bar');
+
+    controls.style.display = 'none';
+    editControls.style.display = 'flex';
+
+    const message = provider.closest('.message');
+    const wrapper = message.querySelector('.message-wrapper');
     wrapper.classList.add('edit-mode');
 
-    const content = wrapper.querySelector('.message-content');
+    const content = message.querySelector('.message-content');
+
+    /// PASTE STYLE
+    content.addEventListener("paste", function(e) {
+        e.preventDefault();
+
+        // Get the plain text from clipboard
+        let text = (e.clipboardData || window.clipboardData).getData("text/plain");
+
+        // Get selection and range
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        const range = selection.getRangeAt(0);
+
+        // Split text by lines
+        const lines = text.split(/\r?\n/);
+        // Create a DocumentFragment to hold nodes
+        const fragment = document.createDocumentFragment();
+
+        for (let i = 0; i < lines.length; i++) {
+            if(i > 0) fragment.appendChild(document.createElement("br"));
+            fragment.appendChild(document.createTextNode(lines[i]));
+        }
+
+        // Insert the fragment at the cursor
+        range.deleteContents();
+        range.insertNode(fragment);
+
+        // Move cursor to the end of the pasted content
+        // Create a new range after the inserted content
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    });
+
+
+    /// ATTACHMENTS
+    if(wrapper.querySelectorAll('.attachment').length > 0){
+        const atchs = wrapper.querySelectorAll('.attachment');
+        atchs.forEach(atch => {
+            const rmBtn = atch.querySelector('.remove-btn');
+            rmBtn.style.display = 'flex';
+            rmBtn.disabled = false;
+            rmBtn.addEventListener('click', async ()=> {
+                const confirm = await openModal(ModalType.WARNING, translation.Cnf_RemoveFile);
+                if(!confirm){
+                    return;
+                }
+                const deleted = await requestAtchDelete(atch.dataset.fileId, 'conv');
+                if(deleted){
+                    atch.remove();
+                }
+            });
+        });
+    }
 
     content.setAttribute('contenteditable', true);
     content.dataset.tempContent = content.innerHTML;
-
     const rawMsg = content.closest('.message').dataset.rawMsg;
-
     content.innerHTML = escapeHTML(rawMsg).replace(/\n/g, '<br>');
 
     content.focus();
@@ -601,9 +662,13 @@ function editMessage(provider){
 
 function abortEditMessage(provider){
     const msgControls = provider.closest('.message-controls');
-    msgControls.querySelector('.controls').style.opacity = '1';
-    msgControls.querySelector('.edit-controls').style.opacity = '0';
-    msgControls.querySelector('.edit-controls').style.display = 'none';
+    const controls = msgControls.querySelector('.controls');
+    const editControls = msgControls.querySelector('.edit-bar');
+    controls.style.display = 'flex';
+    editControls.style.display = 'none';
+
+
+
     const wrapper = provider.closest('.message-wrapper');
     wrapper.classList.remove('edit-mode');
 
@@ -622,9 +687,10 @@ async function confirmEditMessage(provider){
         return;
     }
 
-    msgControls.querySelector('.controls').style.opacity = '1';
-    msgControls.querySelector('.edit-controls').style.opacity = '0';
-    msgControls.querySelector('.edit-controls').style.display = 'none';
+    const controls = msgControls.querySelector('.controls');
+    const editControls = msgControls.querySelector('.edit-bar');
+    controls.style.display = 'flex';
+    editControls.style.display = 'none';
 
     const wrapper = provider.closest('.message-wrapper');
     wrapper.classList.remove('edit-mode');
@@ -664,12 +730,17 @@ async function confirmEditMessage(provider){
 
     const cryptoMsg = await encryptWithSymKey(key, cont, false);
     const messageObj = {
-        'content' : cryptoMsg.ciphertext,
-        'iv' : cryptoMsg.iv,
-        'tag' : cryptoMsg.tag,
+        'content':{
+                'text': {
+                    'ciphertext': cryptoMsg.ciphertext,
+                    'iv': cryptoMsg.iv,
+                    'tag': cryptoMsg.tag,
+                }
+            },
+        'isAi': false,
+        'model': '',
+        'completion': true,
         'message_id': messageElement.id,
-        'model': null,
-        'completion': true
     }
 
     requestMsgUpdate(messageObj, messageElement ,url);

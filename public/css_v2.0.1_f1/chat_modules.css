@@ -582,76 +582,7 @@
     font-size: var(--font-xxs);
 }
 
-.message-controls{
-    display: flex;
-    flex-direction: row;
-    column-gap: .5rem;
-    margin-top: 1rem;
-    user-select: none;
 
-    justify-content: space-between;
-    transition: all var(--transition-medium);
-    opacity: .5;
-}
-.message-wrapper:hover .message-controls{
-    opacity: 1;
-}
-
-.message-controls .controls{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    width: 100%;
-}
-
-
-
-
-
-.message-controls .controls .buttons{
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-}
-
-
-.reaction {
-    display: none;
-    opacity: 0;
-    position: absolute;
-    top: 120%;
-    left: -10%;
-    transition: opacity var(--transition-fast);
-}
-.reaction-button {
-    position: relative;;
-    transition: transform 0.2s ease;
-}
-.reaction-button:hover svg{
-    stroke: var(--accent-color)
-}
-
-
-.math{
-    position: relative;
-    margin-top: 1rem;
-}
-.math-copy-btn{
-    opacity: 0;
-    justify-self: end;
-    transition: opacity var(--transition-fast);
-}
-.math:hover .math-copy-btn{
-    opacity: 1;
-}
-
-
-
-
-.message-wrapper.edit-mode{
-    border: var(--border-stroke-thin);
-    border-radius: var(--border-radius-large);
-}
 
 .message[role="system"] {
     display: none;
@@ -680,10 +611,57 @@
 }
 
 
-.edit-controls{
-    display: none;
-    justify-self: end;
+
+.message-wrapper.edit-mode{
+    border: var(--border-stroke-thin);
+    border-radius: var(--border-radius-large);
+}
+
+.message-controls{
+    display: flex;
+    flex-direction: row;
+    column-gap: .5rem;
+    margin-top: 1rem;
+    user-select: none;
+
     align-items: center;
+    justify-content: space-between;
+    transition: all var(--transition-medium);
+    opacity: .5;
+}
+.message-wrapper:hover .message-controls{
+    opacity: 1;
+}
+.message-controls .controls{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+}
+.message-controls .controls .buttons{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.edit-bar{
+    display: none;
+    align-items: center;
+    flex-direction: row;
+    column-gap: .5rem;
+    height: 3rem;
+    user-select: none;
+    width: 100%;
+    justify-content: space-between;
+}
+.edit-bar .edit-bar-section{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: .5rem;
+}
+#prompt-imprv svg{
+    stroke-width: .1;
 }
 
 .message .message-status{
@@ -693,6 +671,8 @@
     align-items: center;
     justify-self: end;
 }
+
+
 
 
 #msg-timestamp{
@@ -742,6 +722,35 @@
 }
 
 
+.reaction {
+    display: none;
+    opacity: 0;
+    position: absolute;
+    top: 120%;
+    left: -10%;
+    transition: opacity var(--transition-fast);
+}
+.reaction-button {
+    position: relative;;
+    transition: transform 0.2s ease;
+}
+.reaction-button:hover svg{
+    stroke: var(--accent-color)
+}
+
+
+.math{
+    position: relative;
+    margin-top: 1rem;
+}
+.math-copy-btn{
+    opacity: 0;
+    justify-self: end;
+    transition: opacity var(--transition-fast);
+}
+.math:hover .math-copy-btn{
+    opacity: 1;
+}
 
 
 .think{
@@ -1185,6 +1194,9 @@
 }
 .attachment:hover .remove-btn {
     display: flex;
+}
+.attachment .remove-btn:hover {
+    fill: red;
 }
 
 .attachment-icon .status-indicator {

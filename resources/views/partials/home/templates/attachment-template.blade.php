@@ -1,5 +1,5 @@
 <template id="attachment-thumbnail-template">
-	 <div class="attachment">
+    <div class="attachment">
 		<div class="attachment-icon">
 			{{-- <h4 class="file-type"></h4> --}}
 			<div class="status-indicator">
@@ -23,8 +23,8 @@
 		<div class="name-tag-cont">
 			<p class="name-tag"></p>
 		</div>
-		<button class="btn-sm remove-btn" onclick="removeFileAttachment(this)">
-			<x-icon name="x"/>
+		<button class="btn-sm remove-btn" onclick="removeAtchFromInputList(this)">
+			<x-icon name="trash"/>
 		</button>
 	</div>
 </template>

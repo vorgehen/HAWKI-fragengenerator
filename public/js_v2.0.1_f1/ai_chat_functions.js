@@ -135,7 +135,7 @@ async function sendMessageConv(inputField) {
 
     console.log('buildRequestObjectForAiConv');
 
-    // buildRequestObjectForAiConv(msgAttributes);
+    buildRequestObjectForAiConv(msgAttributes);
 }
 
 
@@ -149,6 +149,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
     buildRequestObject(msgAttributes, async (data, done) => {
 
         if(data){
+
             if(!msgAttributes['broadcasting'] && msgAttributes['stream']){
                 setSendBtnStatus(SendBtnStatus.STOPPABLE);
             }
@@ -217,6 +218,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
             activateMessageControls(messageElement);
 
             const requestObj = {
+                'isAi': true,
                 'threadID': activeThreadIndex,
                 'content':{
                     'text': {
@@ -549,5 +551,49 @@ async function requestDeleteConv() {
         console.error('Failed to remove conv!');
     }
 }
+
+
+
+async function deleteMessage(btn){
+    const confirmed = await openModal(ModalType.WARNING , translation.Cnf_deleteConv);
+    if (!confirmed) {
+        return;
+    }
+
+    const url = `/req/conv/message/delete/${activeConv.slug}`;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    const message = btn.closest('.message');
+
+    try {
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({
+                'message_id' : message.id
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+
+            message.remove();
+
+
+
+        } else {
+            console.error('Failed to remove Message: ' + data.err);
+        }
+    } catch (error) {
+        console.error('Failed to remove conv!');
+    }
+
+
+}
+
 
 //#endregion

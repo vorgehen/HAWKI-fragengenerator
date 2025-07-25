@@ -69,7 +69,10 @@ Route::middleware('prevent_back')->group(function () {
         Route::post('/req/conv/updateInfo/{slug}', [AiConvController::class, 'updateInfo']);
         Route::delete('/req/conv/removeConv/{slug}', [AiConvController::class, 'removeConv']);
 
-        Route::post('/req/conv/upload', [AiConvController::class, 'storeAttachment']);
+        Route::delete('/req/conv/message/delete/{slug}', [AiConvController::class, 'deleteMessage']);
+
+        Route::post('/req/conv/attachmnet/upload', [AiConvController::class, 'storeAttachment']);
+        Route::delete('/req/conv/attachmnet/delete', [AiConvController::class, 'destroyAttachment']);
 
 
         // GROUPCHAT ROUTES

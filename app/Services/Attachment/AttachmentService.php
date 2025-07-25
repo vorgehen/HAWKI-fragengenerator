@@ -81,13 +81,19 @@ class AttachmentService{
 
 
 
-    public function delete(string $uuid, string $category): bool
+    public function delete(Attachment $attachment): bool
     {
         try{
-            $this->storageService->deleteFile($uuid, $category);
+            $deleted = $this->storageService->deleteFile($attachment->uuid, $attachment->category);
+            if(!$deleted){
+                return false;
+            }
+
+            $attachment->delete();
             return true;
         }
         catch(\Exception $e){
+            Log::error(message: "Failed to remove attachment: ", context: $e );
             return false;
         }
     }
@@ -123,7 +129,5 @@ class AttachmentService{
             return false;
         }
     }
-
-
 
 }

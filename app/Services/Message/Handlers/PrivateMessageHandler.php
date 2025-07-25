@@ -27,10 +27,10 @@ class PrivateMessageHandler extends BaseMessageHandler{
 
         $conv = AiConv::where('slug', $slug)->firstOrFail();
         if ($conv->user_id !== Auth::id()) {
-            return response()->json([
-                'success'=> false,
-                'error' => 'Access denied'
-            ], 403);
+            return [
+                        'success'=> false,
+                        'error' => 'Access denied'
+            ];
         }
 
         $user = $data['isAi'] ? User::find(1) : Auth::user();
@@ -80,9 +80,9 @@ class PrivateMessageHandler extends BaseMessageHandler{
         $message = $conv->messages->where('message_id', $data['message_id'])->first();
 
         $message->update([
-            'content' => $data['content'],
-            'iv' => $data['iv'],
-            'tag' => $data['tag'],
+            'content' => $data['content']['text']['ciphertext'],
+            'iv' => $data['content']['text']['iv'],
+            'tag' => $data['content']['text']['tag'],
             'model' => $data['model'],
             'completion' => $data['completion']
         ]);

@@ -245,7 +245,7 @@
             </div>
 
 
-            <div class="prompt-improvement-btn tooltip-parent" onclick="requestPromptImprovement(this)">
+            <div class="prompt-improvement-btn tooltip-parent" onclick="requestPromptImprovement(this, 'input')">
                 <div class="input-main-btn">
                     <x-icon name="vector"/>
                     <div class="label tooltip tt-abs-up">

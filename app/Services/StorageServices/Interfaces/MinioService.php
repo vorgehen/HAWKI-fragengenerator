@@ -50,7 +50,6 @@ class MinioService implements StorageServiceInterface
             }
 
             $result = Storage::disk($this->disk)->put($path, $contents, $options);
-
             if (!$result) {
                 Log::error("Failed to store file [$path] in bucket [{$this->bucket}]");
                 return false;
@@ -90,7 +89,9 @@ class MinioService implements StorageServiceInterface
     public function deleteFile(string $uuid, string $category): bool
     {
         $folder = $this->buildFolder($category, $uuid);
-        return Storage::disk($this->disk)->deleteDirectory($folder);
+        $deleted = Storage::disk($this->disk)->deleteDirectory($folder);
+        Log::debug($deleted);
+        return $deleted;
     }
 
 

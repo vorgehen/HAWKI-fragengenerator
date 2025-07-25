@@ -156,7 +156,8 @@ function createAttachmentThumbnail(fileData) {
     const attachTemp = document.getElementById('attachment-thumbnail-template')
     const attachClone = attachTemp.content.cloneNode(true);
     const attachment = attachClone.querySelector(".attachment");
-    attachment.dataset.fileId = fileData.tempId;
+    attachment.dataset.fileId = fileData.uuid ?? fileData.tempId;
+
     attachment.querySelector('.name-tag').innerText = fileData.name;
 
     const iconImg = attachment.querySelector('img');
@@ -187,7 +188,7 @@ function createAttachmentThumbnail(fileData) {
 }
 
 // Remove file attachment from UI and storage
-function removeFileAttachment(providerBtn) {
+function removeAtchFromInputList(providerBtn) {
 
     const input = providerBtn.closest('.input');
     const fileId = providerBtn.parentElement.dataset.fileId;
@@ -210,6 +211,34 @@ function removeFileAttachment(providerBtn) {
     const list = providerBtn.closest('.attachments-list');
     if (list && list.children.length === 0) {
         list.closest('.file-attachments').classList.remove('active');
+    }
+}
+
+async function requestAtchDelete(fileId, category){
+    const url = `/req/${category}/attachmnet/delete`;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    try{
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({
+                'fileId': fileId,
+            })
+        });
+        const data = await response.json();
+        if(data.success){
+            return true;
+        }
+        else{
+            console.error('Failed to remove attachment: ' + data.err);
+            return false;
+        }
+    }
+    catch(err){
+        return false;
     }
 }
 
@@ -257,7 +286,7 @@ function updateFileStatus(fileId, status) {
  * @returns {Promise<array|null>} - List of uploaded file metadata or null.
  */
 async function uploadAttachmentQueue(queueId, category) {
-    const url = `/req/${category}/upload`;
+    const url = `/req/${category}/attachmnet/upload`;
     const attachments = uploadQueues.get(queueId);
 
     if (!attachments || attachments.length === 0) return null;
@@ -278,6 +307,7 @@ async function uploadAttachmentQueue(queueId, category) {
 
         return upload.promise
             .then(data => {
+                console.log('attachment DATA');
                 console.log(data)
                 attachment.fileData.uuid = data.uuid;
                 uploadedFiles.push({

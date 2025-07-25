@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AiConv;
 use App\Models\AiConvMsg;
 use App\Models\User;
+use App\Models\Attachment;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -192,15 +193,22 @@ class AiConvController extends Controller
     public function updateMessage(Request $request, $slug) {
 
         $validatedData = $request->validate([
-            'message_id' => 'required|string',
-            'content' => 'required|string',
-            'iv' => 'required|string',
-            'tag' => 'required|string',
+            'isAi' => 'required|boolean',
+            'content' => 'required|array',
             'model' => 'nullable|string',
             'completion' => 'required|boolean',
+            'message_id' => 'required|string',
         ]);
 
+        //VALIDATE MESSAGE CONTENT
+        try {
+            $validatedData['content'] = $this->contentValidator->validate($validatedData['content']);
+        } catch (ValidationException $e) {
+            Log::error($e->getMessage());
+        }
+
         $messageData = $this->messageHandler->update($validatedData, $slug);
+
 
         return response()->json([
             'success' => true,
@@ -209,6 +217,35 @@ class AiConvController extends Controller
         ]);
 
     }
+
+    public function deleteMessage(Request $request, $slug) {
+        $validatedData = $request->validate([
+            "message_id" => 'required|string|size:5'
+        ]);
+
+        $conv = AiConv::where('slug', $slug)->first();
+        $message = $conv->messages()->where('message_id','=', $validatedData['message_id'])->first();
+
+        if ($message->user && !$message->user->is(Auth::user())) {
+            return response()->json([
+                'success'=> false,
+                'err'=> 'Permission Denied!'
+            ], 403);
+        }
+
+        $attachments = $message->attachments;
+        foreach ($attachments as $attachment) {
+            $this->attachmentService->delete($attachment);
+        }
+
+        $message->delete();
+        return response()->json([
+            'success'=> true,
+        ]);
+
+
+    }
+
 
 
     public function storeAttachment(Request $request) {
@@ -225,5 +262,44 @@ class AiConvController extends Controller
                 ->withInput();
         }
 
+    }
+
+    public function destroyAttachment(Request $request) {
+        $validateData = $request->validate([
+            'fileId' => 'required|string',
+        ]);
+
+        try{
+            $attachment = Attachment::where('uuid', $validateData['fileId'])->firstOrFail();
+
+            if ($attachment->user && !$attachment->user->is(Auth::user())) {
+                return response()->json([
+                    'success'=> false,
+                    'err'=> 'Permission Denied!'
+                ], 403);
+            }
+
+            if (!$attachment->attachable instanceof AiConvMsg) {
+                return response()->json([
+                    'success'=> false,
+                    'err'=> 'File Id does not match the properties!'
+                ], 500);
+            }
+
+            $result = $this->attachmentService->delete($attachment);
+            return response()->json([
+                "success" => $result
+            ]);
+
+
+
+        }
+        catch(ValidationException $e) {
+            Log::error($e);
+            return response()->json([
+                'success'=> false,
+                'err'=> 'Attachment with this UUID not found: ' . $e->getMessage()
+            ], 404);
+        }
     }
 }

@@ -14,7 +14,7 @@ function buildRequestObject(msgAttributes, onData) {
         broadcast: msgAttributes['broadcasting'],
         threadIndex: msgAttributes['threadIndex'],
         slug: msgAttributes['slug'],
-        
+
         isUpdate: isUpdate,
         messageId: msgID,
 
@@ -92,9 +92,9 @@ async function processStream(stream, onData) {
     try{
         let buffer = "";
         while (true) {
-            
+
             const { done, value } = await reader.read();
-            
+
             if (done) {
                 onData(null, true);
                 return;
@@ -152,7 +152,7 @@ function createMessageLogForAI(regenerationElement = null){
         role: 'system',
         content:{
             text: systemPromptContent
-        } 
+        }
     }
 
     //create a selection array starting with systam prompt
@@ -163,8 +163,8 @@ function createMessageLogForAI(regenerationElement = null){
     let lastMsgId;
     if(!regenerationElement){
         const activeThread = document.querySelector(`.thread#${CSS.escape(activeThreadIndex)}`);
-        const lastMsg = activeThreadIndex === 0 
-                        ? activeThread.lastElementChild 
+        const lastMsg = activeThreadIndex === 0
+                        ? activeThread.lastElementChild
                         : [...activeThread.querySelectorAll('.message')].pop();
         lastMsgId = lastMsg.id;
     }
@@ -172,7 +172,7 @@ function createMessageLogForAI(regenerationElement = null){
         lastMsgId = regenerationElement.previousElementSibling.id;
     }
 
-    let [lastWholeNum, lastDecimalNum] = lastMsgId.split('.').map(Number);    
+    let [lastWholeNum, lastDecimalNum] = lastMsgId.split('.').map(Number);
     //get last 100 messages
     const messages = Array.from(document.querySelectorAll('.message')).slice(-100);
 
@@ -204,7 +204,7 @@ function createMsgObject(msg){
     // ToDo: insert search results
     // I'm not sure if the data from processStream() lands before getting plotted
     const filteredText = detectMentioning(msgTxt).filteredText;
-    
+
     const attachmentEls = msg.querySelectorAll('.attachment');
     const attachments = Array.from(attachmentEls, att => att.dataset.fileId);
 
@@ -222,11 +222,20 @@ function createMsgObject(msg){
 
 
 
-async function requestPromptImprovement(sender) {
-    const inputField = sender.closest('.input').querySelector('.input-field');
-    const prompt = inputField.value.trim();
-
-    await smoothDeleteWords(inputField, 700)
+async function requestPromptImprovement(sender, type) {
+    let prompt = '';
+    let inputField;
+    let message;
+    console.log(type);
+    if(type === 'input'){
+        inputField = sender.closest('.input').querySelector('.input-field');
+        prompt = inputField.value.trim();
+        await smoothDeleteWords(inputField, 700)
+    }
+    if(type === 'message'){
+        message = sender.closest('.message').querySelector('.message-content');
+        prompt = message.innerText.trim();
+    }
 
     const requestObject = {
         payload: {
@@ -258,8 +267,16 @@ async function requestPromptImprovement(sender) {
         const onData = (data, done) => {
             if (data && data.content != "") {
                 result += deconstContent(JSON.parse(data.content).text).messageText
-                inputField.value = result.trim();
-                resizeInputField(inputField);   
+                if(type === 'input'){
+                    inputField.value = result.trim();
+                    resizeInputField(inputField);
+                }
+                else{
+                    message = sender.closest('.message').querySelector('.message-content');
+                    message.innerText = result;
+                }
+
+
             }
             if (done) {
                 // console.log('done');

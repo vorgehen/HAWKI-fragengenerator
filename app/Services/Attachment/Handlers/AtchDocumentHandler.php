@@ -35,7 +35,6 @@ class AtchDocumentHandler implements AttachmentInterface
             // throw new \Exception('Failed to store file.');
         }
         $url = $this->storageService->getFileUrl($uuid, $category);
-
         $results = $this->extractFileContent($file);
         if (!$results) {
             return [

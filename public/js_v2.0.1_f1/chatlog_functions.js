@@ -90,7 +90,7 @@ async function submitMessageToServer(requestObj, url){
 
 async function requestMsgUpdate(messageObj, messageElement, url){
     const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
+    console.log(messageObj);
     try {
         const response = await fetch(url, {
             method: "POST",
@@ -102,7 +102,6 @@ async function requestMsgUpdate(messageObj, messageElement, url){
         });
 
         const data = await response.json();
-
         if (data.success) {
             // console.log(data);
             // console.log('Message updated.')
