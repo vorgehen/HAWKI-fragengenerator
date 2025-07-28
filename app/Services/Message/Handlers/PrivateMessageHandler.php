@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\AiConv;
 use App\Models\AiConvMsg;
 
-use App\Services\Attachment\AttachmentService;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -18,10 +17,7 @@ use Illuminate\Http\Request;
 
 class PrivateMessageHandler extends BaseMessageHandler{
 
-    protected $attachmentService;
-    public function __construct(){
-        $this->attachmentService = new AttachmentService();
-    }
+
 
     public function create(array $data, string $slug): array {
 

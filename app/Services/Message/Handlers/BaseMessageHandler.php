@@ -10,8 +10,16 @@ use App\Models\AiConvMsg;
 use App\Models\Room;
 use App\Models\Message;
 
+use App\Services\Attachment\AttachmentService;
+
+
 abstract class BaseMessageHandler implements MessageInterface
 {
+    protected $attachmentService;
+    public function __construct(){
+        $this->attachmentService = new AttachmentService();
+    }
+
     public function assignID(AiConv|Room $room, int $threadID): string {
         $decimalPadding = 3; // Decide how much padding you need. 3 could pad up to 999.
 

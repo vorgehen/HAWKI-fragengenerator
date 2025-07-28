@@ -12,7 +12,7 @@ class Room extends Model
     use HasFactory;
 
     protected $fillable = [
-        'room_name', 
+        'room_name',
         'room_icon',
         'room_description',
         'system_prompt',
@@ -34,10 +34,6 @@ class Room extends Model
     }
 
 
-
-    /**
-     * The users that are members of the room.
-     */
     public function membersAll()
     {
         return $this->hasMany(Member::class);
@@ -63,7 +59,7 @@ class Room extends Model
                     ->where('user_id', $userId)
                     ->exists();
     }
-    
+
     public function addMember($userId, $role)
     {
         if($this->isMember($userId)){
@@ -101,7 +97,7 @@ class Room extends Model
     public function removeMember($userId)
     {
         if($this->isMember($userId)){
-            
+
             // Attempt to delete the member from the room based on user ID
             return $this->members()
                         ->where('user_id', $userId)
@@ -111,7 +107,7 @@ class Room extends Model
     }
 
 
-    
+
 
     public function hasRole($userId, $role)
     {

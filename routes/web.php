@@ -89,6 +89,10 @@ Route::middleware('prevent_back')->group(function () {
             Route::post('/req/room/sendMessage/{slug}', [RoomController::class, 'sendMessage']);
             Route::post('/req/room/updateMessage/{slug}', [RoomController::class, 'updateMessage']);
             Route::post('/req/room/streamAI/{slug}', [StreamController::class, 'handleAiConnectionRequest']);
+
+            Route::post('/req/room/attachmnet/upload', [RoomController::class, 'storeAttachment']);
+            Route::delete('/req/room/attachmnet/delete', [RoomController::class, 'destroyAttachment']);
+
         });
 
         Route::middleware('roomAdmin')->group(function () {

@@ -134,12 +134,11 @@ function addMessageToChatlog(messageObj, isFromServer = false){
         messageObj.content.attachments.forEach(attachment => {
 
             const thumbnail = createAttachmentThumbnail(attachment.fileData);
-            // thumbnail.addEventListener('click', ()=> {
-            //     previewFile(attachment.fileData, 'private')
-            // });
+            thumbnail.querySelector('.content').addEventListener('click', ()=> {
+                previewFile(attachment.fileData, 'private')
+            });
             const rmBtn = thumbnail.querySelector('.remove-btn');
             rmBtn.removeAttribute('onclick');
-            rmBtn.style.display = 'none';
             rmBtn.disabled = true;
 
             // Add to file preview container
@@ -618,8 +617,8 @@ function editMessage(provider){
     if(wrapper.querySelectorAll('.attachment').length > 0){
         const atchs = wrapper.querySelectorAll('.attachment');
         atchs.forEach(atch => {
+            atch.classList.add('edit-mode');
             const rmBtn = atch.querySelector('.remove-btn');
-            rmBtn.style.display = 'flex';
             rmBtn.disabled = false;
             rmBtn.addEventListener('click', async ()=> {
                 const confirm = await openModal(ModalType.WARNING, translation.Cnf_RemoveFile);
@@ -672,6 +671,17 @@ function abortEditMessage(provider){
     const wrapper = provider.closest('.message-wrapper');
     wrapper.classList.remove('edit-mode');
 
+
+    if(wrapper.querySelectorAll('.attachment').length > 0){
+        const atchs = wrapper.querySelectorAll('.attachment');
+        atchs.forEach(atch => {
+            atch.classList.remove('edit-mode');
+            const rmBtn = atch.querySelector('.remove-btn');
+            rmBtn.disabled = true;
+        })
+    };
+
+
     const content = wrapper.querySelector('.message-content');
     content.setAttribute('contenteditable', false);
     content.innerHTML = content.dataset.tempContent;
@@ -694,6 +704,17 @@ async function confirmEditMessage(provider){
 
     const wrapper = provider.closest('.message-wrapper');
     wrapper.classList.remove('edit-mode');
+
+
+    if(wrapper.querySelectorAll('.attachment').length > 0){
+        const atchs = wrapper.querySelectorAll('.attachment');
+        atchs.forEach(atch => {
+            atch.classList.remove('edit-mode');
+            const rmBtn = atch.querySelector('.remove-btn');
+            rmBtn.disabled = true;
+        })
+    };
+
 
     const content = wrapper.querySelector('.message-content');
     content.setAttribute('contenteditable', false);

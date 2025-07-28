@@ -105,7 +105,6 @@ async function sendMessageConv(inputField) {
             "attachments": attachments
         },
     }
-    console.log('submissionData');
 
     const submissionData = await submitMessageToServer(messageObj, `/req/conv/sendMessage/${activeConv.slug}`);
 
@@ -115,7 +114,11 @@ async function sendMessageConv(inputField) {
     // empty input field
     inputField.value = "";
     resizeInputField(inputField);
-    input.querySelector('.file-attachments').innerHTML = "";
+    const fileAtchs = input.querySelector('.file-attachments');
+    fileAtchs.innerHTML = "";
+    fileAtchs.classList.remove('active');
+
+
 
     const messageElement = addMessageToChatlog(submissionData);
     console.log('addMessageToChatlog finish');

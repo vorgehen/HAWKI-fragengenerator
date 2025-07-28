@@ -3,11 +3,13 @@
 
 namespace App\Services\Message\Handlers;
 
+use App\Models\AiConvMsg;
 use App\Models\Room;
 use App\Models\User;
 use App\Models\Member;
 use App\Models\Message;
 
+use App\Services\Attachment\AttachmentService;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -18,12 +20,9 @@ class GroupMessageHandler extends BaseMessageHandler{
 
     public function create(array $data, string $slug): ?Message {
 
-        $room = Room::where('slug', $slug)->firstOrFail();
-        $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
+        $room = $data['room'];
+        $member = $data['member'];
 
-        if(!$room || !$member){
-            return null;
-        }
         $messageRole = 'user';
         $nextMessageId = $this->assignID($room, $data['threadID']);
         $message = Message::create([
@@ -32,14 +31,24 @@ class GroupMessageHandler extends BaseMessageHandler{
             'user_id' => Auth::id(),
             'message_id' => $nextMessageId,
             'message_role' => $messageRole,
-            'iv' => $data['iv'],
-            'tag' => $data['tag'],
-            'content' => $data['content'],
+            'iv' => $data['content']['text']['iv'],
+            'tag' => $data['content']['text']['tag'],
+            'content' => $data['content']['text']['ciphertext'],
         ]);
         $message->addReadSignature($member);
+
+        //ATTACHMENTS
+        if(array_key_exists('attachments', $data['content'])){
+            $attachments = $data['content']['attachments'];
+            if($attachments){
+                foreach($attachments as $attach){
+                    $this->attachmentService->assignToMessage($message, $attach);
+                }
+            }
+        }
+
         return $message;
     }
-
 
 
     public function update(array $data, string $slug): ?Message{
@@ -88,12 +97,16 @@ class GroupMessageHandler extends BaseMessageHandler{
     }
 
 
-    public function createMessageObject($message): array
+    public function createMessageObject(AiConvMsg|Message $message): array
     {
+        if(!$message instanceof Message){
+            Log::error('AiConvMessage Sent to Group Handler');
+        }
 
         $member = Member::find($message->member_id);
         $room = $message->room();
-        $requestMember = $room->membersAll()->where('user_id', Auth::id())->firstOrFail();
+
+        $requestMember = $room->members()->where('user_id', Auth::id())->firstOrFail();
 
         $readStat = $message->isReadBy($requestMember);
 
@@ -112,9 +125,15 @@ class GroupMessageHandler extends BaseMessageHandler{
             ],
             'model' => $message->model,
 
-            'content' => $message->content,
-            'iv' => $message->iv,
-            'tag' => $message->tag,
+            'content' => [
+                'text' => [
+                    'ciphertext'=> $message->content,
+                    'iv' => $message->iv,
+                    'tag' => $message->tag,
+                ],
+                'attachments' => $message->attachmentsAsArray(),
+            ],
+
             'created_at' => $message->created_at->format('Y-m-d+H:i'),
             'updated_at' => $message->updated_at->format('Y-m-d+H:i'),
         ];

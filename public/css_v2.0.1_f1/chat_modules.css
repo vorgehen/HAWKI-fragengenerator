@@ -1142,17 +1142,36 @@
 .attachment {
     position: relative;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto; /* Optimized */
+
+    grid-template-columns: 1fr auto;
+
     column-gap: .5rem;
     align-items: center;
 
+    max-width: 17rem;
+
     padding: 0 0.5rem;
-    max-width: 13rem;
-    min-width: 10rem;
     overflow: hidden;
 
     border-radius: 0.5rem;
     border: var(--border-stroke-bold);
+}
+
+.attachment .content{
+    display: flex;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.5rem;
+    max-width: 13rem;
+    /* min-width: 10rem; */
+    overflow: hidden;
+}
+
+.attachment .controls{
+    min-width: 1rem;
+    display: none;
+}
+.attachment.edit-mode .controls{
+    display: block;
 }
 
 .attachment-icon {
@@ -1165,6 +1184,7 @@
     min-width: 1.7rem;
     min-height: 1.7rem;
     overflow: hidden;
+    user-select: none;
 }
 
 .attachment-icon.boarder {
@@ -1192,9 +1212,17 @@
     align-items: center;
     z-index: 2;
 }
+.attachment .remove-btn:hover {
+    stroke: red;
+}
+
 .attachment:hover .remove-btn {
     display: flex;
 }
+.attachment.edit-mode .remove-btn{
+    display: flex;
+}
+
 .attachment .remove-btn:hover {
     fill: red;
 }
