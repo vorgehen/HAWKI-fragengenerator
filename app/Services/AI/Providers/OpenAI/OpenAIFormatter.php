@@ -124,7 +124,6 @@ class OpenAIFormatter implements FormatterInterface
                 }
             }
         }
-
         return $formatted;
     }
 

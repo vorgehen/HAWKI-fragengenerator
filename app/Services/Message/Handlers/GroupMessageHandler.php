@@ -99,12 +99,8 @@ class GroupMessageHandler extends BaseMessageHandler{
 
     public function createMessageObject(AiConvMsg|Message $message): array
     {
-        if(!$message instanceof Message){
-            Log::error('AiConvMessage Sent to Group Handler');
-        }
-
         $member = Member::find($message->member_id);
-        $room = $message->room();
+        $room = $message->room;
 
         $requestMember = $room->members()->where('user_id', Auth::id())->firstOrFail();
 

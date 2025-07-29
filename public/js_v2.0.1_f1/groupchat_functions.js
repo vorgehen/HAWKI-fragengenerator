@@ -74,12 +74,10 @@ async function onSendMessageToRoom(inputField) {
     }
 
     inputText = escapeHTML(inputField.value.trim());
-    inputField.value = "";
-    resizeInputField(inputField);
 
     /// UPLOAD ATTACHMENTS
     const input = inputField.closest('.input');
-    const attachments = await uploadAttachmentQueue(input.id, 'group');
+    const attachments = await uploadAttachmentQueue(input.id, 'room', activeRoom.slug);
 
 
     const roomKey = await keychainGet(activeRoom.slug);
@@ -98,17 +96,20 @@ async function onSendMessageToRoom(inputField) {
     };
 
     const submittedObj = await submitMessageToServer(messageObj, `/req/room/sendMessage/${activeRoom.slug}`)
-    console.log(submittedObj);
-    submittedObj.content = inputText;
-
-    // console.log('submittedObj')
-    // console.log(submittedObj)
+    submittedObj.content.text = inputText;
     submittedObj.filteredContent = detectMentioning(inputText),
+
+    // empty input field
+    inputField.value = "";
+    resizeInputField(inputField);
+    const fileAtchs = input.querySelector('.file-attachments');
+    fileAtchs.innerHTML = "";
+    fileAtchs.classList.remove('active');
 
     addMessageToChatlog(submittedObj);
 
-    // console.log(messageObj);
-    // if HAWKI is targeted send copy to stream controller
+
+    /// if HAWKI is targeted send copy to stream controller
     if(submittedObj.filteredContent.aiMention && submittedObj.filteredContent.aiMention.toLowerCase().includes(aiHandle.toLowerCase())){
 
         const aiCryptoSalt = await fetchServerSalt('AI_CRYPTO_SALT');
@@ -793,7 +794,6 @@ async function loadRoom(btn=null, slug=null){
     if(!roomData){
         return;
     }
-
     clearChatlog();
 
     activeRoom = roomData;
@@ -835,7 +835,9 @@ async function loadRoom(btn=null, slug=null){
 
     for (const msgData of roomData.messagesData) {
         const key = msgData.message_role === 'assistant' ? aiKey : roomKey;
-        msgData.content = await decryptWithSymKey(key, msgData.content, msgData.iv, msgData.tag, false);
+        msgData.content.text = await decryptWithSymKey(key, msgData.content.text.ciphertext,
+                                                            msgData.content.text.iv,
+                                                            msgData.content.text.tag, false);
     }
     filterRoleElements(roomData.role);
     loadMessagesOnGUI(roomData.messagesData);

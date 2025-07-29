@@ -285,8 +285,15 @@ function updateFileStatus(fileId, status) {
  * @param {string} category - The category/type of upload.
  * @returns {Promise<array|null>} - List of uploaded file metadata or null.
  */
-async function uploadAttachmentQueue(queueId, category) {
-    const url = `/req/${category}/attachmnet/upload`;
+async function uploadAttachmentQueue(queueId, category, slug = null) {
+
+    let url = '';
+    if(slug){
+        url = `/req/${category}/attachmnet/upload/${slug}`;
+    }
+    else{
+        url = `/req/${category}/attachmnet/upload`;
+    }
     const attachments = uploadQueues.get(queueId);
 
     if (!attachments || attachments.length === 0) return null;

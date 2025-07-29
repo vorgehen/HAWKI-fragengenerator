@@ -83,17 +83,12 @@ function uploadFileToServer(fileData, url, progressCallback) {
 
 async function requestFileUrl(uuid, category, filename){
     try {
-        const response = await fetch('/req/create-download-link', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-            uuid: uuid,
-            category: category,
-            filename: filename // only needed if your backend needs it
-        })
+        const response = await fetch(`/req/${category}/attachment/getLink/${uuid}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
         });
 
         const data = await response.json();
@@ -156,7 +151,13 @@ async function requestFileUrl(uuid, category, filename){
 
 //#region PREVIEW
 
-async function previewFile(fileData, category) {
+async function previewFile(provider, fileData, category) {
+
+    const indicator = provider.querySelector('.status-indicator');
+
+
+
+
     const url = await requestFileUrl(fileData.uuid, category, fileData.filename)
     const response = await fetch(url);
     const blob = await response.blob();
@@ -165,16 +166,13 @@ async function previewFile(fileData, category) {
 
     switch(type){
         case('img'):
-        if (fileData.file) {
-            imgPreview = URL.createObjectURL(fileData.file);
-        }
-        attachment.querySelector('.attachment-icon').classList.add('boarder');
+            await renderImage(blob)
         break;
         case('pdf'):
-            renderPdf(blob);
+            await renderPdf(blob);
         break;
         case('docx'):
-            renderDocx(blob);
+            await renderDocx(blob);
 
         break;
     }
@@ -247,6 +245,37 @@ async function renderDocx(blob){
     docxPreview.renderAsync(blob, container)
         .then(x => console.log("docx: finished"));
 }
+
+async function renderImage(blob){
+    const container = document.getElementById('file-preview-container');
+    container.innerHTML = '';
+
+
+    // Create a local URL for the blob
+    const url = URL.createObjectURL(blob);
+
+    // Create an <img> element
+    const img = document.createElement('img');
+    img.src = url;
+    img.classList.add('image-preview');
+
+    // Optionally: Clean up the object URL after image loads to avoid memory leaks
+    img.onload = () => {
+        URL.revokeObjectURL(url);
+    };
+
+
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('image-preview-wrapper');
+
+    // Append the image to the DOM, e.g., to the body or a specific container
+    wrapper.appendChild(img);
+    container.appendChild(wrapper);
+
+}
+
+
+
 //#endregion
 
 

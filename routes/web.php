@@ -72,6 +72,8 @@ Route::middleware('prevent_back')->group(function () {
         Route::delete('/req/conv/message/delete/{slug}', [AiConvController::class, 'deleteMessage']);
 
         Route::post('/req/conv/attachmnet/upload', [AiConvController::class, 'storeAttachment']);
+        Route::get('/req/conv/attachment/getLink/{uuid}', [AiConvController::class, 'getAttachmentUrl']);
+
         Route::delete('/req/conv/attachmnet/delete', [AiConvController::class, 'destroyAttachment']);
 
 
@@ -83,6 +85,7 @@ Route::middleware('prevent_back')->group(function () {
         Route::post('/req/room/createRoom', [RoomController::class, 'createRoom']);
         Route::delete('/req/room/leaveRoom/{slug}', [RoomController::class, 'leaveRoom']);
         Route::post('/req/room/readstat/{slug}', [RoomController::class, 'markAsRead']);
+        Route::get('/req/room/attachment/getLink/{uuid}', [RoomController::class, 'getAttachmentUrl']);
 
 
         Route::middleware('roomEditor')->group(function () {
@@ -90,8 +93,8 @@ Route::middleware('prevent_back')->group(function () {
             Route::post('/req/room/updateMessage/{slug}', [RoomController::class, 'updateMessage']);
             Route::post('/req/room/streamAI/{slug}', [StreamController::class, 'handleAiConnectionRequest']);
 
-            Route::post('/req/room/attachmnet/upload', [RoomController::class, 'storeAttachment']);
-            Route::delete('/req/room/attachmnet/delete', [RoomController::class, 'destroyAttachment']);
+            Route::post('/req/room/attachmnet/upload/{slug}', [RoomController::class, 'storeAttachment']);
+            Route::delete('/req/room/attachmnet/delete/{slug}', [RoomController::class, 'destroyAttachment']);
 
         });
 
@@ -140,7 +143,6 @@ Route::middleware('prevent_back')->group(function () {
 
         Route::post('/req/upload-file', [FileController::class, 'handleUploadedFile']);
         Route::post('/req/delete-file', [FileController::class, 'deleteFile']);
-        Route::post('/req/create-download-link', [FileController::class, 'createDownloadLinkToFile']);
 
 
 

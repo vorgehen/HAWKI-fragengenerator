@@ -50,7 +50,10 @@ class GoogleProvider extends BaseAIModelProvider
      */
     public function formatStreamChunk(string $chunk): array
     {
+        Log::debug($chunk);
+
         $jsonChunk = json_decode($chunk, true);
+        Log::debug($jsonChunk);
 
         $content = '';
         $groundingMetadata = '';
@@ -77,7 +80,7 @@ class GoogleProvider extends BaseAIModelProvider
         if (isset($jsonChunk['usageMetadata'])) {
             $usage = $this->extractUsage($jsonChunk);
         }
-
+        Log::debug($content);
         return [
             'content' => [
                 'text' => $content,

@@ -135,7 +135,12 @@ function addMessageToChatlog(messageObj, isFromServer = false){
 
             const thumbnail = createAttachmentThumbnail(attachment.fileData);
             thumbnail.querySelector('.content').addEventListener('click', ()=> {
-                previewFile(attachment.fileData, 'private')
+                if(activeModule === 'chat'){
+                    previewFile(thumbnail, attachment.fileData, 'conv');
+                }
+                if(activeModule === 'groupchat'){
+                    previewFile(thumbnail, attachment.fileData, 'room');
+                }
             });
             const rmBtn = thumbnail.querySelector('.remove-btn');
             rmBtn.removeAttribute('onclick');

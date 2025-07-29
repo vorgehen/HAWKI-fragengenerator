@@ -1,5 +1,5 @@
 <div class="modal"  id="file-viewer-modal" style="display: none">
-	<div class="modal-panel" style="height: 80vh">
+	<div class="modal-panel" style="height: 90vh">
             <div class="closeButton" onclick="closeModal(this)">
                 <x-icon name="x"/>
             </div>

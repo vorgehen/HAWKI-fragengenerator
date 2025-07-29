@@ -175,26 +175,23 @@ class StreamController extends Controller
 
         // Create a callback function to process streaming chunks
         $onData = function ($data) use ($user, $avatar_url, $payload) {
-
+            // Log::debug($data);
           // Only use normaliseDataChunk if the content of $data does not begin with ‘data: ’.
-            // if (strpos(trim($data), 'data: ') !== 0) {
-            //     $data = $this->normalizeDataChunk($data);
-            //     //Log::info('google chunk detected');
-            // }
-
+            if (strpos(trim($data), 'data: ') !== 0) {
+                $data = $this->normalizeDataChunk($data);
+                //Log::info('google chunk detected');
+            }
             // Skip non-JSON or empty chunks
             $chunks = explode("data: ", $data);
             foreach ($chunks as $chunk) {
                 if (connection_aborted()) break;
                 if (!json_decode($chunk, true) || empty($chunk)) continue;
 
-
                 // Get the provider for this model
                 $provider = $this->aiConnectionService->getProviderForModel($payload['model']);
 
                 // Format the chunk
                 $formatted = $provider->formatStreamChunk($chunk);
-                // Log::info('Formatted Chunk:' . json_encode($formatted));
 
             // Record usage if available
             if ($formatted['usage']) {

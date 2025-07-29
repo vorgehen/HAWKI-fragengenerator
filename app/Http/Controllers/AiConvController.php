@@ -7,6 +7,7 @@ use App\Models\AiConvMsg;
 use App\Models\User;
 use App\Models\Attachment;
 
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -262,6 +263,31 @@ class AiConvController extends Controller
                 ->withInput();
         }
 
+    }
+
+    public function getAttachmentUrl(Request $request, string $uuid) {
+
+        try {
+            $attachment = Attachment::where('uuid', $uuid)->firstOrFail();
+            if($attachment->user->isNot(Auth::user())){
+                return response()->json([
+                    'success'=> false,
+                    'message'=> 'Unauthorized Forbidden'
+                ], 403);
+            }
+            $url = $this->attachmentService->getFileUrl($attachment, null);
+        }
+        catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found!'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'url' => $url
+        ]);
     }
 
     public function destroyAttachment(Request $request) {

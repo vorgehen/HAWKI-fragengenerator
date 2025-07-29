@@ -121,35 +121,4 @@ class FileController extends Controller
             ], 500);
         }
     }
-
-
-
-
-
-    public function createDownloadLinkToFile(Request $request){
-
-        $validateData = $request->validate([
-            'uuid' => 'required|uuid',
-            'category' => 'required|string'
-        ]);
-
-
-        $url = $this->storageService->getFileUrl(
-            $validateData['uuid'],
-            $validateData['category']
-        );
-
-        if (!$url) {
-            return response()->json([
-                'success' => false,
-                'message' => 'File not found or unauthorized access'
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'url' => $url
-        ]);
-
-    }
 }

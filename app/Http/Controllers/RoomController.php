@@ -6,6 +6,7 @@ use App\Models\Room;
 use App\Models\User;
 use App\Models\Member;
 use App\Models\Message;
+use App\Models\Attachment;
 
 use App\Jobs\SendMessage;
 
@@ -20,6 +21,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Exception;
 
 
 use App\Services\Message\MessageHandlerFactory;
@@ -317,36 +319,9 @@ class RoomController extends Controller
 
         $messagesData = array();
         foreach ($messages as $message){
-            $member = Member::find($message->member_id);
-            $requestMember = $room->membersAll()->where('user_id', Auth::id())->firstOrFail();
-
-            $readStat = $message->isReadBy($requestMember);
-
-            $msgData = [
-                'id' => $message->id,
-                'room_id' => $message->room_id,
-                'member_id' => $member->id,
-                'member_name' => $member->user->name,
-                'message_role' => $message->message_role,
-                'message_id' => $message->message_id,
-                'read_status'=> $readStat,
-
-                'author' => [
-                    'username' => $member->user->username,
-                    'name' => $member->user->name,
-                    'isRemoved' => $member->isRemoved,
-                    'avatar_url' => $member->user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $member->user->avatar_id) : null,
-                ],
-                'model' => $message->model,
-
-                'content' => $message->content,
-                'iv' => $message->iv,
-                'tag' => $message->tag,
-                'created_at' => $message->created_at->format('Y-m-d+H:i'),
-                'updated_at' => $message->updated_at->format('Y-m-d+H:i'),
-            ];
-
+            $msgData = $this->messageHandler->createMessageObject($message);
             array_push($messagesData, $msgData);
+
         }
         return $messagesData;
     }
@@ -500,6 +475,93 @@ class RoomController extends Controller
         }
 
         return $newMessageId;
+    }
+
+
+    ///STORE ATTACHMENTS
+
+    public function storeAttachment(Request $request) {
+        $validateData = $request->validate([
+            'file' => 'required|file|max:20480'
+        ]);
+        try {
+            $result = $this->attachmentService->store($validateData['file'], 'group');
+            return response()->json($result);
+        }
+        catch (ValidationException $e) {
+            return back()
+                ->withErrors($e->validator)
+                ->withInput();
+        }
+
+    }
+
+    public function getAttachmentUrl(string $uuid) {
+
+        try {
+            $attachment = Attachment::where('uuid', $uuid)->firstOrFail();
+
+            // If the requesting User is NOT a member of this group RETURN 403
+            if(!$attachment->attachable->room->isMember(Auth::id())){
+                return response()->json([
+                    'success'=> false,
+                    'message'=> 'Unauthorized Forbidden'
+                ], 403);
+            }
+
+            $url = $this->attachmentService->getFileUrl($attachment, null);
+        }
+        catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found!'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'url' => $url
+        ]);
+    }
+
+
+    public function destroyAttachment(Request $request) {
+        $validateData = $request->validate([
+            'fileId' => 'required|string',
+        ]);
+
+        try{
+            $attachment = Attachment::where('uuid', $validateData['fileId'])->firstOrFail();
+
+            if ($attachment->user && !$attachment->user->is(Auth::user())) {
+                return response()->json([
+                    'success'=> false,
+                    'err'=> 'Permission Denied!'
+                ], 403);
+            }
+
+            if (!$attachment->attachable instanceof AiConvMsg) {
+                return response()->json([
+                    'success'=> false,
+                    'err'=> 'File Id does not match the properties!'
+                ], 500);
+            }
+
+            $result = $this->attachmentService->delete($attachment);
+            return response()->json([
+                "success" => $result
+            ]);
+
+
+
+        }
+        catch(ValidationException $e) {
+            Log::error($e);
+            return response()->json([
+                'success'=> false,
+                'err'=> 'Attachment with this UUID not found: ' . $e->getMessage()
+            ], 404);
+        }
     }
 
 }
