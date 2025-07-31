@@ -226,7 +226,7 @@ async function requestPromptImprovement(sender, type) {
     let prompt = '';
     let inputField;
     let message;
-    console.log(type);
+
     if(type === 'input'){
         inputField = sender.closest('.input').querySelector('.input-field');
         prompt = inputField.value.trim();

@@ -103,7 +103,7 @@ async function onSendMessageToRoom(inputField) {
     inputField.value = "";
     resizeInputField(inputField);
     const fileAtchs = input.querySelector('.file-attachments');
-    fileAtchs.innerHTML = "";
+    fileAtchs.querySelector('.attachments-list').innerHTML = "";
     fileAtchs.classList.remove('active');
 
     addMessageToChatlog(submittedObj);

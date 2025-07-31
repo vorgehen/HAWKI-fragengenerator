@@ -1223,10 +1223,6 @@
     display: flex;
 }
 
-.attachment .remove-btn:hover {
-    fill: red;
-}
-
 .attachment-icon .status-indicator {
     position: absolute;
     width: 100%;

@@ -192,8 +192,12 @@ function removeAtchFromInputList(providerBtn) {
 
     const input = providerBtn.closest('.input');
     const fileId = providerBtn.parentElement.dataset.fileId;
+    removeAtchFromList(fileId);
+}
+
+function removeAtchFromList(fileId){
     // Remove from UI
-    const fileElement = input.querySelector(`.attachment[data-file-id="${fileId}"]`);
+    const fileElement = document.querySelector(`.attachment[data-file-id="${fileId}"]`);
     if (fileElement) {
         fileElement.remove();
     }
@@ -213,6 +217,9 @@ function removeAtchFromInputList(providerBtn) {
         list.closest('.file-attachments').classList.remove('active');
     }
 }
+
+
+
 
 async function requestAtchDelete(fileId, category){
     const url = `/req/${category}/attachmnet/delete`;
@@ -307,6 +314,7 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
             updateFileStatus(attachment.fileData.tempId, status, fileUrl);
         });
 
+        console.log(attachment.fileData.tempId);
         const removeBtn = document.querySelector(`.attachment[data-file-id="${attachment.fileData.tempId}"]`).querySelector('.remove-btn');
         removeBtn.addEventListener('click', () => {
             upload.abort();
@@ -314,8 +322,6 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
 
         return upload.promise
             .then(data => {
-                console.log('attachment DATA');
-                console.log(data)
                 attachment.fileData.uuid = data.uuid;
                 uploadedFiles.push({
                     uuid: data.uuid,
@@ -323,6 +329,7 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
                     mime: attachment.fileData.mime,
                 });
                 updateFileStatus(attachment.fileData.tempId, 'complete');
+                removeAtchFromList(attachment.fileData.tempId);
             })
             .catch(error => {
                 console.error(`Upload failed for ${attachment.fileData.name}:`, error);
@@ -333,4 +340,10 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
 
     await Promise.all(uploadTasks);
     return uploadedFiles;
+}
+
+
+
+function getUploadQueue(){
+    console.log(uploadQueues);
 }
