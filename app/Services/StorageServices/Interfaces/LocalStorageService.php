@@ -5,101 +5,147 @@ namespace App\Services\StorageServices\Interfaces;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class LocalStorageService implements StorageServiceInterface
 {
-    /**
-     * Store a file in the local storage
-     *
-     * @param UploadedFile|string $file The file to store (either UploadedFile instance or file contents)
-     * @param string $filename The name to save the file as
-     * @param string|null $category Optional category/directory to store the file in
-     * @return bool Whether the file was successfully stored
-     */
+
+    protected string $disk;
+    public function __construct()
+    {
+        $this->disk = 'data_repo';
+    }
+
+
     public function storeFile($file, string $filename, string $uuid, ?string $category): bool
     {
-        $path = $this->resolvePath($category);
+        $path = $this->buildPath($category, $uuid, $filename);
 
-        // Handle different file input types
-        if ($file instanceof UploadedFile) {
-            return !is_null($file->storeAs($path, $filename, 'public'));
-        } else {
-            return Storage::disk('public')->put($path . '/' . $filename, $file);
+        try {
+            $contents = ($file instanceof UploadedFile)
+                ? file_get_contents($file->getRealPath())
+                : $file;
+
+            $result = Storage::disk($this->disk)->put($path, $contents);
+            if (!$result) {
+                Log::error("Failed to store file [$path] in storage folder");
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::error("File upload error: " . $e->getMessage(), ['exception' => $e]);
+            throw $e;
         }
     }
 
-    /**
-     * Retrieve a file from local storage
-     *
-     * @param string $filename The name of the file to retrieve
-     * @param string|null $category Optional category/directory the file is stored in
-     * @return string|null The file contents or null if not found
-     */
-    public function retrieveFile(string $filename, ?string $category = null): ?string
-    {
-        $path = $this->resolvePath($category);
-        $fullPath = $path . '/' . $filename;
 
-        if (Storage::disk('public')->exists($fullPath)) {
-            return Storage::disk('public')->get($fullPath);
+    public function retrieveFile(string $uuid, string $category)
+    {
+        $category = $category ?? 'default';
+        $folder = $this->buildFolder($category, $uuid);
+
+        // Find matching files in {category}/{uuid} (excluding output/)
+        $files = Storage::disk($this->disk)->files($folder);
+        $file = $files[0];
+        if($file){
+            return Storage::disk($this->disk)->get($file);
         }
 
-        return null;
-    }
-
-    /**
-     * Delete a file from local storage
-     *
-     * @param string $filename The name of the file to delete
-     * @param string|null $category Optional category/directory the file is stored in
-     * @return bool Whether the file was successfully deleted
-     */
-    public function deleteFile(string $filename, ?string $category = null): bool
-    {
-        $path = $this->resolvePath($category);
-        $fullPath = $path . '/' . $filename;
-
-        if (Storage::disk('public')->exists($fullPath)) {
-            return Storage::disk('public')->delete($fullPath);
-        }
-
-        // File does not exist
         return false;
     }
 
-    /**
-     * Get the public URL for a stored file
-     *
-     * @param string $filename The name of the file
-     * @param string|null $category Optional category/directory the file is stored in
-     * @return string|null The public URL or null if file not found
-     */
-    public function getFileUrl(string $filename, ?string $category = null): ?string
+
+    public function deleteFile(string $uuid, string $category): bool
     {
-        $path = $this->resolvePath($category);
-        $fullPath = $path . '/' . $filename;
+        $folder = $this->buildFolder($category, $uuid);
+        $deleted = Storage::disk($this->disk)->deleteDirectory($folder);
+        Log::debug($deleted);
+        return $deleted;
+    }
 
-        if (Storage::disk('public')->exists($fullPath)) {
-            return Storage::url($fullPath);
+
+
+    public function getFileUrl(string $uuid, string $category): ?string
+    {
+        $folder = $this->buildFolder($category, $uuid);
+        $files = Storage::disk($this->disk)->files($folder);
+        if(count($files) === 0){
+            return null;
         }
-
+        $file = $files[0];
+        if (dirname($file) === $folder) {
+            return Storage::disk($this->disk)->temporaryUrl($file, now()->addMinutes(1));
+            // return Storage::temporaryUrl($file,  now()->addMinutes(1));
+        }
         return null;
     }
 
-    /**
-     * Resolve the storage path based on category
-     *
-     * @param string|null $category
-     * @return string
-     */
-    protected function resolvePath(?string $category): string
-    {
-        if ($category) {
-            // Ensure category is a valid directory name
-            $category = preg_replace('/[^a-zA-Z0-9_-]/', '', $category);
-            return 'storage/' . $category;
-        }
 
-        return 'storage';
+
+    public function deleteConvertedFiles(string $uuid, ?string $category = null): bool
+    {
+        $category = $category ?? 'default';
+        $outputFolder = $this->buildFolder($category, $uuid) . '/output';
+
+        try {
+            // deleteDirectory returns true if successful or if directory does not exist
+            $result = Storage::disk($this->disk)->deleteDirectory($outputFolder);
+            if (!$result) {
+                Log::warning("Failed to delete output folder [$outputFolder] in repo");
+            }
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error("Failed to delete output folder: " . $e->getMessage(), ['outputFolder' => $outputFolder]);
+            throw $e;
+        }
+    }
+
+    public function getOutputFilesUrls(string $uuid, ?string $category = null, string $fileType): array
+    {
+        $category = $category ?? 'default';
+        $outputFolder = $this->buildFolder($category, $uuid) . '/output';
+        $files = Storage::disk($this->disk)->files($outputFolder);
+
+        $urls = [];
+        foreach ($files as $file) {
+            if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === strtolower($fileType)) {
+                $urls[] = Storage::disk($this->disk)->url($file);
+            }
+        }
+        return $urls;
+    }
+
+
+        public function retrieveOutputFilesByType(string $uuid, string $category, string $fileType): array
+    {
+        $category = $category ?? 'default';
+        $outputFolder = $this->buildFolder($category, $uuid) . '/output';
+        $files = Storage::disk($this->disk)->files($outputFolder);
+
+        $matches = [];
+        foreach ($files as $file) {
+            if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === strtolower($fileType)) {
+                $matches[] = [
+                    'path' => $file,
+                    'contents' => Storage::disk($this->disk)->get($file),
+                ];
+            }
+        }
+        return $matches;
+    }
+
+
+    private function buildFolder(string $category, string $uuid): string
+    {
+        return trim($category, '/') . '/' . trim($uuid, '/');
+    }
+
+    /**
+     * Build the full file path for storage.
+     */
+    protected function buildPath(string $category, string $uuid, string $name): string
+    {
+        return trim($category, '/') . '/' . trim($uuid, '/') . '/' . trim($name, '/');
     }
 }

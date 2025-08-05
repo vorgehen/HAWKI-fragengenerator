@@ -94,7 +94,7 @@ class AIConnectionService
 
         return [
             'models' => $models,
-            'defaultModel' => config('model_providers')['defaultModel'],
+            'defaultModels' => config('model_providers')['default_models'],
             'systemModels' => config('model_providers')['system_models']
         ];
     }

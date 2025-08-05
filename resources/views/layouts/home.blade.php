@@ -38,6 +38,7 @@
     <script src="{{ asset('js_v2.0.1_f1/user_profile.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/file_manager.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/attachment_handler.js') }}"></script>
+    <script src="{{ asset('js_v2.0.1_f1/model_list_filtering.js') }}"></script>
 
 	@if(config('sanctum.allow_external_communication'))
 		<script src="{{ asset('js_v2.0.1_f1/sanctum_functions.js') }}"></script>
@@ -92,9 +93,8 @@
 	const translation = @json($translation);
 
 	const modelsList = @json($models).models;
-	const defaultModel = @json($models).defaultModel;
+	const defaultModels = @json($models).defaultModels;
 	const systemModels = @json($models).systemModels;
-    console.log(modelsList)
 
 	const aiHandle = "{{ config('app.aiHandle') }}";
 

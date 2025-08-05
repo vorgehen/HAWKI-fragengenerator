@@ -476,7 +476,7 @@ async function loadConv(btn=null, slug=null){
     else{
         chatlogElement.classList.add('start-state');
     }
-
+    initModelFilter();
     loadMessagesOnGUI(convData.messages);
     scrollToLast(true);
 }

@@ -61,7 +61,7 @@ function initFileUploader(inputField) {
 
 // Handle files from drag-drop or file picker
 async function handleSelectedFiles(files, inputField) {
-    const fieldId = inputField.id;
+    const input_id = inputField.id;
     const attachmentContainer = inputField.querySelector('.file-attachments');
 
     if (!files || files.length === 0) return;
@@ -107,29 +107,29 @@ async function handleSelectedFiles(files, inputField) {
         }
 
         //create a file queue
-        if (!uploadQueues.has(fieldId)) {
-            uploadQueues.set(fieldId, []);
+        if (!uploadQueues.has(input_id)) {
+            uploadQueues.set(input_id, []);
         }
         attachmentContainer.querySelector('.attachments-list').appendChild(atchThumb);
 
-        uploadQueues.get(fieldId).push({ fileData });
-        setAttachmentsFilter(fieldId);
+        uploadQueues.get(input_id).push({ fileData });
+        setAttachmentsFilter(input_id);
 
         // Return something useful if needed (optional)
         return;
     });
 }
 
-function setAttachmentsFilter(fieldId){
+function setAttachmentsFilter(input_id){
 
-    const attachments = uploadQueues.get(fieldId);
+    const attachments = uploadQueues.get(input_id);
     attachments.forEach(attachment => {
         const type = checkFileFormat(attachment.fileData.mime);
         if(type === 'pdf' || type === 'docx' || type === 'image'){
-            addToModelFilters('file_upload', fieldId);
+            addInputFilter(input_id, 'file_upload', );
         }
         if(type === 'img'){
-            addToModelFilters('vision', fieldId);
+            addInputFilter(input_id, 'vision');
         }
     });
 }
@@ -192,10 +192,11 @@ function removeAtchFromInputList(providerBtn) {
 
     const input = providerBtn.closest('.input');
     const fileId = providerBtn.parentElement.dataset.fileId;
-    removeAtchFromList(fileId);
+    removeAtchFromList(fileId, input.id);
+    setAttachmentsFilter(input.id);
 }
 
-function removeAtchFromList(fileId){
+function removeAtchFromList(fileId, queueId){
     // Remove from UI
     const fileElement = document.querySelector(`.attachment[data-file-id="${fileId}"]`);
     if (fileElement) {
@@ -203,7 +204,7 @@ function removeAtchFromList(fileId){
     }
 
     // Remove from pending uploads array
-    const queue = uploadQueues.get(input.id);
+    const queue = uploadQueues.get(queueId);
 
     if (queue) {
         const index = queue.findIndex(item => item.fileData.tempId === fileId);
@@ -212,7 +213,8 @@ function removeAtchFromList(fileId){
         }
     }
     // If no more attachments, remove container
-    const list = providerBtn.closest('.attachments-list');
+    const input = document.querySelector(`.input[id="${queueId}"`);
+    const list = input.querySelector('.attachments-list');
     if (list && list.children.length === 0) {
         list.closest('.file-attachments').classList.remove('active');
     }
@@ -329,7 +331,7 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
                     mime: attachment.fileData.mime,
                 });
                 updateFileStatus(attachment.fileData.tempId, 'complete');
-                removeAtchFromList(attachment.fileData.tempId);
+                removeAtchFromList(attachment.fileData.tempId, queueId);
             })
             .catch(error => {
                 console.error(`Upload failed for ${attachment.fileData.name}:`, error);
@@ -340,10 +342,4 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
 
     await Promise.all(uploadTasks);
     return uploadedFiles;
-}
-
-
-
-function getUploadQueue(){
-    console.log(uploadQueues);
 }

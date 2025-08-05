@@ -16,7 +16,7 @@ return [
     */
 
     'default' => env('FILESYSTEM_DISK', 'local'),
-    
+
     'storage_service' => env('STORAGE_DISK', 'local'),
 
     /*
@@ -45,6 +45,15 @@ return [
             'root' => storage_path('app/public'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
+            'throw' => false,
+        ],
+
+        'data_repo' => [
+            'driver' => 'local',
+            'root' => storage_path('app/data_repo'),
+            'url' => env('APP_URL').'/data_repo',
+            'visibility' => 'private',
+            'serve' => true,
             'throw' => false,
         ],
 

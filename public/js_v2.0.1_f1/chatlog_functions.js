@@ -335,7 +335,7 @@ function setModel(modelID = null){
         // if there is no defined model
         // or the defined model is outdated or cruppted
         if(!model){
-            model = modelsList.find(m => m.id === defaultModel);
+            model = modelsList.find(m => m.id === defaultModels.default_model);
         }
     }
     else{
@@ -366,51 +366,51 @@ function setModel(modelID = null){
 
 
 
-let modelFilters = new Map();
-function addToModelFilters(filterName, fieldId){
-    console.log(filterName)
-    if (!modelFilters.has(fieldId)) {
-        modelFilters.set(fieldId, []);
-    }
-    console.log(modelFilters.get(fieldId));
-    const index = modelFilters.get(fieldId).indexOf(filterName);
-    console.log(index);
-    if (index === -1) {
-        modelFilters.get(fieldId).push(filterName);
-        updateModelSelectors(fieldId);
-    }
-}
+// let modelFilters = new Map();
+// function addToModelFilters(filterName, fieldId){
 
-function removeFromModelFilters(filterName, fieldId){
-    if (!modelFilters.has(fieldId)) {
-        return;
-    }
+//     if (!modelFilters.has(fieldId)) {
+//         modelFilters.set(fieldId, []);
+//     }
 
-    const index = modelFilters.get(fieldId).indexOf(filterName);
-    if (index !== -1) {
-        modelFilters.get(fieldId).splice(index, 1);
-        updateModelSelectors(fieldId);
-    }
-}
+//     const index = modelFilters.get(fieldId).indexOf(filterName);
 
-// UI update logic
-function updateModelSelectors(fieldId) {
-    const filtered = filterModels(fieldId);
-    console.log(filtered)
-    const allowedIds = new Set(filtered.map(m => m.id));
+//     if (index === -1) {
+//         modelFilters.get(fieldId).push(filterName);
+//         updateModelSelectors(fieldId);
+//     }
+// }
 
-    inputCont = document.querySelector(`.input[id="${fieldId}"`).closest('.input-container');
-    inputCont.querySelectorAll('.model-selector').forEach(button => {
-        const modelId = button.dataset.modelId;
-        button.disabled = !allowedIds.has(modelId);
-    });
-}
+// function removeFromModelFilters(filterName, fieldId){
+//     if (!modelFilters.has(fieldId)) {
+//         return;
+//     }
 
-function filterModels(fieldId) {
-    return modelsList.filter(model =>
-        modelFilters.get(fieldId).every(tool => model.tools[tool])
-    );
-}
+//     const index = modelFilters.get(fieldId).indexOf(filterName);
+//     if (index !== -1) {
+//         modelFilters.get(fieldId).splice(index, 1);
+//         updateModelSelectors(fieldId);
+//     }
+// }
+
+// // UI update logic
+// function updateModelSelectors(fieldId) {
+//     const filtered = filterModels(fieldId);
+//     console.log(filtered)
+//     const allowedIds = new Set(filtered.map(m => m.id));
+
+//     inputCont = document.querySelector(`.input[id="${fieldId}"`).closest('.input-container');
+//     inputCont.querySelectorAll('.model-selector').forEach(button => {
+//         const modelId = button.dataset.modelId;
+//         button.disabled = !allowedIds.has(modelId);
+//     });
+// }
+
+// function filterModels(fieldId) {
+//     return modelsList.filter(model =>
+//         modelFilters.get(fieldId).every(tool => model.tools[tool])
+//     );
+// }
 
 
 //#endregion
