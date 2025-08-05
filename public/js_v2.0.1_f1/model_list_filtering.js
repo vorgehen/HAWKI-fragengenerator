@@ -129,10 +129,14 @@ function selectFallbackModel(fieldId) {
     for (const { filter, fallbackKey } of priorityList) {
         // If the filter is present or we're at default, consider this fallback
         if (!filter || filters.includes(filter)) {
+
+            if(availableModelIds.has(activeModel.id)){
+                return;
+            }
+
             const fallbackModelId = defaultModels[fallbackKey];
             if (availableModelIds.has(fallbackModelId)) {
                 setModel(fallbackModelId);
-                return fallbackModelId;  // Found a valid fallback
             }
         }
     }

@@ -60,7 +60,6 @@ class LocalStorageService implements StorageServiceInterface
     {
         $folder = $this->buildFolder($category, $uuid);
         $deleted = Storage::disk($this->disk)->deleteDirectory($folder);
-        Log::debug($deleted);
         return $deleted;
     }
 

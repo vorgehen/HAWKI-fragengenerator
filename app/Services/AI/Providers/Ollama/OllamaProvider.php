@@ -15,23 +15,9 @@ class OllamaProvider extends BaseAIModelProvider
      */
     public function formatPayload(array $rawPayload): array
     {
-        $messages = $rawPayload['messages'];
-        $modelId = $rawPayload['model'];
-
-        // Format messages for Ollama
-        $formattedMessages = [];
-        foreach ($messages as $message) {
-            $formattedMessages[] = [
-                'role' => $message['role'],
-                'content' => $message['content']['text']
-            ];
-        }
-
-        return [
-            'model' => $modelId,
-            'messages' => $formattedMessages,
-            'stream' => $rawPayload['stream'] && $this->utils->hasTool($modelId, 'stream'),
-        ];
+        $formatter = new OllamaFormatter($this->config);
+        $payload = $formatter->format($rawPayload);
+        return $payload;
     }
 
     /**

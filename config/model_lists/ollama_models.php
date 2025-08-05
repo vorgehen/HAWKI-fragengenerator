@@ -3,8 +3,8 @@
 return [
     [
         'active'=> true,
-        'id' => 'llama3.2',
-        'label' => 'IXD Llama 3.2',
+        'id' => 'llava:latest',
+        'label' => 'IXD llava:latest',
         "input"=> [
             "text",
         ],
@@ -18,7 +18,25 @@ return [
             'internet_search' => true,
             'file_upload' => true,
         ],
-        'streamable' => true,
+
+    ],
+    [
+        'active'=> true,
+        'id' => 'llama3.1:8b',
+        'label' => 'llama3.1:8b',
+        "input"=> [
+            "text",
+        ],
+        "output"=> [
+            "text"
+        ],
+        'tools' => [
+            'stream' => true,
+            'image_generation' => true,
+            'vision' => true,
+            'internet_search' => true,
+            'file_upload' => true,
+        ],
 
     ],
     [
@@ -38,7 +56,6 @@ return [
             'internet_search' => true,
             'file_upload' => true,
         ],
-        'streamable' => true,
 
     ],
 ];
