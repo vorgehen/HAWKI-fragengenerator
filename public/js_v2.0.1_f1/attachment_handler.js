@@ -183,15 +183,17 @@ function createAttachmentThumbnail(fileData) {
         break;
     }
 
+    attachment.querySelector('.controls').style.display = "block";
+
     iconImg.setAttribute('src', imgPreview);
     return attachment;
 }
 
 // Remove file attachment from UI and storage
 function removeAtchFromInputList(providerBtn) {
-
     const input = providerBtn.closest('.input');
-    const fileId = providerBtn.parentElement.dataset.fileId;
+    const fileId = providerBtn.closest('.attachment').dataset.fileId;
+
     removeAtchFromList(fileId, input.id);
     setAttachmentsFilter(input.id);
 }
@@ -199,6 +201,7 @@ function removeAtchFromInputList(providerBtn) {
 function removeAtchFromList(fileId, queueId){
     // Remove from UI
     const fileElement = document.querySelector(`.attachment[data-file-id="${fileId}"]`);
+
     if (fileElement) {
         fileElement.remove();
     }
@@ -214,9 +217,12 @@ function removeAtchFromList(fileId, queueId){
     }
     // If no more attachments, remove container
     const input = document.querySelector(`.input[id="${queueId}"`);
+    console.log(queueId);
+    console.log(input);
     const list = input.querySelector('.attachments-list');
     if (list && list.children.length === 0) {
         list.closest('.file-attachments').classList.remove('active');
+        clearInputFilters(queueId);
     }
 }
 
@@ -316,7 +322,6 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
             updateFileStatus(attachment.fileData.tempId, status, fileUrl);
         });
 
-        console.log(attachment.fileData.tempId);
         const removeBtn = document.querySelector(`.attachment[data-file-id="${attachment.fileData.tempId}"]`).querySelector('.remove-btn');
         removeBtn.addEventListener('click', () => {
             upload.abort();

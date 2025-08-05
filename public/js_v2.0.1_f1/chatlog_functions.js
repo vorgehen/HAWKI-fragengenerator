@@ -60,6 +60,11 @@ function clearChatlog(){
     while (content.firstChild) {
         content.removeChild(content.lastChild);
     }
+    const input = document.querySelector('.input');
+    input.querySelector('.attachments-list').querySelectorAll('.attachment').forEach(atch => {
+        removeAtchFromList(atch.dataset.fileId, input.id);
+    })
+    input.querySelector('.input-field').value = '';
 }
 
 

@@ -220,10 +220,11 @@ function addMessageToChatlog(messageObj, isFromServer = false){
         }
 
         const input = threadDiv.querySelector('.input-container');
-	    initFileUploader(input);
 
         messageElement.appendChild(threadDiv);
         activeThread.appendChild(messageElement);
+	    initFileUploader(input);
+
     }
     else{
         const branchInput = activeThread.querySelector('.input-container');
