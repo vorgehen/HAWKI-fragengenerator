@@ -16,18 +16,18 @@ class AccessTokenController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:16',
         ]);
-    
+
         // Retrieve the authenticated user
         $user = Auth::user();
         if (!$user) {
             // Return an error response if the user is not authenticated
             return response()->json(['error' => 'User not authenticated'], 401);
         }
-    
+
         try {
             // Create a new token for the authenticated user
             $token = $user->createToken($validatedData['name']);
-    
+
             // Return a JSON response with the new token
             return response()->json([
                 'success' => true,
@@ -41,7 +41,7 @@ class AccessTokenController extends Controller
                 'error' => $exception->getMessage(),
                 'user_id' => $user->id,
             ]);
-    
+
             // Return a JSON response indicating failure
             return response()->json([
                 'success' => false,
@@ -50,7 +50,7 @@ class AccessTokenController extends Controller
         }
     }
 
-    public function fetchTokenList(Request $request)
+    public function fetchTokenList()
     {
         $user = Auth::user();
         // Retrieve all tokens associated with the authenticated user
@@ -77,11 +77,11 @@ class AccessTokenController extends Controller
         $validatedData = $request->validate([
             'tokenId' => 'required|integer',
         ]);
-    
+
         // Attempt to retrieve the currently authenticated user
         try {
             $user = Auth::user();
-    
+
             // Ensure the user is authenticated before proceeding
             if (!$user) {
                 return response()->json([
@@ -89,10 +89,10 @@ class AccessTokenController extends Controller
                     'message' => 'User not authenticated.',
                 ], 401);
             }
-    
+
             // Attempt to delete the token and capture the result
             $deleted = $user->tokens()->where('id', $validatedData['tokenId'])->delete();
-    
+
             // Check if any row was actually deleted
             if ($deleted) {
                 return response()->json([
@@ -112,7 +112,7 @@ class AccessTokenController extends Controller
                 'user_id' => optional($user)->id,
                 'token_id' => $validatedData['tokenId'],
             ]);
-    
+
             // Return a JSON response indicating failure
             return response()->json([
                 'success' => false,

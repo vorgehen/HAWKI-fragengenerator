@@ -98,27 +98,4 @@ class AIConnectionService
             'systemModels' => config('model_providers')['system_models']
         ];
     }
-
-    /**
-     * Get details for a specific model
-     *
-     * @param string $modelId
-     * @return array
-     */
-    public function getModelDetails(string $modelId): array
-    {
-        $provider = $this->providerFactory->getProviderForModel($modelId);
-        return $provider->getModelDetails($modelId);
-    }
-
-    /**
-     * Get the provider instance for a specific model
-     *
-     * @param string $modelId
-     * @return \App\Services\AI\Interfaces\AIModelProviderInterface
-     */
-    public function getProviderForModel(string $modelId): AIModelProviderInterface
-    {
-        return $this->providerFactory->getProviderForModel($modelId);
-    }
 }

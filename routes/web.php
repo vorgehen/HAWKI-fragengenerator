@@ -141,8 +141,8 @@ Route::middleware('prevent_back')->group(function () {
 
         Route::get('/req/search', [SearchController::class, 'search']);
 
-        Route::post('/req/upload-file', [FileController::class, 'handleUploadedFile']);
-        Route::post('/req/delete-file', [FileController::class, 'deleteFile']);
+        // Route::post('/req/upload-file', [FileController::class, 'handleUploadedFile']);
+        // Route::post('/req/delete-file', [FileController::class, 'deleteFile']);
 
 
 

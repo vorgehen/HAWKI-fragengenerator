@@ -188,7 +188,8 @@ class StreamController extends Controller
                 if (!json_decode($chunk, true) || empty($chunk)) continue;
 
                 // Get the provider for this model
-                $provider = $this->aiConnectionService->getProviderForModel($payload['model']);
+                $factory = new AIProviderFactory();
+                $provider = $factory->getProviderForModel($payload['model']);
 
                 // Format the chunk
                 $formatted = $provider->formatStreamChunk($chunk);
