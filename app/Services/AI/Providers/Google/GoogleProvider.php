@@ -184,6 +184,7 @@ class GoogleProvider extends BaseAIModelProvider
      */
      public function makeStreamingRequest(array $payload, callable $streamCallback)
     {
+        Log::debug($payload);
         // Streaming endpoint for Google Gemini
         $url = $this->config['stream_url'] . $payload['model'] . ':streamGenerateContent?key=' . $this->config['api_key'];
 

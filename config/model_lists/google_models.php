@@ -15,7 +15,7 @@ return [
             'stream' => true,
             'vision' => true,
             'file_upload' => true,
-            'internet_search'=> true,
+            'web_search'=> true,
 
         ],
     ],
@@ -32,9 +32,8 @@ return [
         ],
         'tools' => [
             'stream' => true,
-            'vision' => true,
-            'file_upload' => true,
-            'internet_search'=> true,
+            'vision' => false,
+            'file_upload' => false,
         ],
     ],
     [
@@ -52,7 +51,7 @@ return [
             'stream' => true,
             'vision' => true,
             'file_upload' => true,
-            'internet_search'=> true,
+            'web_search'=> true,
         ],
     ]
 ];

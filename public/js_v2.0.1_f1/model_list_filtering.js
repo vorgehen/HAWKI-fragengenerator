@@ -69,9 +69,11 @@ function filterModels(fieldId) {
 /// === Refresh UI: Enable/Disable model selectors ===
 function refreshModelList(fieldId) {
     const filteredModels = filterModels(fieldId);
+    console.log(filteredModels);
+
     const allowedIds = new Set(filteredModels.map(m => m.id));
     const inputCont = document.querySelector(`.input[id="${fieldId}"]`).closest('.input-container');
-
+    console.log(inputCont);
     inputCont.querySelectorAll('.model-selector').forEach(button => {
         button.disabled = !allowedIds.has(button.dataset.modelId);
     });
@@ -85,7 +87,6 @@ function addInputFilter(fieldId, filterName) {
     const filters = new Set(inputFilters.get(fieldId) || []);
     filters.add(filterName);
     inputFilters.set(fieldId, Array.from(filters));
-    console.log(inputFilters.get(fieldId));
     refreshModelList(fieldId);
 }
 
@@ -102,15 +103,6 @@ function clearInputFilters(fieldId) {
     inputFilters.set(fieldId, []);
     refreshModelList(fieldId);
 }
-
-/// === Refresh All Model Selectors (all fields) ===
-function refreshAllModelLists() {
-    document.querySelectorAll('.input').forEach(inputEl => {
-        const fieldId = inputEl.id;
-        refreshModelList(fieldId);
-    });
-}
-
 
 /// === If the model is to capable, switch to default model ===
 function selectFallbackModel(fieldId) {

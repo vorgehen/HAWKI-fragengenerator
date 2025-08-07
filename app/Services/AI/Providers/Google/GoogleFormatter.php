@@ -44,15 +44,7 @@ class GoogleFormatter implements FormatterInterface
         // Format messages for Google
         $formattedMessages = [];
         foreach ($messages as $message) {
-            $formattedMessages[] = [
-                'role' => $message['role'] === 'assistant' ? 'model' : 'user',
-                'parts' => $this->formatMessageContent($message['content'], $attachmentsMap),
-                // [
-                //     [
-                //         'text' => $message['content']['text']
-                //     ]
-                // ]
-            ];
+            $formattedMessages[] = $this->formatMessage($message, $attachmentsMap, $modelId);
         }
 
 
@@ -81,7 +73,8 @@ class GoogleFormatter implements FormatterInterface
 
         // Google Search only works with gemini >= 2.0
         // Search tool is context sensitive, this means the llm decides if a search is necessary for an answer
-        if ($this->utils->getModelDetails($modelId)['tools']['internet_search']){
+        $tools = $this->utils->getModelDetails($modelId)['tools'];
+        if (array_key_exists('web_search', $tools) && $tools['web_search'] === true){
             $payload['tools'] = $rawPayload['tools'] ?? [
                 [
                     "google_search" => new \stdClass()
@@ -93,94 +86,111 @@ class GoogleFormatter implements FormatterInterface
     }
 
 
-    public function formatMessageContent(array $content, array $attachmentsMap): array
+    public function formatMessage(array $message, array $attachmentsMap, string $modelId): array
     {
-        $formatted = [];
+        $formatted = [
+            'role' => $message['role'] === 'assistant' ? 'model' : 'user',
+            'parts' => []
+        ];
+
+        $content = $message['content'] ?? [];
+
         // Add text if present
         if (!empty($content['text'])) {
-            $formatted[] = [
+            $formatted['parts'][] = [
                 'text' => $content['text'],
             ];
         }
 
-        // Handle attachments
+        // Handle attachments with permission checks
         if (!empty($content['attachments'])) {
-
-            $attachmentService = new AttachmentService();
-
-            foreach ($content['attachments'] as $uuid) {
-                $attachment = $attachmentsMap[$uuid] ?? null;
-                if (!$attachment) {
-                    continue; // skip invalid
-                }
-
-
-                switch ($attachment->type) {
-                    case 'image':
-                        $file = $attachmentService->retrieve($attachment);
-                        $imageData = base64_encode($file);
-                        $url = $attachmentService->getFileUrl($attachment);
-                        $formatted[] = [
-                            'inline_data' =>
-                            [
-                                "mime_type"=> $attachment->mime,
-                                'data' => $imageData,
-                            ]
-                        ];
-                        break;
-
-                    case 'document':
-                        $fileContent = $attachmentService->retrieve($attachment, 'md');
-                        $html_safe = htmlspecialchars($fileContent);
-
-                        $formatted[] = [
-                            'text' => "[\"ATTACHED FILE CONTEXT: \" { $attachment->name }\"]
-                                        ---
-                                        { {$html_safe} }.
-                                        ---",
-                        ];
-                        break;
-
-                    default:
-                        Log::error('bad attachment type');
-                        break;
-                }
-            }
+            $this->processAttachments($content['attachments'], $attachmentsMap, $modelId, $formatted['parts']);
         }
 
         return $formatted;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-        /**
-     * Handle special formatting requirements for specific models
-     *
-     * @param string $modelId
-     * @param array $messages
-     * @return array
-     */
-    protected function handleModelSpecificFormatting(string $modelId, array $messages): array
+    private function processAttachments(array $attachmentUuids, array $attachmentsMap, string $modelId, array &$parts): void
     {
-        // Special case for o1-mini: convert system to user
-        if ($modelId === 'o1-mini' && isset($messages[0]) && $messages[0]['role'] === 'system') {
-            $messages[0]['role'] = 'user';
+        $attachmentService = new AttachmentService();
+        $skippedAttachments = [];
+
+        foreach ($attachmentUuids as $uuid) {
+            $attachment = $attachmentsMap[$uuid] ?? null;
+            if (!$attachment) {
+                continue; // skip invalid
+            }
+
+            switch ($attachment->type) {
+                case 'image':
+                    if ($this->utils->canProcessImage($modelId)) {
+                        $parts[] = $this->processImageAttachment($attachment, $attachmentService, );
+                    } else {
+                        $skippedAttachments[] = $attachment->name . ' (image not supported)';
+                    }
+                    break;
+
+                case 'document':
+                    if ($this->utils->canProcessDocument($modelId)) {
+                        $parts[] = $this->processDocumentAttachment($attachment, $attachmentService);
+                    } else {
+                        $skippedAttachments[] = $attachment->name . ' (file upload not supported)';
+                    }
+                    break;
+
+                default:
+                    Log::warning('Unknown attachment type: ' . $attachment->type);
+                    $skippedAttachments[] = $attachment->name . ' (unsupported type)';
+                    break;
+            }
         }
 
-        return $messages;
+        // Notify about skipped attachments
+        if (!empty($skippedAttachments)) {
+            $parts[] = [
+                'text' => '[NOTE : The following attachments were not included because this model does not support them: ' . implode(', ', $skippedAttachments) . ']'
+            ];
+        }
     }
 
 
-#NOTE: THESE CAN GO TO BASE FORMATTER
+    private function processImageAttachment(Attachment $attachment, AttachmentService $attachmentService): array
+    {
+        try {
+            $file = $attachmentService->retrieve($attachment);
+            $imageData = base64_encode($file);
+            return  [
+                'inline_data' => [
+                    'mime_type' => $attachment->mime,
+                    'data' => $imageData,
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to process image attachment: ' . $e->getMessage());
+            return $parts[] = [
+                'text' => '[ERROR: Could not process image attachment: ' . $attachment->name . ']'
+            ];
+        }
+    }
+
+    private function processDocumentAttachment(Attachment $attachment, AttachmentService $attachmentService): array
+    {
+        try
+        {
+            $fileContent = $attachmentService->retrieve($attachment, 'md');
+            $html_safe = htmlspecialchars($fileContent, ENT_QUOTES, 'UTF-8');
+            return [
+                'text' => "[ATTACHED FILE: {$attachment->name}]\n---\n{$html_safe}\n---"
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to process document attachment: ' . $e->getMessage());
+            return [
+                'text' => '[ERROR: Could not process document attachment: ' . $attachment->name . ']'
+            ];
+        }
+
+    }
+
 
     private function loadAttachmentModelsByUuid(array $messages): array
     {
@@ -200,9 +210,6 @@ class GoogleFormatter implements FormatterInterface
             ->keyBy('uuid')
             ->all(); // returns [uuid => AttachmentModel]
     }
-
-
-
 }
 
 

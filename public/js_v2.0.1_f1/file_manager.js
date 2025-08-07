@@ -96,11 +96,8 @@ async function requestFileUrl(uuid, category, filename){
         if (data.success && data.url) {
         // Automatically start download
 
-        // console.log(data);
         return data.url;
-        const link = document.createElement('a');
-        link.href = data.url;
-        link.download = filename; // optional, sets the filename for the download
+
         } else {
         alert('Failed to get download link');
         }

@@ -38,6 +38,18 @@ class ModelUtilities{
         }
     }
 
+    public function canProcessImage(string $modelId): bool
+    {
+        return $this->hasInput($modelId, 'image') && $this->hasTool($modelId, 'vision');
+    }
+
+    public function canProcessDocument(string $modelId): bool
+    {
+        return $this->hasTool($modelId, 'file_upload');
+    }
+
+
+
     /**
      * Get details for a specific model
      *

@@ -32,25 +32,10 @@ class OllamaFormatter implements FormatterInterface
         // Load and attach attachment models if any
         $attachmentsMap = $this->loadAttachmentModelsByUuid($messages);
 
-        // Format messages for OpenAI
+        // Format messages for Ollama
         $formattedMessages = [];
         foreach ($messages as $message) {
-            $formatted = $this->formatMessageContent($message['content'], $attachmentsMap);
-
-            if(array_key_exists('images', $formatted)){
-                $formattedMessages[] = [
-                    'role' => $message['role'],
-                    'content' => $formatted['content'],
-                    'images' => $formatted['images'],
-                ];
-            }
-            else{
-                $formattedMessages[] = [
-                    'role' => $message['role'],
-                    $formatted['content'],
-                ];
-            }
-
+            $formattedMessages[] = $this->formatMessage($message, $attachmentsMap, $modelId);
         }
 
         // Build payload with common parameters
@@ -62,59 +47,105 @@ class OllamaFormatter implements FormatterInterface
         return $payload;
     }
 
-public function formatMessageContent(array $content, array $attachmentsMap): array
+public function formatMessage(array $message, array $attachmentsMap, string $modelId): array
 {
-    $formatted = [];
+    $formatted = [
+        'role' => $message['role'],
+        'content' => ''
+    ];
+
+    $content = $message['content'] ?? [];
     $text = '';
+    $images = [];
 
     // Add text if present
     if (!empty($content['text'])) {
         $text = $content['text'];
     }
 
-    // Handle attachments
+    // Handle attachments with permission checks
     if (!empty($content['attachments'])) {
-        $attachmentService = new AttachmentService();
-        $images = [];
-
-        foreach ($content['attachments'] as $uuid) {
-            $attachment = $attachmentsMap[$uuid] ?? null;
-            if (!$attachment) {
-                continue; // Skip invalid attachment
-            }
-
-            switch ($attachment->type) {
-                case 'image':
-                    $file = $attachmentService->retrieve($attachment);
-                    $imageData = base64_encode($file);
-                    $images[] = $imageData;
-                    break;
-
-                case 'document':
-                    $fileContent = $attachmentService->retrieve($attachment, 'md');
-                    $html_safe = htmlspecialchars($fileContent);
-
-                    $text .= "\n\n[ATTACHED FILE CONTEXT: {$attachment->name}]\n---\n{$html_safe}\n---\n";
-                    break;
-
-                default:
-                    Log::error(message: 'Bad attachment type: ' . $attachment->type);
-                    break;
-            }
-        }
-
-        // Always add text content
-        $formatted['content'] = $text;
-
-        // Add images if any
-        if (count($images) > 0) {
-            $formatted['images'] = $images;
-        }
-    } else {
-        // If no attachments, only text
-        $formatted['content'] = $text;
+        $this->processAttachments($content['attachments'], $attachmentsMap, $modelId, $text, $images);
     }
+
+    $formatted['content'] = $text;
+    
+    // Add images if any were processed
+    if (!empty($images)) {
+        $formatted['images'] = $images;
+    }
+
     return $formatted;
+}
+
+private function processAttachments(array $attachmentUuids, array $attachmentsMap, string $modelId, string &$text, array &$images): void
+{
+    $attachmentService = new AttachmentService();
+    $skippedAttachments = [];
+
+    foreach ($attachmentUuids as $uuid) {
+        $attachment = $attachmentsMap[$uuid] ?? null;
+        if (!$attachment) {
+            continue; // skip invalid
+        }
+
+        switch ($attachment->type) {
+            case 'image':
+                if ($this->utils->canProcessImage($modelId)) {
+                    $imageData = $this->processImageAttachment($attachment, $attachmentService);
+                    if ($imageData) {
+                        $images[] = $imageData;
+                    }
+                } else {
+                    $skippedAttachments[] = $attachment->name . ' (image not supported)';
+                }
+                break;
+
+            case 'document':
+                if ($this->utils->canProcessDocument($modelId)) {
+                    $documentText = $this->processDocumentAttachment($attachment, $attachmentService);
+                    if ($documentText) {
+                        $text .= "\n\n" . $documentText;
+                    }
+                } else {
+                    $skippedAttachments[] = $attachment->name . ' (file upload not supported)';
+                }
+                break;
+
+            default:
+                Log::warning('Unknown attachment type: ' . $attachment->type);
+                $skippedAttachments[] = $attachment->name . ' (unsupported type)';
+                break;
+        }
+    }
+
+    // Notify about skipped attachments
+    if (!empty($skippedAttachments)) {
+        $text .= "\n\n[NOTE: The following attachments were not included because this model does not support them: " . implode(', ', $skippedAttachments) . "]";
+    }
+}
+
+private function processImageAttachment(Attachment $attachment, AttachmentService $attachmentService): ?string
+{
+    try {
+        $file = $attachmentService->retrieve($attachment);
+        return base64_encode($file);
+    } catch (\Exception $e) {
+        Log::error('Failed to process image attachment: ' . $e->getMessage());
+        return null;
+    }
+}
+
+private function processDocumentAttachment(Attachment $attachment, AttachmentService $attachmentService): ?string
+{
+    try {
+        $fileContent = $attachmentService->retrieve($attachment, 'md');
+        $html_safe = htmlspecialchars($fileContent, ENT_QUOTES, 'UTF-8');
+        return "[ATTACHED FILE: {$attachment->name}]\n---\n{$html_safe}\n---";
+    } catch (\Exception $e) {
+        Log::error('Failed to process document attachment: ' . $e->getMessage());
+        return "[ERROR: Could not process document attachment: {$attachment->name}]";
+    }
 }
 
 

@@ -216,7 +216,6 @@ function addMessageToChatlog(messageObj, isFromServer = false){
         if(messageObj.message_id){
             threadDiv.id = messageObj.message_id.split('.')[0];
             threadDiv.querySelector('.input').id = threadDiv.id;
-
         }
 
         const input = threadDiv.querySelector('.input-container');
@@ -247,6 +246,8 @@ function updateMessageElement(messageElement, messageObj, updateContent = false)
     messageElement.id = messageObj.message_id;
     if(messageElement.querySelector('.thread')){
         messageElement.querySelector('.thread').id = messageObj.message_id.split('.')[0];
+        messageElement.querySelector('.input').id = messageObj.message_id.split('.')[0]
+
     }
 
     if(messageElement.classList.contains('me')){

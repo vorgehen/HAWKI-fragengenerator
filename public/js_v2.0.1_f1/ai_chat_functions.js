@@ -82,8 +82,7 @@ async function sendMessageConv(inputField) {
 
     /// UPLOAD ATTACHMENTS
     const attachments = await uploadAttachmentQueue(input.id, 'conv');
-    console.log('attachments');
-    console.log(attachments);
+
     /// Encrypt message
     const convKey = await keychainGet('aiConvKey');
     const cryptoMsg = await encryptWithSymKey(convKey, inputText, false);
@@ -115,11 +114,10 @@ async function sendMessageConv(inputField) {
     // empty input field
     inputField.value = "";
     resizeInputField(inputField);
-    const fileAtchs = input.querySelector('.file-attachments');
-    fileAtchs.querySelector('.attachments-list').innerHTML = "";
-    fileAtchs.classList.remove('active');
-
-
+    const thumbnails = input.querySelectorAll('.attachment');
+    thumbnails.forEach(thumbnails => {
+        removeAtchFromList(atch.dataset.fileId, input.id);
+    });
 
     const messageElement = addMessageToChatlog(submissionData);
 
@@ -135,8 +133,6 @@ async function sendMessageConv(inputField) {
         'stream': true,
         'model': activeModel.id,
     }
-
-    console.log('buildRequestObjectForAiConv');
 
     buildRequestObjectForAiConv(msgAttributes);
 }

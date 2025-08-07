@@ -124,9 +124,9 @@ async function onSendMessageToRoom(inputField) {
             'key': aiKeyBase64,
             'stream': false,
         }
-        // console.log('buildRequestObject');
+
         buildRequestObject(msgAttributes,  async (updatedText, done) => {
-            // console.log('waiting');
+
         });
     }
 
@@ -135,7 +135,7 @@ async function onSendMessageToRoom(inputField) {
 
 const connectWebSocket = (roomSlug) => {
     const webSocketChannel = `Rooms.${roomSlug}`;
-    // console.log('connected to > ' + roomSlug);
+
     window.Echo.private(webSocketChannel)
         .listen('RoomMessageEvent', async (e) => {
             try {
@@ -170,7 +170,6 @@ const connectWebSocket = (roomSlug) => {
                 }
 
                 if(data.type === "aiGenerationStatus"){
-                    // console.log('aiGenerationStatus', data.messageData.isGenerating);
                     if (data.messageData.isGenerating) {
                         // Display the typing indicator for the user
                         addUserToTypingList(data.messageData.model);
@@ -195,7 +194,6 @@ async function handleUserMessages(messageData, slug){
 
     let element = document.getElementById(messageData.message_id);
     if (!element) {
-        // console.log('USER MESSAGE RECEIED >>> ',messageData);
         element = addMessageToChatlog(messageData, true);
         activateMessageControls(element);
     }
@@ -223,12 +221,9 @@ async function handleAIMessage(messageData, slug){
 
     messageData.content = await decryptWithSymKey(aiKey, messageData.content, messageData.iv, messageData.tag);
 
-    // console.log(messageData);
-
     // CREATE AND UPDATE MESSAGE
     let element = document.getElementById(messageData.message_id);
     if (!element) {
-        // console.log('AI Message', messageData);
         element = addMessageToChatlog(messageData, true);
         activateMessageControls(element);
     }else{
@@ -237,7 +232,6 @@ async function handleAIMessage(messageData, slug){
 
     // Observe unread messages
     if(element.dataset.read_stat === 'false'){
-        // console.log(element);
         observer.observe(element);
     }
     if(!element.querySelector('.branch')){
@@ -309,7 +303,6 @@ function onGroupchatType() {
 
 function startTyping() {
     const webSocketChannel = `Rooms.${activeRoom.slug}`;
-    // console.log('Started typing', webSocketChannel);
 
     Echo.private(webSocketChannel)
         .whisper('typing', {
@@ -319,7 +312,6 @@ function startTyping() {
 }
 
 function stopTyping() {
-    // console.log('Stopped typing');
     isTyping = false;
     const webSocketChannel = `Rooms.${activeRoom.slug}`;
 
@@ -333,11 +325,8 @@ function stopTyping() {
 function connectWhisperSocket(roomSlug){
 
     const webSocketChannel = `Rooms.${roomSlug}`;
-    // console.log('whisper listening to ', webSocketChannel);
     Echo.private(webSocketChannel)
     .listenForWhisper('typing', (e) => {
-
-        // console.log('whisper received ', e.user);
         if (activeRoom.slug !== roomSlug) return;
 
         if (e.typing) {
@@ -1094,7 +1083,6 @@ function openRoomCP(){
     const editBtns = cp.querySelectorAll('#edit-abort');
     editBtns.forEach(btn => {
         if(btn.closest('.edit-panel').parentElement.querySelector('.text-field').getAttribute('contenteditable') === true){
-            // console.log('switching edit panel')
             abortTextPanelEdit(btn);
         }
     });
@@ -1267,8 +1255,6 @@ async function requestDeleteRoom() {
         const data = await response.json();
 
         if (data.success) {
-            // console.log('Room removed successfully');
-
             const listItem = document.querySelector(`.selection-item[slug="${activeRoom.slug}"]`);
             const list = listItem.parentElement;
             listItem.remove();
@@ -1351,7 +1337,6 @@ async function removeMemberFromRoom(username){
         const data = await response.json();
 
         if (data.success) {
-            // console.log('user removed from room');
             return true;
         } else {
             console.error('Removeing user was not successful!');
@@ -1370,7 +1355,6 @@ function selectRoomAvatar(btn, upload = false){
 
     const imageElement = btn.parentElement.querySelector('.selectable-image');
     const initials = btn.parentElement.querySelector('#control-panel-chat-initials');
-    // console.log(imageElement);
     openImageSelection(imageElement.getAttribute('src'), function(croppedImage) {
         imageElement.style.display = 'block';
         if(initials){
@@ -1385,7 +1369,6 @@ function selectRoomAvatar(btn, upload = false){
 }
 
 async function uploadRoomAvatar(imgBase64){
-    // console.log(activeRoom)
     const url = `/req/room/updateInfo/${activeRoom.slug}`;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 

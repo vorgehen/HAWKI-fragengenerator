@@ -123,8 +123,8 @@ async function handleSelectedFiles(files, inputField) {
 }
 
 function setAttachmentsFilter(input_id){
-
     const attachments = uploadQueues.get(input_id);
+    console.log(attachments);
     attachments.forEach(attachment => {
         const type = checkFileFormat(attachment.fileData.mime);
         if(type === 'pdf' || type === 'docx' || type === 'image'){
@@ -219,8 +219,6 @@ function removeAtchFromList(fileId, queueId){
     }
     // If no more attachments, remove container
     const input = document.querySelector(`.input[id="${queueId}"`);
-    console.log(queueId);
-    console.log(input);
     const list = input.querySelector('.attachments-list');
     if (list && list.children.length === 0) {
         list.closest('.file-attachments').classList.remove('active');

@@ -35,10 +35,7 @@ class OpenAIFormatter implements FormatterInterface
         // Format messages for OpenAI
         $formattedMessages = [];
         foreach ($messages as $message) {
-            $formattedMessages[] = [
-                'role' => $message['role'],
-                'content' => $this->formatMessageContent($message['content'], $attachmentsMap),
-            ];
+            $formattedMessages[] = $this->formatMessage($message, $attachmentsMap, $modelId);
         }
 
         // Build payload with common parameters
@@ -68,63 +65,110 @@ class OpenAIFormatter implements FormatterInterface
     }
 
 
-    public function formatMessageContent(array $content, array $attachmentsMap): array
+    public function formatMessage(array $message, array $attachmentsMap, string $modelId): array
     {
-        $formatted = [];
+        $formatted = [
+            'role' => $message['role'],
+            'content' => []
+        ];
+
+        $content = $message['content'] ?? [];
+        
         // Add text if present
         if (!empty($content['text'])) {
-            $formatted[] = [
+            $formatted['content'][] = [
                 'type' => 'text',
                 'text' => $content['text'],
             ];
         }
 
-        // Handle attachments
+        // Handle attachments with permission checks
         if (!empty($content['attachments'])) {
+            $this->processAttachments($content['attachments'], $attachmentsMap, $modelId, $formatted['content']);
+        }
 
-            $attachmentService = new AttachmentService();
+        return $formatted;
+    }
 
-            foreach ($content['attachments'] as $uuid) {
-                $attachment = $attachmentsMap[$uuid] ?? null;
-                if (!$attachment) {
-                    continue; // skip invalid
-                }
+    private function processAttachments(array $attachmentUuids, array $attachmentsMap, string $modelId, array &$content): void
+    {
+        $attachmentService = new AttachmentService();
+        $skippedAttachments = [];
 
-                switch ($attachment->type) {
-                    case 'image':
-                        $file = $attachmentService->retrieve($attachment);
-                        $imageData = base64_encode($file);
-                        $url = $attachmentService->getFileUrl($attachment);
-                        $formatted[] = [
-                            'type'=> 'image_url',
-                            'image_url' =>
-                            [
-                                'url' => $url,
-                            ]
+        foreach ($attachmentUuids as $uuid) {
+            $attachment = $attachmentsMap[$uuid] ?? null;
+            if (!$attachment) {
+                continue; // skip invalid
+            }
 
-                        ];
-                        break;
+            switch ($attachment->type) {
+                case 'image':
+                    if ($this->utils->canProcessImage($modelId)) {
+                        $content[] = $this->processImageAttachment($attachment, $attachmentService);
+                    } else {
+                        $skippedAttachments[] = $attachment->name . ' (image not supported)';
+                    }
+                    break;
 
-                    case 'document':
-                        $fileContent = $attachmentService->retrieve($attachment, 'md');
-                        $html_safe = htmlspecialchars($fileContent);
+                case 'document':
+                    if ($this->utils->canProcessDocument($modelId)) {
+                        $content[] = $this->processDocumentAttachment($attachment, $attachmentService);
+                    } else {
+                        $skippedAttachments[] = $attachment->name . ' (file upload not supported)';
+                    }
+                    break;
 
-                        $formatted[] = [
-                            'type' => 'text',
-                            'text' => "[\"ATTACHED FILE CONTEXT: \" { $attachment->name }\"]
-                                        ---
-                                        { {$html_safe} }.
-                                        ---",
-                        ];
-                        break;
-
-                    default:
-                        Log::error("bad attachment type: {$attachment->type}");
-                        break;
-                }
+                default:
+                    Log::warning('Unknown attachment type: ' . $attachment->type);
+                    $skippedAttachments[] = $attachment->name . ' (unsupported type)';
+                    break;
             }
         }
-        return $formatted;
+
+        // Notify about skipped attachments
+        if (!empty($skippedAttachments)) {
+            $content[] = [
+                'type' => 'text',
+                'text' => '[NOTE: The following attachments were not included because this model does not support them: ' . implode(', ', $skippedAttachments) . ']'
+            ];
+        }
+    }
+
+    private function processImageAttachment(Attachment $attachment, AttachmentService $attachmentService): array
+    {
+        try {
+            $url = $attachmentService->getFileUrl($attachment);
+            return [
+                'type' => 'image_url',
+                'image_url' => [
+                    'url' => $url,
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to process image attachment: ' . $e->getMessage());
+            return [
+                'type' => 'text',
+                'text' => '[ERROR: Could not process image attachment: ' . $attachment->name . ']'
+            ];
+        }
+    }
+
+    private function processDocumentAttachment(Attachment $attachment, AttachmentService $attachmentService): array
+    {
+        try {
+            $fileContent = $attachmentService->retrieve($attachment, 'md');
+            $html_safe = htmlspecialchars($fileContent, ENT_QUOTES, 'UTF-8');
+            return [
+                'type' => 'text',
+                'text' => "[ATTACHED FILE: {$attachment->name}]\n---\n{$html_safe}\n---"
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to process document attachment: ' . $e->getMessage());
+            return [
+                'type' => 'text',
+                'text' => '[ERROR: Could not process document attachment: ' . $attachment->name . ']'
+            ];
+        }
     }
 
 

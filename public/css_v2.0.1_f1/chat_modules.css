@@ -1155,7 +1155,7 @@
     overflow: hidden;
 
     border-radius: 0.5rem;
-    border: var(--border-stroke-bold);
+    border: var(--border-stroke-thin);
 }
 
 .attachment .content{

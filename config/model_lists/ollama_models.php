@@ -15,7 +15,7 @@ return [
             'stream' => true,
             'image_generation' => true,
             'vision' => true,
-            'internet_search' => true,
+            'web_search' => true,
             'file_upload' => true,
         ],
 
@@ -34,7 +34,7 @@ return [
             'stream' => true,
             'image_generation' => true,
             'vision' => true,
-            'internet_search' => true,
+            'web_search' => true,
             'file_upload' => true,
         ],
 
@@ -53,7 +53,7 @@ return [
             'stream' => true,
             'image_generation' => true,
             'vision' => true,
-            'internet_search' => true,
+            'web_search' => true,
             'file_upload' => true,
         ],
 

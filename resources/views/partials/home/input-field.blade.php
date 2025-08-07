@@ -188,7 +188,6 @@
             <div class="input-wrapper">
                 <textarea
                     class="input-field"
-                    id="main-input-field"
                     type="text"
 
                     @if($activeModule === 'chat')
