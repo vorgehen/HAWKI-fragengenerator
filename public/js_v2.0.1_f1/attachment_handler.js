@@ -113,6 +113,8 @@ async function handleSelectedFiles(files, inputField) {
         attachmentContainer.querySelector('.attachments-list').appendChild(atchThumb);
 
         uploadQueues.get(input_id).push({ fileData });
+        console.log(uploadQueues.get(input_id));
+
         setAttachmentsFilter(input_id);
 
         // Return something useful if needed (optional)
@@ -301,7 +303,7 @@ function updateFileStatus(fileId, status) {
  * @returns {Promise<array|null>} - List of uploaded file metadata or null.
  */
 async function uploadAttachmentQueue(queueId, category, slug = null) {
-
+    console.log('uploading FIle ', queueId, category, slug);
     let url = '';
     if(slug){
         url = `/req/${category}/attachmnet/upload/${slug}`;
@@ -310,6 +312,8 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
         url = `/req/${category}/attachmnet/upload`;
     }
     const attachments = uploadQueues.get(queueId);
+    console.log('queue');
+    console.log(attachments);
 
     if (!attachments || attachments.length === 0) return null;
 
@@ -329,6 +333,7 @@ async function uploadAttachmentQueue(queueId, category, slug = null) {
 
         return upload.promise
             .then(data => {
+                console.log(data)
                 attachment.fileData.uuid = data.uuid;
                 uploadedFiles.push({
                     uuid: data.uuid,

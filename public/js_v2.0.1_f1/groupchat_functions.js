@@ -795,6 +795,7 @@ async function loadRoom(btn=null, slug=null){
         return;
     }
     clearChatlog();
+    clearInput();
 
     activeRoom = roomData;
     const chatControlPanel = document.querySelector('#room-control-panel');

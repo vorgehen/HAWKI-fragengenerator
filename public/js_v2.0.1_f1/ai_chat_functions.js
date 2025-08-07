@@ -82,7 +82,8 @@ async function sendMessageConv(inputField) {
 
     /// UPLOAD ATTACHMENTS
     const attachments = await uploadAttachmentQueue(input.id, 'conv');
-
+    console.log('attachments');
+    console.log(attachments);
     /// Encrypt message
     const convKey = await keychainGet('aiConvKey');
     const cryptoMsg = await encryptWithSymKey(convKey, inputText, false);
@@ -121,7 +122,6 @@ async function sendMessageConv(inputField) {
 
 
     const messageElement = addMessageToChatlog(submissionData);
-    console.log('addMessageToChatlog finish');
 
     // create and add message element to chatlog.
     messageElement.dataset.rawMsg = submissionData.content.text;
@@ -296,6 +296,7 @@ async function initNewConv(firstMessage){
 function startNewChat(){
     chatlogElement.classList.add('start-state');
     clearChatlog();
+    clearInput();
     history.replaceState(null, '', `/chat`);
 
     const systemPromptFields = document.querySelectorAll('.system_prompt_field');
@@ -450,6 +451,7 @@ async function loadConv(btn=null, slug=null){
     }
 
     clearChatlog();
+    clearInput();
     activeConv = convData;
 
     const convKey = await keychainGet('aiConvKey');
@@ -543,6 +545,7 @@ async function requestDeleteConv() {
             }
             else{
                 clearChatlog();
+                clearInput();
                 chatlogElement.classList.remove('active');
                 history.replaceState(null, '', `/chat`);
             }

@@ -116,7 +116,7 @@ class LocalStorageService implements StorageServiceInterface
     }
 
 
-        public function retrieveOutputFilesByType(string $uuid, string $category, string $fileType): array
+    public function retrieveOutputFilesByType(string $uuid, string $category, string $fileType): array
     {
         $category = $category ?? 'default';
         $outputFolder = $this->buildFolder($category, $uuid) . '/output';
