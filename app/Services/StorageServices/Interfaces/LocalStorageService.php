@@ -17,7 +17,7 @@ class LocalStorageService implements StorageServiceInterface
     }
 
 
-    public function storeFile($file, string $filename, string $uuid, ?string $category): bool
+    public function storeFile(UploadedFile|string $file, string $filename, string $uuid, ?string $category): bool
     {
         $path = $this->buildPath($category, $uuid, $filename);
 

@@ -4,7 +4,8 @@ namespace App\Services\StorageServices;
 
 use App\Services\StorageServices\Interfaces\StorageServiceInterface;
 use App\Services\StorageServices\Interfaces\LocalStorageService;
-use App\Services\StorageServices\Interfaces\MinioService;
+use App\Services\StorageServices\Interfaces\S3Service;
+use App\Services\StorageServices\Interfaces\NextCloudService;
 
 class StorageServiceFactory
 {
@@ -17,10 +18,12 @@ class StorageServiceFactory
     public static function create(?string $type = null): StorageServiceInterface
     {
         $storageType = $type ?? config('filesystems.storage_service', 'local');
-        
+
         switch ($storageType) {
-            case 'minio':
-                return new MinioService();
+            case 's3':
+                return new S3Service();
+            case 'nextcloud':
+                return new NextCloudService();
             case 'local':
             default:
                 return new LocalStorageService();

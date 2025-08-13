@@ -2,17 +2,19 @@
 
 namespace App\Services\StorageServices\Interfaces;
 
+use Illuminate\Http\UploadedFile;
+
 interface StorageServiceInterface
 {
     /**
      * Store a file in storage
      *
-     * @param mixed $file The file to store (UploadedFile or file contents)
+     * @param UploadedFile|string $file The file to store (UploadedFile or file contents)
      * @param string $filename The name to save the file as
      * @param string|null $category Optional category to store the file in
      * @return bool Whether the file was successfully stored
      */
-    public function storeFile($file, string $filename, string $uuid, string $category): bool;
+    public function storeFile(UploadedFile|string $file, string $filename, string $uuid, string $category): bool;
 
     /**
      * Retrieve a file from storage

@@ -51,21 +51,29 @@ return [
         'data_repo' => [
             'driver' => 'local',
             'root' => storage_path('app/data_repo'),
-            'url' => env('APP_URL').'/data_repo',
+            'url' => env('ixdlab.hawhk.de').'/data_repo',
             'visibility' => 'private',
             'serve' => true,
             'throw' => false,
         ],
 
-        'minio' => [
+        's3' => [
             'driver' => 's3',
-            'key' => env('MINIO_ACCESS_KEY'),
-            'secret' => env('MINIO_SECRET_KEY'),
-            'region' => env('MINIO_REGION'),
-            'bucket' => env('MINIO_DEFAULT_BUCKET'),
-            'endpoint' => env('MINIO_ENDPOINT'),
+            'key' => env('S3_ACCESS_KEY'),
+            'secret' => env('S3_SECRET_KEY'),
+            'region' => env('S3_REGION'),
+            'bucket' => env('S3_DEFAULT_BUCKET'),
+            'endpoint' => env('S3_ENDPOINT'),
             'use_path_style_endpoint' => true,
             'visibility' => 'private',
+        ],
+
+        'nextcloud' => [
+            'driver' => 'nextcloud',
+            'base_url' => env('NEXTCLOUD_BASE_URL'),
+            'base_path' => env('NEXTCLOUD_BASE_PATH'),
+            'username' => env('NEXTCLOUD_USERNAME'),
+            'password' => env('NEXTCLOUD_PASSWORD'),
         ],
 
     ],

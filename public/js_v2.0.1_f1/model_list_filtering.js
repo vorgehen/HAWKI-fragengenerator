@@ -69,11 +69,8 @@ function filterModels(fieldId) {
 /// === Refresh UI: Enable/Disable model selectors ===
 function refreshModelList(fieldId) {
     const filteredModels = filterModels(fieldId);
-    console.log(filteredModels);
-
     const allowedIds = new Set(filteredModels.map(m => m.id));
     const inputCont = document.querySelector(`.input[id="${fieldId}"]`).closest('.input-container');
-    console.log(inputCont);
     inputCont.querySelectorAll('.model-selector').forEach(button => {
         button.disabled = !allowedIds.has(button.dataset.modelId);
     });

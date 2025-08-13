@@ -5,8 +5,10 @@ namespace App\Services\StorageServices\Interfaces;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
+use Throwable;
 
-class MinioService implements StorageServiceInterface
+
+class S3Service implements StorageServiceInterface
 {
 
 
@@ -15,8 +17,8 @@ class MinioService implements StorageServiceInterface
 
     public function __construct()
     {
-        $this->bucket = config('filesystems.disks.minio.bucket', 'hawki-files');
-        $this->disk = 'minio';
+        $this->bucket = config('filesystems.disks.s3.bucket');
+        $this->disk = 's3';
     }
 
     /**
@@ -28,7 +30,7 @@ class MinioService implements StorageServiceInterface
      * @return bool Whether the file was successfully stored
      */
 
-    public function storeFile($file, string $filename, string $uuid, string $category): bool
+    public function storeFile(UploadedFile|string $file, string $filename, string $uuid, string $category): bool
     {
 
         $path = $this->buildPath($category, $uuid, $filename);
