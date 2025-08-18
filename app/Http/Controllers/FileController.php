@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Services\StorageServices\StorageServiceFactory;
-use App\Services\StorageServices\DocumentConverter;
-use App\Services\StorageServices\Interfaces\StorageServiceInterface;
+use App\Services\Storage\StorageServiceFactory;
+use App\Services\Storage\DocumentConverter;
+use App\Services\Storage\Interfaces\StorageServiceInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 

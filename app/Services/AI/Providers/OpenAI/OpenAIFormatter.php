@@ -7,7 +7,7 @@ use App\Services\AI\Interfaces\FormatterInterface;
 use App\Models\Attachment;
 use Illuminate\Support\Facades\Log;
 
-use App\Services\Attachment\AttachmentService;
+use App\Services\Chat\Attachment\AttachmentService;
 
 class OpenAIFormatter implements FormatterInterface
 {
@@ -73,7 +73,7 @@ class OpenAIFormatter implements FormatterInterface
         ];
 
         $content = $message['content'] ?? [];
-        
+
         // Add text if present
         if (!empty($content['text'])) {
             $formatted['content'][] = [

@@ -84,7 +84,7 @@
 
 <script>
 
-	const userInfo = @json($userProfile);
+	const userInfo = @json($user);
 	const userAvatarUrl = @json($userData['avatar_url']);
 	const hawkiAvatarUrl = @json($userData['hawki_avatar_url']);
 	const activeModule = @json($activeModule);

@@ -2,8 +2,15 @@
 
 namespace App\Models;
 
+use Hamcrest\Core\IsTypeOf;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\StorageServices\StorageServiceFactory;
+use App\Services\Storage\StorageServiceFactory;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+
+use Illuminate\Support\Facades\Log;
+
+
 
 class Message extends Model
 {
@@ -22,7 +29,6 @@ class Message extends Model
     ];
 
 
-
     public function room()
     {
         return $this->belongsTo(Room::class);
@@ -37,6 +43,49 @@ class Message extends Model
     {
         return $this->member->user();
     }
+
+
+    public function createMessageObject(): array
+    {
+        $member = $this->member;
+        $room = $this->room;
+
+        $requestMember = $room->members()->where('user_id', Auth::id())->firstOrFail();
+
+        $readStat = $this->isReadBy($requestMember);
+
+        $msgData = [
+            'member_id' => $member->id,
+            'member_name' => $member->user->name,
+            'message_role' => $this->message_role,
+            'message_id' => $this->message_id,
+            'read_status'=> $readStat,
+
+            'author' => [
+                'username' => $member->user->username,
+                'name' => $member->user->name,
+                'isRemoved' => $member->isRemoved,
+                'avatar_url' => $member->user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $member->user->avatar_id) : null,
+            ],
+            'model' => $this->model,
+
+            'content' => [
+                'text' => [
+                    'ciphertext'=> $this->content,
+                    'iv' => $this->iv,
+                    'tag' => $this->tag,
+                ],
+                'attachments' => $this->attachmentsAsArray(),
+            ],
+            'created_at' => $this->created_at->format('Y-m-d+H:i'),
+            'updated_at' => $this->updated_at->format('Y-m-d+H:i'),
+        ];
+
+        return $msgData;
+    }
+
+
+
 
     public function isReadBy($member)
     {

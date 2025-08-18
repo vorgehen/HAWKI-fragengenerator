@@ -17,8 +17,8 @@ function initializeAiChatModule(chatsObject){
         field.textContent = defaultPromt;
     });
 
-    chats = chatsObject.original;
-
+    chats = chatsObject;
+    console.log(chatsObject)
     chats.forEach(conv => {
         createChatItem(conv);
     });
@@ -500,8 +500,14 @@ async function RequestConvContent(slug){
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        return data;
+        const responseJson = await response.json();
+        if(responseJson.success){
+            return responseJson.data;
+        }
+        else{
+            console.error(responseJson.message);
+            return;
+        }
     }
     catch (err){
         console.error('Error fetching data:', error);

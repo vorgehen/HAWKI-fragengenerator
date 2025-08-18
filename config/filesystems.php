@@ -17,7 +17,7 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
-    'storage_service' => env('STORAGE_DISK', 'local'),
+    'file_storage' => env('STORAGE_DISK', 'data_repo'),
 
     /*
     |--------------------------------------------------------------------------
@@ -51,7 +51,7 @@ return [
         'data_repo' => [
             'driver' => 'local',
             'root' => storage_path('app/data_repo'),
-            'url' => env('ixdlab.hawhk.de').'/data_repo',
+            'url' => env('APP_URL').'/data_repo',
             'visibility' => 'private',
             'serve' => true,
             'throw' => false,
@@ -74,6 +74,15 @@ return [
             'base_path' => env('NEXTCLOUD_BASE_PATH'),
             'username' => env('NEXTCLOUD_USERNAME'),
             'password' => env('NEXTCLOUD_PASSWORD'),
+        ],
+
+        'sftp' => [
+            'driver' => 'sftp',
+            'host' => env('SFTP_HOST'),
+            'port' => env('SFTP_PORT', 22),
+            'username' => env('SFTP_USERNAME'),
+            'password' => env('SFTP_PASSWORD'),
+            'base_path' => env('SFTP_BASE_PATH', '/'),
         ],
 
     ],

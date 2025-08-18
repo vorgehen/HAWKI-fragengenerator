@@ -7,12 +7,15 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\InvitationController;
 
+use App\Services\System\SettingsService;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 use App\Services\AI\AIConnectionService;
 use App\Models\User;
@@ -33,33 +36,28 @@ class HomeController extends Controller
     /// Redirects user to Home Layout
     /// Home layout can be chat, groupchat, or any other main module
     /// Propper rendering attributes will be send accordingly to the front end
-    public function show(Request $request, $slug = null){
+    public function index(Request $request, $slug = null){
 
-        $userProfile = Auth::user();
+        $user = Auth::user();
 
 
         // Call getTranslation method from LanguageController
         $translation = $this->languageController->getTranslation();
-        $settingsPanel = (new SettingsController())->initialize();
+        $settingsPanel = (new SettingsService())->render();
+
 
         // get the first part of the path if there's a slug.
         $requestModule = explode('/', $request->path())[0];
 
-        $convController = new AiConvController();
-        $convs = $convController->getUserConvs(request());
 
-        $roomController = new RoomController();
-        $rooms = $roomController->getUserRooms(request());
-
-        $avatarUrl = $userProfile->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $userProfile->avatar_id) : null;
+        $avatarUrl = $user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $user->avatar_id) : null;
         $hawkiAvatarUrl = Storage::disk('public')->url('profile_avatars/' . User::find(1)->avatar_id);
         $userData = [
             'avatar_url'=> $avatarUrl,
             'hawki_avatar_url'=>$hawkiAvatarUrl,
-            'convs' => $convs,
-            'rooms' => $rooms,
+            'convs' => $user->conversations()->with('messages')->get(),
+            'rooms' => $user->rooms()->with('messages')->get(),
         ];
-
 
         $activeModule = $requestModule;
 
@@ -77,7 +75,7 @@ class HomeController extends Controller
                     compact('translation',
                             'settingsPanel',
                             'slug',
-                            'userProfile',
+                            'user',
                             'userData',
                             'activeModule',
                             'activeOverlay',
@@ -100,8 +98,8 @@ class HomeController extends Controller
             break;
         }
 
-        $userProfile = Auth::user();
-        $avatarUrl = $userProfile->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $userProfile->avatar_id) : null;
+        $user = Auth::user();
+        $avatarUrl = $user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $user->avatar_id) : null;
         $hawkiAvatarUrl = Storage::disk('public')->url('profile_avatars/' . User::find(1)->avatar_id);
         $userData = [
             'avatar_url'=> $avatarUrl,
@@ -110,7 +108,7 @@ class HomeController extends Controller
 
 
         $translation = $this->languageController->getTranslation();
-        $settingsPanel = (new SettingsController())->initialize();
+        $settingsPanel = (new SettingsService())->render();
 
         $activeModule = $module;
         return view('layouts.print_template',
@@ -118,7 +116,7 @@ class HomeController extends Controller
                         'settingsPanel',
                         'messages',
                         'activeModule',
-                        'userProfile',
+                        'user',
                         'userData',
                         'models'));
 

@@ -7,7 +7,7 @@ use App\Services\AI\Interfaces\FormatterInterface;
 use App\Models\Attachment;
 use Illuminate\Support\Facades\Log;
 
-use App\Services\Attachment\AttachmentService;
+use App\Services\Chat\Attachment\AttachmentService;
 
 class GoogleFormatter implements FormatterInterface
 {

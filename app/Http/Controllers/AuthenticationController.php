@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\PrivateUserData;
 
+use App\Services\System\SettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
@@ -174,12 +175,10 @@ class AuthenticationController extends Controller
 
         // Call getTranslation method from LanguageController
         $translation = $this->languageController->getTranslation();
-        $settingsPanel = (new SettingsController())->initialize();
+        $settingsPanel = (new SettingsService())->render();
 
         $cryptoController = new EncryptionController();
         $keychainData = $cryptoController->fetchUserKeychain();
-
-        $settingsPanel = (new SettingsController())->initialize($translation);
 
         $activeOverlay = false;
         if(Session::get('last-route') && Session::get('last-route') != 'handshake'){

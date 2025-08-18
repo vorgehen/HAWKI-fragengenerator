@@ -12,10 +12,16 @@ use App\Http\Middleware\PreventBackHistory;
 use App\Http\Middleware\SessionExpiryChecker;
 use App\Http\Middleware\TokenCreationCheck;
 use Illuminate\Support\Facades\Route;
-use Dotenv\Dotenv;
 
 use App\Services\AI\AIProviderFactory;
 use App\Services\AI\AIConnectionService;
+
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
+use Throwable;
+use Exception;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,12 +38,12 @@ class AppServiceProvider extends ServiceProvider
         Route::aliasMiddleware('prevent_back', PreventBackHistory::class);
         Route::aliasMiddleware('expiry_check', SessionExpiryChecker::class);
         Route::aliasMiddleware('token_creation', TokenCreationCheck::class);
-        
+
         // Register AI services
         $this->app->singleton(AIProviderFactory::class, function ($app) {
             return new AIProviderFactory();
         });
-        
+
         $this->app->singleton(AIConnectionService::class, function ($app) {
             return new AIConnectionService(
                 $app->make(AIProviderFactory::class)
@@ -45,11 +51,10 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
+
     public function boot(): void
     {
 
     }
+
 }

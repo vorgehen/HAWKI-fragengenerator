@@ -140,6 +140,7 @@ class  OpenAIProvider extends BaseAIModelProvider
      */
     public function makeStreamingRequest(array $payload, callable $streamCallback)
     {
+        Log::debug($payload);
         // Ensure stream is set to true
         $payload['stream'] = true;
         // Enable usage reporting

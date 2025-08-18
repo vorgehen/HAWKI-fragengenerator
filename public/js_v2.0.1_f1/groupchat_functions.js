@@ -7,24 +7,21 @@ let rooms;
 let typingStatusDiv;
 let activeRoom = null;
 
-function initializeGroupChatModule(roomsObject){
-
+function initializeGroupChatModule(roomsData){
+    rooms = roomsData;
     roomMsgTemp = document.getElementById('message-template');
     roomItemTemplate = document.getElementById('selection-item-template');
     inputField = document.querySelector(".input-field");
     typingStatusDiv = document.querySelector('.isTypingStatus');
 
-
-    rooms = roomsObject.original;
-
-    if(rooms){
-        rooms.forEach(roomItem => {
-            createRoomItem(roomItem.room);
+    if(roomsData){
+        roomsData.forEach(roomItem => {
+            createRoomItem(roomItem);
             if(roomItem.hasUnreadMessages){
-              flagRoomUnreadMessages(roomItem.room.slug, true);
+              flagRoomUnreadMessages(roomItem.slug, true);
             }
-            connectWebSocket(roomItem.room.slug);
-            connectWhisperSocket(roomItem.room.slug)
+            connectWebSocket(roomItem.slug);
+            connectWhisperSocket(roomItem.slug)
         });
     }
     document.querySelector('.chatlog').querySelector('.scroll-container').addEventListener('scroll', function() {
@@ -459,7 +456,8 @@ async function createNewRoom(){
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                onSuccessfullRoomCreation(data);
+                onSuccessfullRoomCreation(data.roomData);
+
             } else {
                 // Handle unexpected response
                 console.error('Unexpected response:', data);
@@ -472,14 +470,12 @@ async function createNewRoom(){
 }
 
 
-async function onSuccessfullRoomCreation(data){
+async function onSuccessfullRoomCreation(roomData){
 
     const inputs = document.querySelector('.inputs-list');
     const description = inputs.querySelector('#room-description-input').value;
     const systemPrompt = inputs.querySelector('#system-prompt-input').value;
     const avatar_url = inputs.querySelector('#room-creation-avatar').getAttribute('src');
-
-    const roomData = data.roomData;
 
     //generate encryption key
     const roomKey = await generateKey();
@@ -756,7 +752,6 @@ function createRoomItem(roomData){
 
 
 async function loadRoom(btn=null, slug=null){
-
     if(rooms.length === 0){
         history.replaceState(null, '', `/groupchat`);
         switchDyMainContent('group-welcome-panel');
@@ -770,6 +765,18 @@ async function loadRoom(btn=null, slug=null){
     if(!slug) slug = btn.getAttribute('slug');
     if(!btn) btn = document.querySelector(`.selection-item[slug="${slug}"]`);
 
+
+    let roomData;
+    try{
+        roomData = await RequestRoomContent(slug);
+    }
+    catch{
+        console.error('room not found', slug);
+        history.replaceState(null, '', `/groupchat`);
+        switchDyMainContent('group-welcome-panel');
+        return;
+    }
+
     const lastActive = document.getElementById('rooms-list').querySelector('.selection-item.active');
     if(lastActive){
         lastActive.classList.remove('active')
@@ -779,10 +786,6 @@ async function loadRoom(btn=null, slug=null){
     switchDyMainContent('chat');
     history.replaceState(null, '', `/groupchat/${slug}`);
 
-    const roomData = await RequestRoomContent(slug);
-    if(!roomData){
-        return;
-    }
     clearChatlog();
     clearInput();
 
@@ -942,7 +945,7 @@ async function searchUser(searchBar) {
 
     if (query.length > 2) { // Start searching after 3 characters
         try {
-            const response = await fetch(`/req/search?query=${encodeURIComponent(query)}`);
+            const response = await fetch(`/req/room/search?query=${encodeURIComponent(query)}`);
             const data = await response.json();
 
             if (data.success) {

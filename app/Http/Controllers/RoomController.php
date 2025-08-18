@@ -2,198 +2,60 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Room;
-use App\Models\User;
-use App\Models\Member;
-use App\Models\Message;
 use App\Models\Attachment;
 
-use App\Jobs\SendMessage;
-
-use App\Http\Controllers\InvitationController;
-use App\Http\Controllers\ImageController;
-use Illuminate\Support\Facades\Storage;
-
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
+
+use App\Services\Chat\Room\RoomService;
+
+use App\Services\Chat\Message\MessageContentValidator;
+use App\Services\Chat\Attachment\AttachmentService;
+
 use Exception;
-
-
-use App\Services\Message\MessageHandlerFactory;
-use App\Services\Message\MessageContentValidator;
-use App\Services\Attachment\AttachmentService;
-
-
+use Illuminate\Auth\Access\AuthorizationException;
 
 class RoomController extends Controller
 {
-    protected $messageHandler;
-    protected $contentValidator;
-    protected $attachmentService;
+    protected $roomService;
 
-    public function __construct(){
-        $this->messageHandler = MessageHandlerFactory::create('group');
-        $this->attachmentService = new AttachmentService();
-        $this->contentValidator = new MessageContentValidator();
+    public function __construct(RoomService $roomService)
+    {
+        $this->roomService = $roomService;
     }
 
+    // SECTION: ROOM CONTROLS
+    public function create(Request $request)
+    {
+        $validatedData = $request->validate([
+            'room_name' => 'required|string|max:255',
+        ]);
+        $data = $this->roomService->create($validatedData);
+        return response()->json([
+            "success" => true,
+            "roomData" => $data
+        ], 201);
+    }
 
     /// Returns requested Room Data + Messages
-    public function loadRoom($slug)
+    public function load($slug)
     {
-        $room = Room::where('slug', $slug)->firstOrFail();
-
-        // Optionally, check if the authenticated user is a member of the room
-        if (!auth()->check() || !$room->isMember(auth()->id())) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        // Prepare the data to send back
-
-        $roomIcon = ($room->room_icon !== '' && $room->room_icon !== null)
-        ? Storage::disk('public')->url('room_avatars/' . $room->room_icon)
-        : null;
-
-
-        $membership = $room->members()->where('user_id', Auth::user()->id)->first();
-        $membership->updateLastRead();
-
-        $role = $membership->role;
-
-        $data = [
-            'id' => $room->id,
-            'name' => $room->room_name,
-            'room_icon' => $roomIcon,
-            'slug' => $room->slug,
-            'system_prompt' => $room->system_prompt,
-            'room_description' => $room->room_description,
-            'role' => $role,
-
-            'members' => $room->members->map(function ($member) {
-                return [
-                    'user_id' => $member->user->id,
-                    'name' => $member->user->name,
-                    'username' => $member->user->username,
-                    'role' => $member->role,
-                    'employeetype' => $member->user->employeetype,
-                    'avatar_url' => $member->user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $member->user->avatar_id) : null,
-                ];
-            }),
-
-            'messagesData' => $this->fetchRoomMessages($room)
-        ];
-
+        $data = $this->roomService->load($slug);
         return response()->json($data);
     }
 
 
 
-    /// Create new room template upon user request
-    public function createRoom(Request $request)
+    public function update(Request $request, $slug)
     {
-        // Validate the incoming request data
-        $validatedData = $request->validate([
-            'room_name' => 'required|string|max:255',
-        ]);
-
-
-        // Create the room with name and description
-        $room = Room::create([
-            'room_name' => $validatedData['room_name'],
-        ]);
-
-
-        $user = Auth::user();
-
-        //INVITE MEMEBERS
-
-        // Add AI as assistant
-        $room->addMember(1, Member::ROLE_ASSISTANT);
-        // Add the creator as admin
-        $room->addMember($user->id, Member::ROLE_ADMIN);
-
-        $data =[
-            'success' => true,
-            'roomData' => $room,
-            // 'inviteesKeys' => $inviteesKeys,
-        ];
-
-        return response()->json($data, 201);
-    }
-
-
-    public function removeRoom($slug){
-        $user = Auth::user();
-        $room = Room::where('slug', $slug)->firstOrFail();
-
-
-        // Check if the room exists
-        if (!$room) {
-            return response()->json(['success' => false, 'message' => 'Room not found'], 404);
-        }
-
-        // Delete related messages and members
-        $room->messages()->delete();
-        $room->members()->delete();
-
-        // Delete the room itself
-        $room->delete();
-
-        return response()->json(['success' => true, 'message' => 'Room deleted successfully']);
-    }
-
-    /// Update room info
-    /// This is also executed after completing room creation.
-    public function updateInfo(Request $request, $slug)
-    {
-        $user = Auth::user();
-        $room = Room::where('slug', $slug)->firstOrFail();
-
-        $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
-
-        if(!$member){
-            return response()->json(['error' => 'Access denied'], 403);
-        }
-
         $validatedData = $request->validate([
             'img' => 'string',
             'system_prompt' => 'string',
             'description' => 'string',
             'name' => 'string'
         ]);
-
-        if(!empty($validatedData['img'])){
-            $imageController = new ImageController();
-            $response = $imageController->storeImage($validatedData['img'], 'room_avatars');
-            $response = $response->original;
-
-            if ($response && $response['success']) {
-                $room->update(['room_icon' => $response['fileName']]);
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'response' => 'Image upload failed: ' . $response['error'] ?? 'Unknown error'
-                ]);
-            }
-        }
-        // else{
-        //     $room->update(['room_icon' => '']);
-        // }
-
-        if(!empty($validatedData['system_prompt'])){
-            $room->update(['system_prompt' => $validatedData['system_prompt']]);
-        }
-        if(!empty($validatedData['description'])){
-            $room->update(['room_description' => $validatedData['description']]);
-        }
-        if(!empty($validatedData['name'])){
-            $room->update(['room_name' => $validatedData['name']]);
-        }
+        $this->roomService->update($validatedData, $slug);
 
         return response()->json([
             'success' => true,
@@ -202,170 +64,71 @@ class RoomController extends Controller
     }
 
 
+    public function delete($slug){
+        $this->roomService->delete($slug);
+        return response()->json([
+            'success' => true,
+            'message' => 'Room deleted successfully'
+        ]);
+    }
 
-    /// ADD MEMBER TO THE ROOM
-    public function addMember(Request $request)
+
+    // SECTION: MEMBER
+    public function addMember(Request $request, $slug)
     {
-        $requester = Auth::user();
-
-        $slug = $request->slug;
-
-        $room = Room::where('slug', $slug)->firstOrFail();
-
-        $user = User::where('username', $request->invitee)->firstOrFail();
-        $roomID = $room->id;
-
-        if($room->isMember(auth()->id()) && $room->hasRole(auth()->id(), Member::ROLE_ADMIN ) ){
-
-            $room->addMember($user->id, $request->role);
-            return response()->json($room->members);
-        }
-
+        $validatedData = $request->validate([
+            'invitee' => 'string',
+            'role'=>'string'
+        ]);
+        $this->roomService->add($slug, $validatedData);
         return response()->json('failed to add member');
     }
 
 
+    public function leaveRoom($slug){
+        $success = $this->roomService->leave($slug);
 
-    public function leaveRoom(Request $request, $slug){
-
-        $room = Room::where('slug', $slug)->firstOrFail();
-        // Check if room exists
-        if (!$room) {
-            return response()->json(['success' => false, 'message' => 'Room not found'], 404);
-        }
-
-        $user = Auth::user();
-        $member = $room->members()->where('user_id', $user->id)->firstOrFail();
-        if (!$member) {
-            return response()->json(['success' => false, 'message' => 'User is not a member of the room'], 404);
-        }
-        $response = $this->removeRoomMember($member, $room);
-        return $response;
+        return response()->json([
+            'success' => $success
+        ]);
     }
 
 
-    public function removeMember(Request $request, $slug){
+    public function kickMember(Request $request, $slug){
         $validatedData = $request->validate([
             'username' => 'string|max:16',
         ]);
-
-        $room = Room::where('slug', $slug)->firstOrFail();
-        // Check if room exists
-        if (!$room) {
-            return response()->json(['success' => false, 'message' => 'Room not found'], 404);
-        }
-
-        $requester = Auth::user();
-
-        $username = $request->username;
-        $user = User::where('username', $username)->firstOrFail();
-        // Check if the user is a member of the room
-        $member = $room->members()->where('user_id', $user->id)->firstOrFail();
-        if (!$member) {
-            return response()->json(['success' => false, 'message' => 'User is not a member of the room'], 404);
-        }
-
-        if($member->user_id === '1'){
-            return response()->json(['success' => false, 'message' => "You can't remove the AI agent from a room!"]);
-        }
-
-        $response = $this->removeRoomMember($member, $room);
-        return $response;
-
+        $success = $this->roomService->kick($slug, $validatedData['username']);
+        return response()->json([
+            'success' => $success
+        ]);
     }
 
 
-    public function removeRoomMember(Member $member, Room $room)
+    public function searchUser(Request $request)
     {
-        // Remove the member from the room
-        $room->removeMember($member->user_id);
-
-        //Check if All the members have left the room.
-        if ($room->members()->count() === 1) {
-            $this->removeRoom($room->slug);
-        }
-
-        return response()->json(['success' => true, 'message' => 'Member removed from the room']);
-    }
-
-
-    /// GET ALL ROOMS THAT THE USER IS IA MEMBER IN
-    public function getUserRooms(Request $request)
-    {
-        // Assuming the user is authenticated
-        $user = auth()->user();
-
-        $roomsList = [];
-        // Fetch all rooms where the user is a member
-        $rooms = $user->rooms;
-        foreach($rooms as $room){
-            //findout the membership
-            $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
-            //check if this memeber has unread messages
-            $roomItem = [
-                'room' => $room,
-                'hasUnreadMessages'=> $room->hasUnreadMessagesFor($member)
-            ];
-            array_push($roomsList, $roomItem);
-        }
-        return response()->json($roomsList);
-    }
-
-
-    /// Format and return messages data of the room
-    public function fetchRoomMessages(Room $room){
-
-        $messages = $room->messages;
-
-        $messagesData = array();
-        foreach ($messages as $message){
-            $msgData = $this->messageHandler->createMessageObject($message);
-            array_push($messagesData, $msgData);
-
-        }
-        return $messagesData;
+        $validatedData = $request->validate([
+            'query' => 'string'
+        ]);
+        $users = $this->roomService->searchUser($validatedData['query']);
+        return response()->json([
+            'success' => true,
+            'users'=> $users
+        ]);
     }
 
 
 
-
-    /// sendMessage()
-    /// 1. find the room on DB
-    /// 2. check the membership validation
-    /// 3. assign an id to the message
-    /// 4. create message object
-    /// 5. qeue message for broadcasting
-    /// 6. send response to the sender
-    public function sendMessage(Request $request, $slug) {
+    // SECTION: MESSAGE
+    public function sendMessage(Request $request, $slug, MessageContentValidator $contentValidator) {
 
         $validatedData = $request->validate([
             'content' => 'required|array',
             'threadID' => 'required|integer',
         ]);
+        $validatedData['content'] = $contentValidator->validate($validatedData['content']);
 
-        //VALIDATE MESSAGE CONTENT
-        try {
-            $validatedData['content'] = $this->contentValidator->validate($validatedData['content']);
-        } catch (ValidationException $e) {
-            Log::error($e->getMessage());
-        }
-
-        $room = Room::where('slug', $slug)->firstOrFail();
-        $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
-        if(!$room || !$member){
-            return response()->json([
-                'success' => false,
-                'response' => "Failed to send message",
-            ]);
-        }
-        $validatedData['room'] = $room;
-        $validatedData['member']= $member;
-
-        $message = $this->messageHandler->create($validatedData, $slug);
-
-        SendMessage::dispatch($message, false)->onQueue('message_broadcast');
-
-        $messageData = $this->messageHandler->createMessageObject($message);
+        $messageData = $this->roomService->sendMessage($validatedData, $slug);
 
         return response()->json([
             'success' => true,
@@ -379,30 +142,10 @@ class RoomController extends Controller
     public function updateMessage(Request $request, $slug) {
 
         $validatedData = $request->validate([
-            'iv' => 'required|string',
-            'tag' => 'required|string',
-            'content' => 'required|string|max:10000',
+            'content' => 'required|array',
             'message_id' => 'required|string',
         ]);
-
-        $room = Room::where('slug', $slug)->firstOrFail();
-        $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
-
-
-        $message = $room->messages->where('message_id', $validatedData['message_id'])->first();
-
-        $message->update([
-            'content' => $validatedData['content'],
-            'iv' => $validatedData['iv'],
-            'tag' => $validatedData['tag']
-        ]);
-
-        SendMessage::dispatch($message, true)->onQueue('message_broadcast');
-
-        $messageData = $message->toArray();
-        $messageData['created_at'] = $message->created_at->format('Y-m-d+H:i');
-        $messageData['updated_at'] = $message->updated_at->format('Y-m-d+H:i');
-
+        $messageData = $this->roomService->update($validatedData, $slug);
         return response()->json([
             'success' => true,
             'messageData' => $messageData,
@@ -416,106 +159,37 @@ class RoomController extends Controller
         $validatedData = $request->validate([
             'message_id' => 'required|string',
         ]);
-        $room = Room::where('slug', $slug)->firstOrFail();
-        $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
-        $message = $room->messages->where('message_id', $validatedData['message_id'])->first();
-
-        $message->addReadSignature($member);
-
+        $this->roomService->markAsRead($validatedData, $slug);
         return response()->json([
-                'success' => true,
-            ]);
-    }
-
-    /// Generates a message ID based on the previous messages of the thread.
-    public function generateMessageID(Room $room, int $threadID) {
-        $decimalPadding = 3; // Decide how much padding you need. 3 could pad up to 999.
-
-        if ($threadID == 0) {
-            // Fetch all messages with whole number IDs (e.g., "0.0", "1.0", etc.)
-            $allMessages = $room->messages()
-                                ->get()
-                                ->filter(function ($message) {
-                                    return floor(floatval($message->message_id)) == floatval($message->message_id);
-                                });
-
-            if ($allMessages->isNotEmpty()) {
-                // Find the message with the highest whole number
-                $lastMessage = $allMessages->sortByDesc(function ($message) {
-                    return intval($message->message_id);
-                })->first();
-
-                // Increment the whole number part
-                $newWholeNumber = intval($lastMessage->message_id) + 1;
-                $newMessageId = $newWholeNumber . '.000'; // Start with 3 zeros
-            } else {
-                // If no messages exist, start from 1.000
-                $newMessageId = '1.000';
-            }
-        } else {
-            // Fetch all messages that belong to the specified threadID
-            $allMessages = $room->messages()
-                                ->where('message_id', 'like', "$threadID.%")
-                                ->get();
-
-            if ($allMessages->isNotEmpty()) {
-                // Find the message with the highest decimal part
-                $lastMessage = $allMessages->sortByDesc(function ($message) {
-                    return floatval($message->message_id);
-                })->first();
-
-                // Increment the decimal part
-                $parts = explode('.', $lastMessage->message_id);
-                $newDecimal = intval($parts[1]) + 1;
-                $newMessageId = $parts[0] . '.' . str_pad($newDecimal, $decimalPadding, '0', STR_PAD_LEFT);
-            } else {
-                // If no sub-messages exist, start from threadID.001
-                $newMessageId = $threadID . '.001';
-            }
-        }
-
-        return $newMessageId;
+            'success' => true,
+        ]);
     }
 
 
-    ///STORE ATTACHMENTS
-
-    public function storeAttachment(Request $request) {
+    // SECTION: ATTACHMENTS
+    public function storeAttachment(Request $request, AttachmentService $attachmentService) {
         $validateData = $request->validate([
             'file' => 'required|file|max:20480'
         ]);
-        try {
-            $result = $this->attachmentService->store($validateData['file'], 'group');
-            return response()->json($result);
-        }
-        catch (ValidationException $e) {
-            return back()
-                ->withErrors($e->validator)
-                ->withInput();
-        }
+        $result = $attachmentService->store($validateData['file'], 'group');
+        return response()->json($result);
 
     }
 
-    public function getAttachmentUrl(string $uuid) {
+    public function getAttachmentUrl(string $uuid, AttachmentService $attachmentService) {
 
         try {
             $attachment = Attachment::where('uuid', $uuid)->firstOrFail();
 
             // If the requesting User is NOT a member of this group RETURN 403
             if(!$attachment->attachable->room->isMember(Auth::id())){
-                return response()->json([
-                    'success'=> false,
-                    'message'=> 'Unauthorized Forbidden'
-                ], 403);
+                throw new AuthorizationException();
             }
 
-            $url = $this->attachmentService->getFileUrl($attachment, null);
+            $url = $attachmentService->getFileUrl($attachment, null);
         }
         catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'File not found!'
-            ], 404);
+            throw $e;
         }
 
         return response()->json([
@@ -525,7 +199,7 @@ class RoomController extends Controller
     }
 
 
-    public function destroyAttachment(Request $request) {
+    public function deleteAttachment(Request $request, AttachmentService $attachmentService) {
         $validateData = $request->validate([
             'fileId' => 'required|string',
         ]);
@@ -534,33 +208,24 @@ class RoomController extends Controller
             $attachment = Attachment::where('uuid', $validateData['fileId'])->firstOrFail();
 
             if ($attachment->user && !$attachment->user->is(Auth::user())) {
-                return response()->json([
-                    'success'=> false,
-                    'err'=> 'Permission Denied!'
-                ], 403);
+                throw new AuthorizationException();
             }
 
-            if (!$attachment->attachable instanceof AiConvMsg) {
+            if (!$attachment->attachable instanceof Message) {
                 return response()->json([
                     'success'=> false,
-                    'err'=> 'File Id does not match the properties!'
+                    'error'=> 'File Id does not match the properties!'
                 ], 500);
             }
 
-            $result = $this->attachmentService->delete($attachment);
+            $result = $attachmentService->delete($attachment);
             return response()->json([
                 "success" => $result
             ]);
-
-
-
         }
-        catch(ValidationException $e) {
+        catch(Exception $e) {
             Log::error($e);
-            return response()->json([
-                'success'=> false,
-                'err'=> 'Attachment with this UUID not found: ' . $e->getMessage()
-            ], 404);
+            throw $e;
         }
     }
 

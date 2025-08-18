@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\StorageServices\StorageServiceFactory;
+use App\Services\Storage\StorageServiceFactory;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -17,7 +17,7 @@ class CheckStorageConnection extends Command
      *
      * @var string
      */
-    protected $signature = 'check:storage {--filesystem=s3 : The filesystem to test (s3, local, nextcloud)}';
+    protected $signature = 'check:storage {--filesystem=s3 : The filesystem to test (s3, local, nextcloud, sftp)}';
 
     /**
      * The console command description.
@@ -32,16 +32,17 @@ class CheckStorageConnection extends Command
     public function handle()
     {
         $filesystem = $this->option('filesystem');
-        
+
         $this->info("Testing {$filesystem} storage connection...");
-        
+
         $result = match($filesystem) {
             's3' => $this->checkS3WriteAccess(),
             'local' => $this->checkLocalWriteAccess(),
             'nextcloud' => $this->checkNextCloudConnection(),
+            'sftp' => $this->checkSFTPConnection(),
             default => ['success' => false, 'message' => "Unsupported filesystem: {$filesystem}"]
         };
-        
+
         if($result['success']){
             $this->info($result['message']);
         } else {
@@ -153,7 +154,7 @@ class CheckStorageConnection extends Command
         try {
             // Step 2: Test WebDAV connection with PROPFIND
             $webdavUrl = rtrim($baseUrl, '/') . '/remote.php/dav/files/' . $username . '/' . trim($basePath, '/');
-            
+
             $response = Http::withBasicAuth($username, $password)
                 ->withHeaders(['Depth' => '0'])
                 ->timeout(10)
@@ -174,7 +175,7 @@ class CheckStorageConnection extends Command
             $testCategory = 'connection-test';
 
             $uploadResult = $storageService->storeFile($testContent, $testFilename, $testUuid, $testCategory);
-            
+
             if (!$uploadResult) {
                 return [
                     'success' => false,
@@ -185,23 +186,23 @@ class CheckStorageConnection extends Command
             // Step 4: Test file retrieval with debugging
             $this->info("Testing file retrieval...");
             $retrievedContent = $storageService->retrieveFile($testUuid, $testCategory);
-            
+
             if ($retrievedContent === false) {
                 // Debug: Try to list the directory manually
                 $debugFolderPath = trim($testCategory, '/') . '/' . trim($testUuid, '/');
                 $debugWebdavUrl = rtrim($baseUrl, '/') . '/remote.php/dav/files/' . $username . '/' . trim($basePath, '/') . '/' . $debugFolderPath;
-                
+
                 $debugResponse = Http::withBasicAuth($username, $password)
                     ->withHeaders(['Depth' => '1'])
                     ->send('PROPFIND', $debugWebdavUrl);
-                
+
                 $debugMessage = "File upload succeeded but retrieval failed.\n";
                 $debugMessage .= "Debug info:\n";
                 $debugMessage .= "- Folder path: {$debugFolderPath}\n";
                 $debugMessage .= "- WebDAV URL: {$debugWebdavUrl}\n";
                 $debugMessage .= "- PROPFIND Status: " . $debugResponse->status() . "\n";
                 $debugMessage .= "- PROPFIND Response: " . substr($debugResponse->body(), 0, 1500) . "\n";
-                
+
                 return [
                     'success' => false,
                     'message' => $debugMessage
@@ -231,6 +232,109 @@ class CheckStorageConnection extends Command
         }
     }
 
+    public function checkSFTPConnection(): array
+    {
+        $host = config('filesystems.disks.sftp.host');
+        $port = config('filesystems.disks.sftp.port', 22);
+        $username = config('filesystems.disks.sftp.username');
+        $password = config('filesystems.disks.sftp.password');
+        $basePath = config('filesystems.disks.sftp.base_path', '/');
 
+        // Step 1: Check configuration
+        if (empty($host) || empty($username) || empty($password)) {
+            return [
+                'success' => false,
+                'message' => 'SFTP configuration incomplete. Check SFTP_HOST, SFTP_USERNAME, and SFTP_PASSWORD environment variables.'
+            ];
+        }
 
+        // Step 2: Check if SSH2 extension is available
+        if (!function_exists('ssh2_connect')) {
+            return [
+                'success' => false,
+                'message' => 'PHP SSH2 extension is not installed. Install it with: apt-get install libssh2-1-dev php-ssh2 (or equivalent for your system)'
+            ];
+        }
+
+        try {
+            // Step 3: Test connection
+            $connection = ssh2_connect($host, $port, [
+                'hostkey' => 'ssh-rsa'
+            ]);
+            if (!$connection) {
+                return [
+                    'success' => false,
+                    'message' => "Failed to connect to SFTP server {$host}:{$port}"
+                ];
+            }
+
+            // Step 4: Test authentication
+            $auth = ssh2_auth_password($connection, $username, $password);
+            $this->info('$auth');
+            if (!$auth) {
+                return [
+                    'success' => false,
+                    'message' => "SFTP authentication failed for user {$username}"
+                ];
+            }
+
+            // Step 5: Test SFTP subsystem
+            $sftp = ssh2_sftp($connection);
+            $this->info('$ssh2_sftp');
+
+            if (!$sftp) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to initialize SFTP subsystem'
+                ];
+            }
+
+            // Step 6: Test file upload using StorageServiceFactory
+            $storageService = StorageServiceFactory::create('sftp');
+            $testContent = "SFTP connection test: " . now();
+            $testUuid = 'test-' . uniqid();
+            $testFilename = 'connection_test.txt';
+            $testCategory = 'connection-test';
+
+            $uploadResult = $storageService->storeFile($testContent, $testFilename, $testUuid, $testCategory);
+
+            if (!$uploadResult) {
+                return [
+                    'success' => false,
+                    'message' => 'SFTP connection succeeded but file upload failed.'
+                ];
+            }
+
+            // Step 7: Test file retrieval
+            $retrievedContent = $storageService->retrieveFile($testUuid, $testCategory);
+
+            if ($retrievedContent === false) {
+                return [
+                    'success' => false,
+                    'message' => 'File upload succeeded but retrieval failed.'
+                ];
+            }
+
+            if ($retrievedContent !== $testContent) {
+                return [
+                    'success' => false,
+                    'message' => 'Content mismatch — file corruption or encoding issue.'
+                ];
+            }
+
+            // Step 8: Cleanup
+            $storageService->deleteFile($testUuid, $testCategory);
+
+            return [
+                'success' => true,
+                'message' => 'SFTP connection, upload, retrieval, and cleanup tests all succeeded.'
+            ];
+
+        } catch (Throwable $e) {
+            return [
+                'success' => false,
+                'message' => "SFTP test failed: " . $e->getMessage()
+            ];
+        }
+    }
 }

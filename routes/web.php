@@ -14,13 +14,6 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\StreamController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\FileController;
-
-use App\Http\Middleware\RegistrationAccess;
-use App\Http\Middleware\AdminAccess;
-use App\Http\Middleware\EditorAccess;
-use App\Http\Middleware\PreventBackHistory;
-use App\Http\Middleware\SessionExpiryChecker;
 
 
 Route::middleware('prevent_back')->group(function () {
@@ -58,12 +51,12 @@ Route::middleware('prevent_back')->group(function () {
         Route::get('/handshake', [AuthenticationController::class, 'handshake']);
 
         // AI CONVERSATION ROUTES
-        Route::get('/chat', [HomeController::class, 'show']);
-        Route::get('/chat/{slug?}' , [HomeController::class, 'show']);
+        Route::get('/chat', [HomeController::class, 'index']);
+        Route::get('/chat/{slug?}' , [HomeController::class, 'index']);
 
 
-        Route::get('/req/conv/{slug?}', [AiConvController::class, 'loadConv']);
-        Route::post('/req/conv/createChat', [AiConvController::class, 'createConv']);
+        Route::get('/req/conv/{slug?}', [AiConvController::class, 'load']);
+        Route::post('/req/conv/createChat', [AiConvController::class, 'create']);
         Route::post('/req/conv/sendMessage/{slug}', [AiConvController::class, 'sendMessage']);
         Route::post('/req/conv/updateMessage/{slug}', [AiConvController::class, 'updateMessage']);
         Route::post('/req/conv/updateInfo/{slug}', [AiConvController::class, 'updateInfo']);
@@ -74,15 +67,15 @@ Route::middleware('prevent_back')->group(function () {
         Route::post('/req/conv/attachmnet/upload', [AiConvController::class, 'storeAttachment']);
         Route::get('/req/conv/attachment/getLink/{uuid}', [AiConvController::class, 'getAttachmentUrl']);
 
-        Route::delete('/req/conv/attachmnet/delete', [AiConvController::class, 'destroyAttachment']);
+        Route::delete('/req/conv/attachmnet/delete', [AiConvController::class, 'deleteAttachment']);
 
 
         // GROUPCHAT ROUTES
-        Route::get('/groupchat', [HomeController::class, 'show']);
-        Route::get('/groupchat/{slug?}', [HomeController::class, 'show']);
+        Route::get('/groupchat', [HomeController::class, 'index']);
+        Route::get('/groupchat/{slug?}', [HomeController::class, 'index']);
 
-        Route::get('/req/room/{slug?}', [RoomController::class, 'loadRoom']);
-        Route::post('/req/room/createRoom', [RoomController::class, 'createRoom']);
+        Route::get('/req/room/{slug?}', [RoomController::class, 'load']);
+        Route::post('/req/room/createRoom', [RoomController::class, 'create']);
         Route::delete('/req/room/leaveRoom/{slug}', [RoomController::class, 'leaveRoom']);
         Route::post('/req/room/readstat/{slug}', [RoomController::class, 'markAsRead']);
         Route::get('/req/room/attachment/getLink/{uuid}', [RoomController::class, 'getAttachmentUrl']);
@@ -94,30 +87,31 @@ Route::middleware('prevent_back')->group(function () {
             Route::post('/req/room/streamAI/{slug}', [StreamController::class, 'handleAiConnectionRequest']);
 
             Route::post('/req/room/attachmnet/upload/{slug}', [RoomController::class, 'storeAttachment']);
-            Route::delete('/req/room/attachmnet/delete/{slug}', [RoomController::class, 'destroyAttachment']);
+            Route::delete('/req/room/attachmnet/delete/{slug}', [RoomController::class, 'deleteAttachment']);
 
         });
 
         Route::middleware('roomAdmin')->group(function () {
-            Route::post('/req/room/addMember', [RoomController::class, 'addMember']);
-            Route::post('/req/room/updateInfo/{slug}', [RoomController::class, 'updateInfo']);
-            Route::delete('/req/room/removeRoom/{slug}', [RoomController::class, 'removeRoom']);
-            Route::delete('/req/room/removeMember/{slug}', [RoomController::class, 'removeMember']);
+            Route::post('/req/room/updateInfo/{slug}', [RoomController::class, 'update']);
+            Route::delete('/req/room/removeRoom/{slug}', [RoomController::class, 'delete']);
+            Route::post('/req/room/addMember/{slug}', [RoomController::class, 'addMember']);
+            Route::delete('/req/room/removeMember/{slug}', [RoomController::class, 'kickMember']);
+            Route::get('/req/room/search', [RoomController::class, 'searchUser']);
         });
 
 
         Route::get('print/{module}/{slug}', [HomeController::class, 'print']);
 
         // Profile
-        Route::get('/profile', [HomeController::class, 'show']);
+        Route::get('/profile', [HomeController::class, 'index']);
         Route::post('/req/profile/update', [ProfileController::class, 'update']);
         Route::get('/req/profile/requestPasskeyBackup', [ProfileController::class, 'requestPasskeyBackup']);
 
         // Token management routes with token_creation middleware
         Route::middleware('token_creation')->group(function () {
-            Route::post('/req/profile/create-token', [AccessTokenController::class, 'createToken']);
-            Route::get('/req/profile/fetch-tokens', [AccessTokenController::class, 'fetchTokenList']);
-            Route::post('/req/profile/revoke-token', [AccessTokenController::class, 'revokeToken']);
+            Route::post('/req/profile/create-token', [ProfileController::class, 'requestApiToken']);
+            Route::get('/req/profile/fetch-tokens', [ProfileController::class, 'fetchTokenList']);
+            Route::post('/req/profile/revoke-token', [ProfileController::class, 'revokeToken']);
         });
 
         Route::post('/req/profile/reset', [ProfileController::class, 'requestProfileRest']);
@@ -138,14 +132,6 @@ Route::middleware('prevent_back')->group(function () {
 
         // AI RELATED ROUTES
         Route::post('/req/streamAI', [StreamController::class, 'handleAiConnectionRequest']);
-
-        Route::get('/req/search', [SearchController::class, 'search']);
-
-        // Route::post('/req/upload-file', [FileController::class, 'handleUploadedFile']);
-        // Route::post('/req/delete-file', [FileController::class, 'deleteFile']);
-
-
-
     });
       // NAVIGATION ROUTES
       Route::get('/logout', [AuthenticationController::class, 'logout'])->name('logout');

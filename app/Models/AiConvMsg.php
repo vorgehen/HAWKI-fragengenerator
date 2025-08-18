@@ -4,7 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\StorageServices\StorageServiceFactory;
+use App\Services\Storage\StorageServiceFactory;
+use Illuminate\Support\Facades\Storage;
 
 class AiConvMsg extends Model
 {
@@ -31,6 +32,40 @@ class AiConvMsg extends Model
     public function user(){
         return $this->belongsTo(User::class);
     }
+
+    public function createMessageObject(): array
+    {
+        //if AI is the author, then username and name are the same.
+        //if User has created the message then fetch the name from model.
+        $user =  $this->user;
+        $msgData = [
+            'message_role' => $this->message_role,
+            'message_id' => $this->message_id,
+            'author' => [
+                'username' => $user->username,
+                'name' => $user->name,
+                'avatar_url' => $user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $user->avatar_id) : null,
+            ],
+            'model' => $this->model,
+
+            'content' => [
+                'text' => [
+                    'ciphertext'=> $this->content,
+                    'iv' => $this->iv,
+                    'tag' => $this->tag,
+                ],
+                'attachments' => $this->attachmentsAsArray(),
+            ],
+            'completion' => $this->completion,
+            'created_at' => $this->created_at->format('Y-m-d+H:i'),
+            'updated_at' => $this->updated_at->format('Y-m-d+H:i'),
+        ];
+
+        return $msgData;
+    }
+
+
+
 
     public function attachments()
     {

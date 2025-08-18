@@ -7,100 +7,73 @@ use App\Models\AiConvMsg;
 use App\Models\User;
 use App\Models\Attachment;
 
-use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+
+use App\Services\Chat\Message\MessageHandlerFactory;
+use App\Services\Chat\Message\MessageContentValidator;
+use App\Services\Chat\Attachment\AttachmentService;
+
+
+
+use App\Services\Chat\AiConv\AiConvService;
+
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
-use App\Services\StorageServices\StorageServiceFactory;
-use App\Services\Message\MessageHandlerFactory;
-use App\Services\Message\MessageContentValidator;
-use App\Services\Attachment\AttachmentService;
+use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
 
-
-use App\Services\Message\Handlers\PrivateMessageHandler;
 
 class AiConvController extends Controller
 {
+    protected $aiConvService;
     protected $messageHandler;
     protected $contentValidator;
     protected $attachmentService;
 
     public function __construct(){
+        $this->aiConvService = new AiConvService();
         $this->messageHandler = MessageHandlerFactory::create('private');
         $this->attachmentService = new AttachmentService();
         $this->contentValidator = new MessageContentValidator();
     }
 
-    /// RETURNS CONVERSATION DATA WHICH WILL BE DYNAMICALLY LOADED ON THE PAGE
-    public function loadConv($slug)
-    {
-        $user = Auth::user();
-        $conv = AiConv::where('slug', $slug)->where('user_id', $user->id)->firstOrFail();
-
-        // Prepare the data to send back
-        $data = [
-            'id' => $conv->id,
-            'name' => $conv->chat_name,
-            'slug' => $conv->slug,
-            'system_prompt'=> $conv->system_prompt,
-            'messages' => $this->fetchConvMessages($conv)
-        ];
-        return response()->json($data);
-    }
-
-
 
     ///CREATE NEW CONVERSATION
-    public function createConv(Request $request)
+    public function create(Request $request): JsonResponse
     {
         $validatedData = $request->validate([
-            'conv_name' => 'string|max:255',
-            'system_prompt' => 'string'
+            'conv_name'     => 'nullable|string|max:255',
+            'system_prompt' => 'nullable|string'
         ]);
 
-        if (!$request['conv_name']) {
-            $validatedData['conv_name'] = 'New Chat';
-        }
+        $conv = $this->aiConvService->create($validatedData);
 
-        $user = Auth::user();
-
-        $conv = AiConv::create([
-            'conv_name' => $validatedData['conv_name'],
-            'user_id' => $user->id, // Associate the conversation with the user
-            'slug' => Str::slug(Str::random(16)), // Create a unique slug
-            'system_prompt'=> $validatedData['system_prompt'],
-        ]);
-
-        $response =[
-            'success'=> true,
-            'conv'=>$conv
-        ];
-
-        return response()->json($response, 201);
+        return response()->json([
+            'success' => true,
+            'conv'    => $conv,
+        ], 201);
     }
 
 
-    public function updateInfo(Request $request, $slug){
-        $user = Auth::user();
-        $conv = AiConv::where('slug', $slug)->firstOrFail();
+    /// RETURNS CONVERSATION DATA WHICH WILL BE DYNAMICALLY LOADED ON THE PAGE
+    public function load($slug): JsonResponse
+    {
+        $convData = $this->aiConvService->load($slug);
+        return response()->json([
+            'success' => true,
+            'data' => $convData,
+        ]);
+    }
 
-        if ($conv->user_id != $user->id) {
-            return response()->json([
-                'success' => false,
-                'response' => "GOTCHA: This chat doesn't belong to you",
-            ]);
-        }
 
+    public function update(Request $request, $slug): JsonResponse
+    {
         $validatedData = $request->validate([
             'system_prompt' => 'string'
         ]);
-
-        $conv->update(['system_prompt' => $validatedData['system_prompt']]);
+        $this->aiConvService->update($validatedData, $slug);
 
         return response()->json([
             'success' => true,
@@ -108,65 +81,17 @@ class AiConvController extends Controller
         ]);
     }
 
-    public function removeConv(Request $request, $slug){
-        $user = Auth::user();
-        $conv = AiConv::where('slug', $slug)->firstOrFail();
-
-        // Check if the conv exists
-        if (!$conv) {
-            return response()->json(['success' => false, 'message' => 'Conv not found'], 404);
-        }
-
-        // Check if the user is an admin of the conv
-        if ($conv->user_id != $user->id) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
-        // Delete related messages and members
-        $conv->messages()->delete();
-
-        $conv->delete();
-
-        return response()->json(['success' => true, 'message' => 'Conv deleted successfully']);
-    }
-
-    public function getUserConvs(Request $request)
+    public function delete($slug): JsonResponse
     {
-        // Assuming the user is authenticated
-        $user = auth()->user();
-
-        // Fetch all conversations related to the user
-        $convs = $user->conversations()->with('messages')->get();
-
-        return response()->json($convs);
+        $this->aiConvService->delete($slug);
+        return response()->json([
+            'success' => true,
+            'message' => 'Conv deleted successfully'
+        ]);
     }
 
 
-    /// get all messages in the conv
-    /// 1. find conv in DB
-    /// 2. create message array
-    /// 3. return message array
-    private function fetchConvMessages(AiConv $conv){
-
-        $messages = $conv->messages;
-        $messagesData = array();
-        foreach ($messages as $message){
-            $msgData = $this->messageHandler->createMessageObject($message);
-
-            array_push($messagesData, $msgData);
-        }
-        return $messagesData;
-
-    }
-
-
-    /// 1. find the conv on DB
-    /// 2. check the membership validation
-    /// 3. assign an id to the message
-    /// 4. create message object
-    /// 5. qeue message for broadcasting
-    /// 6. send response to the sender
-    public function sendMessage(Request $request, $slug) {
+    public function sendMessage(Request $request, $slug, MessageContentValidator $contentValidator) {
 
         $validatedData = $request->validate([
             'isAi' => 'required|boolean',
@@ -175,13 +100,7 @@ class AiConvController extends Controller
             'model' => 'string',
             'completion' => 'required|boolean',
         ]);
-
-        //VALIDATE MESSAGE CONTENT
-        try {
-            $validatedData['content'] = $this->contentValidator->validate($validatedData['content']);
-        } catch (ValidationException $e) {
-            Log::error($e->getMessage());
-        }
+        $validatedData['content'] = $contentValidator->validate($validatedData['content']);
 
         // CREATE MESSAGE
         $result = $this->messageHandler->create($validatedData, $slug);
@@ -191,7 +110,7 @@ class AiConvController extends Controller
 
 
 
-    public function updateMessage(Request $request, $slug) {
+    public function updateMessage(Request $request, $slug, MessageContentValidator $contentValidator) {
 
         $validatedData = $request->validate([
             'isAi' => 'required|boolean',
@@ -200,16 +119,10 @@ class AiConvController extends Controller
             'completion' => 'required|boolean',
             'message_id' => 'required|string',
         ]);
+        $validatedData['content'] = $contentValidator->validate($validatedData['content']);
 
-        //VALIDATE MESSAGE CONTENT
-        try {
-            $validatedData['content'] = $this->contentValidator->validate($validatedData['content']);
-        } catch (ValidationException $e) {
-            Log::error($e->getMessage());
-        }
 
         $messageData = $this->messageHandler->update($validatedData, $slug);
-
 
         return response()->json([
             'success' => true,
@@ -248,21 +161,15 @@ class AiConvController extends Controller
     }
 
 
+    /// ATTACHMENT FUNCTIONS
+    ///
 
     public function storeAttachment(Request $request) {
         $validateData = $request->validate([
             'file' => 'required|file|max:20480'
         ]);
-        try {
-            $result = $this->attachmentService->store($validateData['file'], 'private');
-            return response()->json($result);
-        }
-        catch (ValidationException $e) {
-            return back()
-                ->withErrors($e->validator)
-                ->withInput();
-        }
-
+        $result = $this->attachmentService->store($validateData['file'], 'private');
+        return response()->json($result);
     }
 
     public function getAttachmentUrl(Request $request, string $uuid) {
@@ -270,18 +177,12 @@ class AiConvController extends Controller
         try {
             $attachment = Attachment::where('uuid', $uuid)->firstOrFail();
             if($attachment->user->isNot(Auth::user())){
-                return response()->json([
-                    'success'=> false,
-                    'message'=> 'Unauthorized Forbidden'
-                ], 403);
+                throw new AuthorizationException();
             }
             $url = $this->attachmentService->getFileUrl($attachment, null);
         }
         catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'File not found!'
-            ], 404);
+            throw $e;
         }
 
         return response()->json([
@@ -290,7 +191,7 @@ class AiConvController extends Controller
         ]);
     }
 
-    public function destroyAttachment(Request $request) {
+    public function deleteAttachment(Request $request) {
         $validateData = $request->validate([
             'fileId' => 'required|string',
         ]);
@@ -299,10 +200,7 @@ class AiConvController extends Controller
             $attachment = Attachment::where('uuid', $validateData['fileId'])->firstOrFail();
 
             if ($attachment->user && !$attachment->user->is(Auth::user())) {
-                return response()->json([
-                    'success'=> false,
-                    'err'=> 'Permission Denied!'
-                ], 403);
+                throw new AuthorizationException();
             }
 
             if (!$attachment->attachable instanceof AiConvMsg) {
@@ -316,16 +214,11 @@ class AiConvController extends Controller
             return response()->json([
                 "success" => $result
             ]);
-
-
-
         }
-        catch(ValidationException $e) {
+        catch(Exception $e) {
             Log::error($e);
-            return response()->json([
-                'success'=> false,
-                'err'=> 'Attachment with this UUID not found: ' . $e->getMessage()
-            ], 404);
+            throw $e;
+
         }
     }
 }
