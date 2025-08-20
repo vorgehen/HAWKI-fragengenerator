@@ -112,7 +112,7 @@ class GoogleFormatter implements FormatterInterface
 
     private function processAttachments(array $attachmentUuids, array $attachmentsMap, string $modelId, array &$parts): void
     {
-        $attachmentService = new AttachmentService();
+        $attachmentService = app(AttachmentService::class);
         $skippedAttachments = [];
 
         foreach ($attachmentUuids as $uuid) {

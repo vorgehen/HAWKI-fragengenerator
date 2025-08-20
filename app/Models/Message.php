@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Hamcrest\Core\IsTypeOf;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\Storage\StorageServiceFactory;
+use App\Services\Storage\FileStorageService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
@@ -118,7 +118,7 @@ class Message extends Model
         if ($attachments->isEmpty()) {
             return null;
         }
-        $storageService = StorageServiceFactory::create();
+        $storageService = app(FileStorageService::class);
 
         return $attachments->map(function ($attach) use ($storageService) {
             return [

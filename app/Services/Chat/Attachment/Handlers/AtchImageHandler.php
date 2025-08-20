@@ -8,16 +8,16 @@ use App\Services\Chat\Attachment\Interfaces\AttachmentInterface;
 use App\Models\AiConvMsg;
 use App\Models\Message;
 
-use App\Services\Storage\StorageServiceFactory;
+use App\Services\Storage\FileStorageService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-
+use Exception;
 
 class AtchImageHandler implements AttachmentInterface
 {
-    protected $storageService;
-    public function __construct(){
-        $this->storageService = StorageServiceFactory::create();
+    public function __construct(
+        protected FileStorageService $storageService
+    ){
     }
 
 
@@ -29,7 +29,7 @@ class AtchImageHandler implements AttachmentInterface
         $url = $this->storageService->getFileUrl($uuid, $category);
 
         if (!$stored) {
-            throw new \Exception('Failed to store file.');
+            throw new Exception('Failed to store file.');
         }
 
         return [
@@ -38,4 +38,5 @@ class AtchImageHandler implements AttachmentInterface
             'url'=> $url,
         ];
     }
+
 }

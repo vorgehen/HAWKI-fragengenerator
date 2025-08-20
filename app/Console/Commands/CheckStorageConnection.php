@@ -3,9 +3,12 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\Storage\StorageServiceFactory;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Http;
+use League\Flysystem\WebDAV\WebDAVAdapter;
+use League\Flysystem\PhpseclibV3\SftpAdapter;
+use League\Flysystem\PhpseclibV3\SftpConnectionProvider;
+use League\Flysystem\AwsS3V3\AwsS3V3Adapter;
+use Aws\S3\S3Client;
 use Throwable;
 
 
@@ -17,7 +20,7 @@ class CheckStorageConnection extends Command
      *
      * @var string
      */
-    protected $signature = 'check:storage {--filesystem=s3 : The filesystem to test (s3, local, nextcloud, sftp)}';
+    protected $signature = 'check:storage {--filesystem=s3 : The filesystem to test (s3, local, public, localstorage, nextcloud, sftp)}';
 
     /**
      * The console command description.
@@ -37,7 +40,9 @@ class CheckStorageConnection extends Command
 
         $result = match($filesystem) {
             's3' => $this->checkS3WriteAccess(),
-            'local' => $this->checkLocalWriteAccess(),
+            'local' => $this->checkLocalWriteAccess('local'),
+            'public' => $this->checkLocalWriteAccess('public'),
+            'localstorage' => $this->checkLocalWriteAccess('local_file_storage'),
             'nextcloud' => $this->checkNextCloudConnection(),
             'sftp' => $this->checkSFTPConnection(),
             default => ['success' => false, 'message' => "Unsupported filesystem: {$filesystem}"]
@@ -55,10 +60,34 @@ class CheckStorageConnection extends Command
 
     public function checkS3WriteAccess(string $disk = 's3', string $testFileName = 's3_test.txt'): array
     {
-        $content = "S3 connection test: " . now();
-
         try {
-            // Step 1: Upload test file
+            // Step 1: Test S3 connection using Flysystem AWS S3 v3 adapter
+            $config = config("filesystems.disks.{$disk}");
+
+            if (empty($config['key']) || empty($config['secret']) || empty($config['region']) || empty($config['bucket'])) {
+                return [
+                    'success' => false,
+                    'message' => 'S3 configuration incomplete. Check AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, and AWS_BUCKET environment variables.'
+                ];
+            }
+
+            $client = new S3Client([
+                'credentials' => [
+                    'key' => $config['key'],
+                    'secret' => $config['secret'],
+                ],
+                'region' => $config['region'],
+                'version' => $config['version'] ?? 'latest',
+            ]);
+
+            $adapter = new AwsS3V3Adapter($client, $config['bucket'], $config['prefix'] ?? '');
+
+            // Test basic connectivity by listing objects
+            iterator_to_array($adapter->listContents('', false));
+
+            $content = "S3 connection test: " . now();
+
+            // Step 2: Upload test file
             $uploadSuccess = Storage::disk($disk)->put($testFileName, $content);
             if (!$uploadSuccess) {
                 return [
@@ -67,7 +96,7 @@ class CheckStorageConnection extends Command
                 ];
             }
 
-            // Step 2: Verify file exists
+            // Step 3: Verify file exists
             if (!Storage::disk($disk)->exists($testFileName)) {
                 return [
                     'success' => false,
@@ -75,12 +104,21 @@ class CheckStorageConnection extends Command
                 ];
             }
 
-            // Step 3: Cleanup
+            // Step 4: Test file retrieval
+            $retrievedContent = Storage::disk($disk)->get($testFileName);
+            if ($retrievedContent !== $content) {
+                return [
+                    'success' => false,
+                    'message' => 'Content mismatch — file corruption or encoding issue.'
+                ];
+            }
+
+            // Step 5: Cleanup
             Storage::disk($disk)->delete($testFileName);
 
             return [
                 'success' => true,
-                'message' => "S3 connection and write test succeeded."
+                'message' => "S3 connection, upload, retrieval, and cleanup tests all succeeded."
             ];
         } catch (Throwable $e) {
             return [
@@ -90,7 +128,7 @@ class CheckStorageConnection extends Command
         }
     }
 
-    public function checkLocalWriteAccess(string $disk = 'data_repo', string $testFileName = 'local_test.txt'): array
+    public function checkLocalWriteAccess(string $disk = 'local_file_storage', string $testFileName = 'local_test.txt'): array
     {
         $content = "Local storage test: " . now();
 
@@ -138,7 +176,7 @@ class CheckStorageConnection extends Command
 
     public function checkNextCloudConnection(): array
     {
-        $baseUrl = config('filesystems.disks.nextcloud.base_url');
+        $baseUrl = config('filesystems.disks.nextcloud.base_uri');
         $username = config('filesystems.disks.nextcloud.username');
         $password = config('filesystems.disks.nextcloud.password');
         $basePath = config('filesystems.disks.nextcloud.base_path', '/');
@@ -152,29 +190,25 @@ class CheckStorageConnection extends Command
         }
 
         try {
-            // Step 2: Test WebDAV connection with PROPFIND
-            $webdavUrl = rtrim($baseUrl, '/') . '/remote.php/dav/files/' . $username . '/' . trim($basePath, '/');
+            // Step 2: Test WebDAV connection using Flysystem WebDAV adapter
+            $webdavUrl = rtrim($baseUrl, '/') . '/remote.php/dav/files/' . $username . '/';
 
-            $response = Http::withBasicAuth($username, $password)
-                ->withHeaders(['Depth' => '0'])
-                ->timeout(10)
-                ->send('PROPFIND', $webdavUrl);
+            $client = new \Sabre\DAV\Client([
+                'baseUri' => $webdavUrl,
+                'userName' => $username,
+                'password' => $password,
+            ]);
 
-            if (!$response->successful()) {
-                return [
-                    'success' => false,
-                    'message' => "NextCloud WebDAV connection failed. Status: {$response->status()}. Response: " . $response->body()
-                ];
-            }
+            $adapter = new WebDAVAdapter($client, trim($basePath, '/'));
 
-            // Step 3: Test file upload using StorageServiceFactory
-            $storageService = StorageServiceFactory::create('nextcloud');
+            // Test basic connectivity by listing directory
+            iterator_to_array($adapter->listContents('', false));
+
+            // Step 3: Test file upload using Laravel Storage
             $testContent = "NextCloud connection test: " . now();
-            $testUuid = 'test-' . uniqid();
-            $testFilename = 'connection_test.txt';
-            $testCategory = 'connection-test';
+            $testFilename = 'connection-test/connection_test.txt';
 
-            $uploadResult = $storageService->storeFile($testContent, $testFilename, $testUuid, $testCategory);
+            $uploadResult = Storage::disk('nextcloud')->put($testFilename, $testContent);
 
             if (!$uploadResult) {
                 return [
@@ -183,29 +217,13 @@ class CheckStorageConnection extends Command
                 ];
             }
 
-            // Step 4: Test file retrieval with debugging
-            $this->info("Testing file retrieval...");
-            $retrievedContent = $storageService->retrieveFile($testUuid, $testCategory);
+            // Step 4: Test file retrieval
+            $retrievedContent = Storage::disk('nextcloud')->get($testFilename);
 
-            if ($retrievedContent === false) {
-                // Debug: Try to list the directory manually
-                $debugFolderPath = trim($testCategory, '/') . '/' . trim($testUuid, '/');
-                $debugWebdavUrl = rtrim($baseUrl, '/') . '/remote.php/dav/files/' . $username . '/' . trim($basePath, '/') . '/' . $debugFolderPath;
-
-                $debugResponse = Http::withBasicAuth($username, $password)
-                    ->withHeaders(['Depth' => '1'])
-                    ->send('PROPFIND', $debugWebdavUrl);
-
-                $debugMessage = "File upload succeeded but retrieval failed.\n";
-                $debugMessage .= "Debug info:\n";
-                $debugMessage .= "- Folder path: {$debugFolderPath}\n";
-                $debugMessage .= "- WebDAV URL: {$debugWebdavUrl}\n";
-                $debugMessage .= "- PROPFIND Status: " . $debugResponse->status() . "\n";
-                $debugMessage .= "- PROPFIND Response: " . substr($debugResponse->body(), 0, 1500) . "\n";
-
+            if (!$retrievedContent) {
                 return [
                     'success' => false,
-                    'message' => $debugMessage
+                    'message' => 'File upload succeeded but retrieval failed.'
                 ];
             }
 
@@ -217,11 +235,11 @@ class CheckStorageConnection extends Command
             }
 
             // Step 5: Cleanup
-            $storageService->deleteFile($testUuid, $testCategory);
+            Storage::disk('nextcloud')->delete($testFilename);
 
             return [
                 'success' => true,
-                'message' => 'NextCloud connection, upload, retrieval, and cleanup tests all succeeded.'
+                'message' => 'NextCloud WebDAV connection, upload, retrieval, and cleanup tests all succeeded.'
             ];
 
         } catch (Throwable $e) {
@@ -248,55 +266,26 @@ class CheckStorageConnection extends Command
             ];
         }
 
-        // Step 2: Check if SSH2 extension is available
-        if (!function_exists('ssh2_connect')) {
-            return [
-                'success' => false,
-                'message' => 'PHP SSH2 extension is not installed. Install it with: apt-get install libssh2-1-dev php-ssh2 (or equivalent for your system)'
-            ];
-        }
-
         try {
-            // Step 3: Test connection
-            $connection = ssh2_connect($host, $port, [
-                'hostkey' => 'ssh-rsa'
+            // Step 2: Test SFTP connection using Flysystem SFTP v3 adapter
+            $connectionProvider = SftpConnectionProvider::fromArray([
+                'host' => $host,
+                'port' => $port,
+                'username' => $username,
+                'password' => $password,
+                'timeout' => 10,
             ]);
-            if (!$connection) {
-                return [
-                    'success' => false,
-                    'message' => "Failed to connect to SFTP server {$host}:{$port}"
-                ];
-            }
 
-            // Step 4: Test authentication
-            $auth = ssh2_auth_password($connection, $username, $password);
-            $this->info('$auth');
-            if (!$auth) {
-                return [
-                    'success' => false,
-                    'message' => "SFTP authentication failed for user {$username}"
-                ];
-            }
+            $adapter = new SftpAdapter($connectionProvider, $basePath);
 
-            // Step 5: Test SFTP subsystem
-            $sftp = ssh2_sftp($connection);
-            $this->info('$ssh2_sftp');
+            // Step 3: Test basic connectivity by listing directory
+            iterator_to_array($adapter->listContents('', false));
 
-            if (!$sftp) {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to initialize SFTP subsystem'
-                ];
-            }
-
-            // Step 6: Test file upload using StorageServiceFactory
-            $storageService = StorageServiceFactory::create('sftp');
+            // Step 4: Test file upload using Laravel Storage
             $testContent = "SFTP connection test: " . now();
-            $testUuid = 'test-' . uniqid();
-            $testFilename = 'connection_test.txt';
-            $testCategory = 'connection-test';
+            $testFilename = 'connection-test/connection_test.txt';
 
-            $uploadResult = $storageService->storeFile($testContent, $testFilename, $testUuid, $testCategory);
+            $uploadResult = Storage::disk('sftp')->put($testFilename, $testContent);
 
             if (!$uploadResult) {
                 return [
@@ -305,8 +294,8 @@ class CheckStorageConnection extends Command
                 ];
             }
 
-            // Step 7: Test file retrieval
-            $retrievedContent = $storageService->retrieveFile($testUuid, $testCategory);
+            // Step 5: Test file retrieval
+            $retrievedContent = Storage::disk('sftp')->get($testFilename);
 
             if ($retrievedContent === false) {
                 return [
@@ -322,8 +311,8 @@ class CheckStorageConnection extends Command
                 ];
             }
 
-            // Step 8: Cleanup
-            $storageService->deleteFile($testUuid, $testCategory);
+            // Step 6: Cleanup
+            Storage::disk('sftp')->delete($testFilename);
 
             return [
                 'success' => true,

@@ -20,8 +20,8 @@ class AttachmentFactory
     public static function create(string $type): ?AttachmentInterface
     {
         return match ($type) {
-            'image'    => new AtchImageHandler(),
-            'document' => new AtchDocumentHandler(),
+            'image'    => app(AtchImageHandler::class),
+            'document' => app(AtchDocumentHandler::class),
             default    => throw new \InvalidArgumentException("Unknown attachment type: $type"),
         };
     }

@@ -10,14 +10,11 @@ class MessageHandlerFactory{
 
     public static function create(string $type): ?MessageInterface
     {
-        switch ($type) {
-            case 'private':
-                return new PrivateMessageHandler();
-            case 'group':
-                return new GroupMessageHandler();
-            default:
-                return null;
-        }
+        return match ($type) {
+            'private' => app(PrivateMessageHandler::class),
+            'group'   => app(GroupMessageHandler::class),
+            default   => null,
+        };
     }
 
 }

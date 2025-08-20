@@ -22,10 +22,12 @@ class AiConvService{
     protected $contentValidator;
     protected $attachmentService;
 
-    public function __construct(){
+    public function __construct(AttachmentService $attachmentService,
+                                MessageContentValidator $messageContentValidator)
+    {
         $this->messageHandler = MessageHandlerFactory::create('private');
-        $this->attachmentService = new AttachmentService();
-        $this->contentValidator = new MessageContentValidator();
+        $this->attachmentService = $attachmentService;
+        $this->contentValidator = $messageContentValidator;
     }
 
 

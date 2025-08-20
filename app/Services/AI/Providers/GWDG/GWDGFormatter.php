@@ -76,7 +76,7 @@ class GWDGFormatter implements FormatterInterface
 
     private function processAttachments(array $attachmentUuids, array $attachmentsMap, string $modelId, array &$content): void
     {
-        $attachmentService = new AttachmentService();
+        $attachmentService = app(AttachmentService::class);
         $skippedAttachments = [];
 
         foreach ($attachmentUuids as $uuid) {

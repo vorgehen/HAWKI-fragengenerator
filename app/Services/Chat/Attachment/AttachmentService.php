@@ -9,17 +9,20 @@ use App\Models\Attachment;
 
 use App\Services\Chat\Attachment\AttachmentFactory;
 
-use App\Services\Storage\StorageServiceFactory;
+use App\Services\Storage\FileStorageService;
 use App\Services\Storage\Interfaces\StorageServiceInterface;
+use App\Services\Storage\StorageServiceFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
+use Exception;
+
 class AttachmentService{
 
-    protected $storageService;
-    public function __construct(){
-        $this->storageService = StorageServiceFactory::create();
-    }
+
+    public function __construct(
+        private FileStorageService $storageService
+    ) {}
 
     public function store($file, $category): ?array
     {
@@ -34,11 +37,10 @@ class AttachmentService{
 
             return $result;
         }
-        catch(\Exception $e){
+        catch(Exception $e){
             Log::error("Error storing file: $e");
             return null;
         }
-
     }
 
 
@@ -57,7 +59,7 @@ class AttachmentService{
                 $file = $this->storageService->retrieveFile($uuid, $category);
                 return $file;
             }
-            catch(\Exception $e){
+            catch(Exception $e){
                 Log::error("Error retrieving file", ["UUID"=> $uuid, "category"=> $category]);
                 return null;
             }
@@ -79,7 +81,7 @@ class AttachmentService{
                 $url = $this->storageService->getFileUrl($uuid, $category);
                 return $url;
             }
-            catch(\Exception $e){
+            catch(Exception $e){
                 Log::error("Error retrieving file", ["UUID"=> $uuid, "category"=> $category]);
                 return null;
             }
@@ -99,8 +101,8 @@ class AttachmentService{
             $attachment->delete();
             return true;
         }
-        catch(\Exception $e){
-            Log::error(message: "Failed to remove attachment: ", context: $e );
+        catch(Exception $e){
+            Log::error(message: "Failed to remove attachment: $e" );
             return false;
         }
     }

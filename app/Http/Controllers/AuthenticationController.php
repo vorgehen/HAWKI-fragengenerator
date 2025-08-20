@@ -20,7 +20,8 @@ use App\Services\Auth\ShibbolethService;
 use App\Services\Auth\TestAuthService;
 
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Validation\ValidationException;
+use Cookie;
 
 class AuthenticationController extends Controller
 {
@@ -136,10 +137,10 @@ class AuthenticationController extends Controller
 
 
 
-    public function openIDLogin(Request $request)
+    public function openIDLogin()
     {
         try {
-            $authenticatedUserInfo = $this->oidcService->authenticate($request);
+            $authenticatedUserInfo = $this->oidcService->authenticate();
 
             if (!$authenticatedUserInfo) {
                 return response()->json(['error' => 'Login Failed!'], 401);
@@ -206,7 +207,7 @@ class AuthenticationController extends Controller
 
         // Call getTranslation method from LanguageController
         $translation = $this->languageController->getTranslation();
-        $settingsPanel = (new SettingsController())->initialize();
+        $settingsPanel = (new SettingsService())->render();
 
         $activeOverlay = false;
         if(Session::get('last-route') && Session::get('last-route') != 'register'){
@@ -278,12 +279,7 @@ class AuthenticationController extends Controller
             ]);
 
         } catch (ValidationException $e) {
-            // error_log('Validation Error: ' . json_encode($e->errors()));
-
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors()
-            ], 422);  // Return HTTP 422 Unprocessable Entity
+            throw $e;
         }
     }
 

@@ -17,7 +17,9 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
-    'file_storage' => env('STORAGE_DISK', 'data_repo'),
+    'file_storage' => env('STORAGE_DISK', 'local_file_storage'),
+
+    'avatar_storage' => env('AVATAR_STORAGE', 'public'),
 
     /*
     |--------------------------------------------------------------------------
@@ -48,7 +50,7 @@ return [
             'throw' => false,
         ],
 
-        'data_repo' => [
+        'local_file_storage' => [
             'driver' => 'local',
             'root' => storage_path('app/data_repo'),
             'url' => env('APP_URL').'/data_repo',
@@ -69,11 +71,13 @@ return [
         ],
 
         'nextcloud' => [
-            'driver' => 'nextcloud',
-            'base_url' => env('NEXTCLOUD_BASE_URL'),
-            'base_path' => env('NEXTCLOUD_BASE_PATH'),
+            'driver' => 'webdav',
+            'base_uri' => env('NEXTCLOUD_BASE_URL') . '/remote.php/dav/files/' . env('NEXTCLOUD_USERNAME') . '/',
             'username' => env('NEXTCLOUD_USERNAME'),
             'password' => env('NEXTCLOUD_PASSWORD'),
+            'prefix' => env('NEXTCLOUD_BASE_PATH', ''),
+            'timeout' => 60,
+
         ],
 
         'sftp' => [
@@ -82,7 +86,8 @@ return [
             'port' => env('SFTP_PORT', 22),
             'username' => env('SFTP_USERNAME'),
             'password' => env('SFTP_PASSWORD'),
-            'base_path' => env('SFTP_BASE_PATH', '/'),
+            'root' => env('SFTP_BASE_PATH', '/'),
+            'timeout' => 30,
         ],
 
     ],

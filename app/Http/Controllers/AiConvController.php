@@ -32,11 +32,14 @@ class AiConvController extends Controller
     protected $contentValidator;
     protected $attachmentService;
 
-    public function __construct(){
-        $this->aiConvService = new AiConvService();
-        $this->messageHandler = MessageHandlerFactory::create('private');
-        $this->attachmentService = new AttachmentService();
+    public function __construct(
+            AttachmentService $attachmentService,
+            AiConvService $aiConvService)
+    {
+        $this->aiConvService = $aiConvService;
+        $this->messageHandler = app(MessageHandlerFactory::class)->create('private');
         $this->contentValidator = new MessageContentValidator();
+        $this->attachmentService = $attachmentService;
     }
 
 

@@ -68,7 +68,6 @@ trait RoomMessages{
         $room = Room::where('slug', $slug)->firstOrFail();
         $member = $room->members()->where('user_id', Auth::id())->firstOrFail();
         $message = $room->messages->where('message_id', $validatedData['message_id'])->first();
-
         $message->addReadSignature($member);
     }
 

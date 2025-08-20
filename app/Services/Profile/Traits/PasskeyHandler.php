@@ -2,9 +2,7 @@
 
 namespace App\Services\Profile\Traits;
 
-
 use App\Models\PasskeyBackup;
-use App\Models\PrivateUserData;
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Support\Facades\Session;

@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\Storage\StorageServiceFactory;
+use App\Services\Storage\FileStorageService;
 use Illuminate\Support\Facades\Storage;
 
 class AiConvMsg extends Model
@@ -80,7 +80,7 @@ class AiConvMsg extends Model
         if ($attachments->isEmpty()) {
             return null;
         }
-        $storageService = StorageServiceFactory::create();
+        $storageService = app(FileStorageService::class);
 
         return $attachments->map(function ($attach) use ($storageService) {
             return [

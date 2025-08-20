@@ -15,6 +15,7 @@ use App\Services\AI\AIProviderFactory;
 use App\Jobs\SendMessage;
 use App\Events\RoomMessageEvent;
 
+use App\Services\Chat\Message\MessageHandlerFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
@@ -305,7 +306,7 @@ class StreamController extends Controller
         $encryptiedData = $cryptoController->encryptWithSymKey($encKey, json_encode($result['content']), false);
 
         // Store message
-        $roomController = new RoomController();
+        $messageHandler = MessageHandlerFactory::create('group');
         $member = $room->members()->where('user_id', 1)->firstOrFail();
 
         if ($isUpdate) {
@@ -317,7 +318,7 @@ class StreamController extends Controller
                 'model' => $data['payload']['model'],
             ]);
         } else {
-            $nextMessageId = $roomController->generateMessageID($room, $data['threadIndex']);
+            $nextMessageId = $messageHandler->assignID($room, $data['threadIndex']);
             $message = Message::create([
                 'room_id' => $room->id,
                 'member_id' => $member->id,

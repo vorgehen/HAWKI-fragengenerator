@@ -7,7 +7,7 @@ use App\Models\AiConvMsg;
 use App\Models\Message;
 use App\Models\Attachment;
 
-use App\Services\Storage\StorageServiceFactory;
+use App\Services\Storage\FileStorageService;
 use App\Toolkit\FileConverter\DocumentConverter;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
@@ -15,9 +15,9 @@ use Illuminate\Support\Facades\Log;
 
 class AtchDocumentHandler implements AttachmentInterface
 {
-    protected $storageService;
-    public function __construct(){
-        $this->storageService = StorageServiceFactory::create();
+    public function __construct(
+        protected FileStorageService $storageService
+    ){
     }
 
     public function store($file, string $category): array

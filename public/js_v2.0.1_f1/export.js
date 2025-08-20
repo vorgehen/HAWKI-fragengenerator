@@ -7,11 +7,11 @@ function convertChatlogToJson(){
     const thread = document.querySelector('.trunk');
     const messageElements = thread.querySelectorAll('.message');
 
-    let messagesList = []; 
+    let messagesList = [];
 
     messageElements.forEach(messageElement => {
 
-        let msgObj = {}; 
+        let msgObj = {};
         msgObj.id = messageElement.id;
         msgObj.author = messageElement.dataset.author;
         msgObj.role = messageElement.dataset.role;
@@ -51,7 +51,7 @@ function exportAsJson() {
 
 function exportAsCsv() {
     const messages = convertChatlogToJson();  // Get the messages list
-    
+
     // Check if messages are empty
     if (messages.length === 0) {
         console.log("No data to export");
@@ -60,7 +60,7 @@ function exportAsCsv() {
 
     // Extract CSV headers from JSON keys
     const headers = Object.keys(messages[0]).join(",") + "\n";
-    
+
     // Convert each message to a CSV row
     const csvRows = messages.map(message => {
         return Object.values(message).map(value => `"${value}"`).join(",");
@@ -138,13 +138,13 @@ async function exportAsPDF() {
     doc.setFontSize(sectionFS);
     doc.setFont(font, 'bold');
     doc.text(translation.Summery, margin, yOffset);
-    
+
     const textLenght = translation.Summery.length;
     doc.setFont(font, 'italic');
     doc.setFontSize(titleFS);
     doc.text(` (${translation.Auto_Generated})`, margin + (textLenght * 4) + 0, yOffset);
     doc.setFont(font, 'normal');
-    
+
 
     yOffset += 10;
     doc.setFont(font, 'normal');
@@ -204,7 +204,7 @@ async function exportAsPDF() {
         else{
             msg.content = msg.content;
         }
-        
+
         const wrappedContent = doc.splitTextToSize(msg.content, maxWidth); // Split text into lines
         const contentHeight = wrappedContent.length * lineHeight;
         const totalMessageHeight = metadataHeight + contentHeight;
@@ -232,7 +232,7 @@ async function exportAsPDF() {
             doc.text(`${msg.author}:`, margin, yOffset);
         }
         yOffset += 10;
-        
+
         doc.setFont(font, 'normal');
         doc.setFontSize(textFS);
         wrappedContent.forEach(line => {
@@ -253,7 +253,7 @@ async function exportAsPDF() {
 
     doc.save(`${translation.Chatlog}_${formattedDate}.pdf`);
 }
-    
+
 
 
 
@@ -326,7 +326,7 @@ async function exportAsWord() {
     const btn = document.getElementById('export-btn-word');
     btn.disabled = true;
     btn.querySelector('.loading').style.display = 'flex';
-    
+
     const messages = convertChatlogToJson();
     if (messages.length === 0) {
         console.log("No data to export");
@@ -341,7 +341,7 @@ async function exportAsWord() {
     const chatLogChildren = [];
     const date = new Date();
     const formattedDate = `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
-    
+
     chatLogChildren.push(
         new docx.Paragraph({
             children: [
@@ -418,7 +418,7 @@ async function exportAsWord() {
 
     messages.forEach((message) => {
         let authorText = message.model ? `${message.author} (${message.model})` : `${message.author}`;
-        
+
         chatLogChildren.push(
             new docx.Paragraph({
                 children: [
@@ -473,7 +473,7 @@ function exportPrintPage(){
 
     if(!activeModule) return;
 
-    let slug; 
+    let slug;
     if(activeModule === 'chat'){
         if(!activeConv) return;
         slug = activeConv.slug;
@@ -499,14 +499,16 @@ async function preparePrintPage(){
     let messages;
     if(activeModule === 'chat'){
         //data is received from the server
-        chatData = data.original;
+        chatData = data;
+        console.log(JSON.parse(chatData.system_prompt));
+
         key = await keychainGet('aiConvKey');
         const systemPromptObj = JSON.parse(chatData.system_prompt);
         systemPrompt = await decryptWithSymKey(key, systemPromptObj.ciphertext, systemPromptObj.iv, systemPromptObj.tag, false);
         messages = chatData.messages;
 
         for (const msg of messages) {
-            const decryptedContent =  await decryptWithSymKey(key, msg.content, msg.iv, msg.tag);
+            const decryptedContent =  await decryptWithSymKey(key, msg.content.text.ciphertext, msg.content.text.iv, msg.content.text.tag);
             if(isValidJson(decryptedContent)){
                 msg.content = JSON.parse(decryptedContent).text;
             }
@@ -522,11 +524,11 @@ async function preparePrintPage(){
         key = await keychainGet(chatData.slug);
         const aiCryptoSalt = await fetchServerSalt('AI_CRYPTO_SALT');
         aiKey = await deriveKey(key, chatData.slug, aiCryptoSalt);
-        
+
         if(chatData.system_prompt){
             const systemPromptObj = JSON.parse(chatData.system_prompt);
             systemPrompt = await decryptWithSymKey(key, systemPromptObj.ciphertext, systemPromptObj.iv, systemPromptObj.tag, false);
-        }    
+        }
         messages = chatData.messagesData;
         //extract messages
         let msgKey = key;
@@ -540,11 +542,11 @@ async function preparePrintPage(){
     const scrollPanel = document.querySelector('.scroll-panel');
     const date = new Date();
     const formattedDate = `${date.getDate()}.${date.getMonth()+1}.${date.getFullYear()}`
-    
+
     const summeryMsg = convertMsgObjToLog(Array.from(messages).slice(-100));
     const summery = await requestChatlogSummery(summeryMsg);
 
-    scrollPanel.innerHTML = 
+    scrollPanel.innerHTML =
     `
         <p>${translation.Exported_At} ${formattedDate} ${translation.By} ${userInfo.name}</p>
         <h1>${translation.Summery}:</h1>
@@ -576,7 +578,7 @@ function generateMessageElements(messageObj){
 
     if(messageObj.model && messageObj.message_role === 'assistant'){
         model = modelsList.find(m => m.id === messageObj.model);
-        messageElement.querySelector('.message-author').innerHTML = 
+        messageElement.querySelector('.message-author').innerHTML =
             model ?
             `<span>${messageObj.author.username} </span><span class="message-author-model">(${model.label})</span>`:
             `<span>${messageObj.author.username} </span><span class="message-author-model">(${messageObj.model}) !!! Obsolete !!!</span>`;

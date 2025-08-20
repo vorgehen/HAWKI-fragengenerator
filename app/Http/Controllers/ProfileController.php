@@ -38,19 +38,8 @@ class ProfileController extends Controller
 
 
     public function requestProfileReset(): JsonResponse|RedirectResponse{
-        try{
-            $success = $this->profileService->resetProfile();
-            if($success){
-                return response()->redirectTo('/register');
-            }
-        }
-        catch(Exception $e)
-        {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
-        }
+        $this->profileService->resetProfile();
+        return response()->redirectTo('/register');
     }
 
 

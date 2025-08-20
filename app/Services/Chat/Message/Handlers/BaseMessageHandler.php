@@ -11,13 +11,16 @@ use App\Models\Room;
 use App\Models\Message;
 
 use App\Services\Chat\Attachment\AttachmentService;
+use App\Services\Storage\FileStorageService;
 
 
 abstract class BaseMessageHandler implements MessageInterface
 {
-    protected $attachmentService;
-    public function __construct(){
-        $this->attachmentService = new AttachmentService();
+    protected AttachmentService $attachmentService;
+
+    public function __construct(AttachmentService $attachmentService)
+    {
+        $this->attachmentService = $attachmentService;
     }
 
     public function assignID(AiConv|Room $room, int $threadID): string {

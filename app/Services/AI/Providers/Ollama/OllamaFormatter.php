@@ -80,7 +80,7 @@ public function formatMessage(array $message, array $attachmentsMap, string $mod
 
 private function processAttachments(array $attachmentUuids, array $attachmentsMap, string $modelId, string &$text, array &$images): void
 {
-    $attachmentService = new AttachmentService();
+    $attachmentService = app(AttachmentService::class);
     $skippedAttachments = [];
 
     foreach ($attachmentUuids as $uuid) {

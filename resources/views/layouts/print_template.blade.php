@@ -72,7 +72,7 @@
 	const userAvatarUrl = @json($userData['avatar_url']);
 	const hawkiAvatarUrl = @json($userData['hawki_avatar_url']);
 	const activeModule = @json($activeModule);
-    const data = @json($messages);
+    const data = @json($chatData);
 	const activeLocale = {!! json_encode(Session::get('language')) !!};
 
 	const modelsList = @json($models).models;
