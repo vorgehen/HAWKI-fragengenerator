@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Services\Mail;
 
-use Illuminate\Http\Request;
 
-class MailController extends Controller
-{
-    /// Dispatch Email Job (check SendEmailJob.php)
+use App\Jobs\SendEmailJob;
+
+
+class MailService{
+
+
     public function sendWelcomeEmail($user)
     {
         $emailData = [
@@ -19,7 +21,7 @@ class MailController extends Controller
 
         // Dispatch the email job to the queue
         SendEmailJob::dispatch($emailData, $user->email, $subjectLine, $viewTemplate)
-                    ->onQueue('emails');  // Optional: specify a queue name
+                    ->onQueue('emails');
     }
 
 
