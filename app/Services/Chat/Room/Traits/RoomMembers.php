@@ -76,7 +76,7 @@ trait RoomMembers{
             ->take(5)
             ->get();
 
-        // REF->SEARCH_FILTER
+            // REF->SEARCH_FILTER
         $results = $users->map(function($user){
             return [
                 'name'      => $user->name,
@@ -85,17 +85,6 @@ trait RoomMembers{
                 'public_key'=> $user->publicKey
             ];
         });
-
-        if ($results->count() > 0) {
-            return response()->json([
-                'success' => true,
-                'users' => $results,
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'No users found',
-            ]);
-        }
+        return $results;
     }
 }

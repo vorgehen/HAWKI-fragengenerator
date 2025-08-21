@@ -6,6 +6,7 @@ use App\Models\PasskeyBackup;
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Log;
 
 
 trait PasskeyHandler
@@ -13,9 +14,11 @@ trait PasskeyHandler
 
     public function backupPassKey(array $data){
         $userInfo = json_decode(Session::get('authenticatedUserInfo'), true);
+        Log::debug($userInfo);
+        Log::debug($userInfo['username']);
         $username = $userInfo['username'];
 
-        if($username != $data['username']){
+        if($username != $userInfo['username']){
             return response()->json([
                 'success' => false,
                 'message' => 'Username comparision failed!',
@@ -23,7 +26,7 @@ trait PasskeyHandler
         }
 
         PasskeyBackup::updateOrCreate([
-            'username' => Auth::user()->username,
+            'username' => $username,
             'ciphertext' => $data['cipherText'],
             'iv' => $data['iv'],
             'tag' => $data['tag'],

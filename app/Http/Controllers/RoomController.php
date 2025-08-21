@@ -110,11 +110,19 @@ class RoomController extends Controller
         $validatedData = $request->validate([
             'query' => 'string'
         ]);
-        $users = $this->roomService->searchUser($validatedData['query']);
-        return response()->json([
-            'success' => true,
-            'users'=> $users
-        ]);
+        $results = $this->roomService->searchUser($validatedData['query']);
+
+        if ($results->count() > 0) {
+            return response()->json([
+                'success' => true,
+                'users' => $results,
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'No users found',
+            ]);
+        }
     }
 
 

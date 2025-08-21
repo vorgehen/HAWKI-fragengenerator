@@ -96,9 +96,9 @@ Route::middleware('prevent_back')->group(function () {
             Route::delete('/req/room/removeRoom/{slug}', [RoomController::class, 'delete']);
             Route::post('/req/room/addMember/{slug}', [RoomController::class, 'addMember']);
             Route::delete('/req/room/removeMember/{slug}', [RoomController::class, 'kickMember']);
-            Route::get('/req/room/search', [RoomController::class, 'searchUser']);
         });
 
+        Route::post('/req/room/search', [RoomController::class, 'searchUser']);
 
         Route::get('print/{module}/{slug}', [HomeController::class, 'print']);
 

@@ -12,40 +12,42 @@ function initFileUploader(inputField) {
     const overlay = inputField.querySelector('.drag-drop-overlay');
     const fileInput = document.querySelector('#file-upload-input');
     const input = inputField.querySelector('.input');
+    const ctrls = inputField.querySelector('.input-controls');
     let dragCounter = 0;
 
     // Drag and drop handling
-    input.addEventListener('dragover', function(e) {
+    inputField.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.stopPropagation();
     });
 
-    input.addEventListener('dragenter', function(e) {
+    inputField.addEventListener('dragenter', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
         dragCounter++;
+        ctrls.classList.add('minimized');
         overlay.style.display = 'flex';
     });
 
-    input.addEventListener('dragleave', function(e) {
+    inputField.addEventListener('dragleave', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
         dragCounter--;
         // Only hide if all drags have left this element
         if (dragCounter === 0) {
+            ctrls.classList.remove('minimized');
             overlay.style.display = 'none';
         }
     });
 
-    input.addEventListener('drop', function(e) {
+    inputField.addEventListener('drop', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
         dragCounter = 0;
         overlay.style.display = 'none';
-
         handleSelectedFiles(e.dataTransfer.files, input);
     });
 

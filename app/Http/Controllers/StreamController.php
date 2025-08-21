@@ -16,10 +16,14 @@ use App\Jobs\SendMessage;
 use App\Events\RoomMessageEvent;
 
 use App\Services\Chat\Message\MessageHandlerFactory;
+use App\Services\Storage\AvatarStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+
+
+
 
 class StreamController extends Controller
 {
@@ -28,12 +32,16 @@ class StreamController extends Controller
     protected $aiConnectionService;
     private $jsonBuffer = '';
 
+    protected $avatarStorage;
+
     public function __construct(
         UsageAnalyzerService $usageAnalyzer,
-        AIConnectionService $aiConnectionService
+        AIConnectionService $aiConnectionService,
+        AvatarStorageService $avatarStorage
     ){
         $this->usageAnalyzer = $usageAnalyzer;
         $this->aiConnectionService = $aiConnectionService;
+        $this->avatarStorage = $avatarStorage;
     }
 
 
@@ -117,12 +125,14 @@ class StreamController extends Controller
         if ($validatedData['broadcast']) {
             $this->handleGroupChatRequest($validatedData);
         } else {
-            $user = User::find(1); // HAWKI user
-            $avatar_url = $user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $user->avatar_id) : null;
+            $hawki = User::find(1); // HAWKI user
+            $avatar_url = $this->avatarStorage->getFileUrl('profile_avatars',
+                                                $hawki->username,
+                                                $hawki->avatar_id);
 
             if ($validatedData['payload']['stream']) {
                 // Handle streaming response
-                $this->handleStreamingRequest($validatedData['payload'], $user, $avatar_url);
+                $this->handleStreamingRequest($validatedData['payload'], $hawki, $avatar_url);
             } else {
                 // Handle standard response
                 $result = $this->aiConnectionService->processRequest(
@@ -142,8 +152,8 @@ class StreamController extends Controller
                 // Return response to client
                 return response()->json([
                     'author' => [
-                        'username' => $user->username,
-                        'name' => $user->name,
+                        'username' => $hawki->username,
+                        'name' => $hawki->name,
                         'avatar_url' => $avatar_url,
                     ],
                     'model' => $validatedData['payload']['model'],

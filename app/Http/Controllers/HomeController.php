@@ -87,7 +87,7 @@ class HomeController extends Controller
                             'models'));
     }
 
-    public function print($module, $slug, AiConvService $aiConvService, RoomService $roomService){
+    public function print($module, $slug, AiConvService $aiConvService, RoomService $roomService, AvatarStorageService $avatarStorage){
 
         switch($module){
             case 'chat':
@@ -102,8 +102,9 @@ class HomeController extends Controller
         }
 
         $user = Auth::user();
-        $avatarUrl = $user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $user->avatar_id) : null;
-        $hawkiAvatarUrl = Storage::disk('public')->url('profile_avatars/' . User::find(1)->avatar_id);
+        $avatarUrl = $user->avatar_id !== '' ? $avatarStorage->getFileUrl('profile_avatars', $user->username, $user->avatar_id) : null;
+        $hawkiAvatarUrl = $avatarStorage->getFileUrl('profile_avatars', User::find(1)->username, User::find(1)->avatar_id);
+
         $userData = [
             'avatar_url'=> $avatarUrl,
             'hawki_avatar_url'=>$hawkiAvatarUrl,

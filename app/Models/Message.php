@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Services\Storage\FileStorageService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use App\Services\Storage\AvatarStorageService;
 
 use Illuminate\Support\Facades\Log;
 
@@ -47,6 +48,8 @@ class Message extends Model
 
     public function createMessageObject(): array
     {
+        $avatarStorage = app(AvatarStorageService::class);
+
         $member = $this->member;
         $room = $this->room;
 
@@ -65,7 +68,7 @@ class Message extends Model
                 'username' => $member->user->username,
                 'name' => $member->user->name,
                 'isRemoved' => $member->isRemoved,
-                'avatar_url' => $member->user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $member->user->avatar_id) : null,
+                'avatar_url' =>$avatarStorage->getFileUrl('profile_avatars', $member->user->username, $member->user->avatar_id),
             ],
             'model' => $this->model,
 

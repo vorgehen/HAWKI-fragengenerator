@@ -1,17 +1,12 @@
 <?php
 namespace App\Services\Chat\Attachment\Handlers;
 
-use App\Services\Chat\Attachment\Interfaces\AttachmentInterface;
-
-use App\Models\AiConvMsg;
-use App\Models\Message;
-use App\Models\Attachment;
+use Illuminate\Support\Str;
 
 use App\Services\Storage\FileStorageService;
+use App\Services\Chat\Attachment\Interfaces\AttachmentInterface;
 use App\Toolkit\FileConverter\DocumentConverter;
-use Illuminate\Support\Str;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
+
 
 class AtchDocumentHandler implements AttachmentInterface
 {

@@ -945,7 +945,19 @@ async function searchUser(searchBar) {
 
     if (query.length > 2) { // Start searching after 3 characters
         try {
-            const response = await fetch(`/req/room/search?query=${encodeURIComponent(query)}`);
+            // const response = await fetch(`/req/room/search?query=${encodeURIComponent(query)}`);
+            const response = await fetch(`/req/room/search`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    "query": encodeURIComponent(query)
+                })
+
+            });
+
             const data = await response.json();
 
             if (data.success) {

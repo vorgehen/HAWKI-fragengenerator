@@ -6,12 +6,11 @@ use App\Models\Room;
 use App\Models\Member;
 
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 trait RoomFunctions{
 
@@ -37,11 +36,7 @@ trait RoomFunctions{
             throw new AuthorizationException();
         }
 
-        $roomIcon = ($room->room_icon !== '' && $room->room_icon !== null)
-        ? Storage::disk('public')->url('room_avatars/' . $room->room_icon)
-        : null;
-
-
+        $roomIcon = $this->avatarStorage->getFileUrl('room_avatars', $room->slug, $room->room_icon);
         $membership = $room->members()->where('user_id', Auth::id())->first();
         $membership->updateLastRead();
 
@@ -63,7 +58,9 @@ trait RoomFunctions{
                     'username' => $member->user->username,
                     'role' => $member->role,
                     'employeetype' => $member->user->employeetype,
-                    'avatar_url' => $member->user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $member->user->avatar_id) : null,
+                    'avatar_url' => $this->avatarStorage->getFileUrl('profile_avatars',
+                                                                    $member->user->username,
+                                                                    $member->user->avatar_id)
                 ];
             }),
 
@@ -75,22 +72,12 @@ trait RoomFunctions{
 
     public function update(array $data, string $slug){
 
-        $user = Auth::user();
         $room = Room::where('slug', $slug)->firstOrFail();
 
         try{
             if(!empty($data['img'])){
-                // $imageController = new ImageController();
-                // $response = $imageController->storeImage($data['img'], 'room_avatars');
-                // $response = $response->original;
-
-                // if ($response && $response['success']) {
-                //     $room->update(['room_icon' => $response['fileName']]);
-                // } else {
-                //     return false;
-                // }
+                $this->avatarStorage->storeFile($data['img'], 'room_avatars', $slug, Str::uuid());
             }
-
             if(!empty($data['system_prompt'])){
                 $room->update(['system_prompt' => $data['system_prompt']]);
             }

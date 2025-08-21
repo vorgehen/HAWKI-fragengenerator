@@ -6,8 +6,6 @@ use Illuminate\Console\Command;
 use App\Models\User;
 use App\Services\Storage\AvatarStorageService;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
-use Illuminate\Http\UploadedFile;
 use Throwable;
 
 class MigrateUserAvatars extends Command

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\Storage\FileStorageService;
-use Illuminate\Support\Facades\Storage;
+use App\Services\Storage\AvatarStorageService;
 
 class AiConvMsg extends Model
 {
@@ -35,6 +35,8 @@ class AiConvMsg extends Model
 
     public function createMessageObject(): array
     {
+        $avatarStorage = app(AvatarStorageService::class);
+
         //if AI is the author, then username and name are the same.
         //if User has created the message then fetch the name from model.
         $user =  $this->user;
@@ -44,7 +46,7 @@ class AiConvMsg extends Model
             'author' => [
                 'username' => $user->username,
                 'name' => $user->name,
-                'avatar_url' => $user->avatar_id !== '' ? Storage::disk('public')->url('profile_avatars/' . $user->avatar_id) : null,
+                'avatar_url' => $avatarStorage->getFileUrl('profile_avatars', $user->username, $user->avatar_id),
             ],
             'model' => $this->model,
 
@@ -63,8 +65,6 @@ class AiConvMsg extends Model
 
         return $msgData;
     }
-
-
 
 
     public function attachments()

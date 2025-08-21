@@ -171,7 +171,6 @@
 
     </div>
     <div class="input" id="0">
-        @include('partials.home.dragDropOverlay')
         @if(!$lite)
             <input type="file" id="file-upload-input" style="display:none;"/>
         @endif
@@ -257,4 +256,7 @@
 
 
     </div>
+
+    @include('partials.home.dragDropOverlay')
+
 </div>
