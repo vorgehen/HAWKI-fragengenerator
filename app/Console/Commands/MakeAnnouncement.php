@@ -37,21 +37,48 @@ class MakeAnnouncement extends Command
 
         foreach ($availableLanguages as $l) {
             $lang = $l['id'];
+
+            $this->info("Creating announcement file for $lang");
+
             $filePath = resource_path("$folderName/$lang.md");
 
             if (!file_exists($filePath)) {
                 file_put_contents($filePath,
-                    "<!-- Announcement: {$this->argument('title')} -->\n\n" .
-                    "<!-- ENTER ANNOUNCEMENT IN CONTENT <<< $lang >>> HERE: -->\n" .
-                    "#### $title"
+                    "## $title"
                 );
             }
+            $relativePath = "resources/$folderName/$lang.md";
+
+            $edit = $this->choice("Announcement file created at $relativePath. Do you like to edit it? y/n",
+                                    ["y", "n"],
+                                    "n");
+            if($edit === "n"){
+                continue;
+            }
+
 
             // Open the file in nano for editing
-            $this->info("Opening $filePath in nano...");
-            system("nano " . escapeshellarg(resource_path("$folderName/$lang.md")));
+            $this->info("Opening  in nano...");
+
+            $descriptorspec = [
+                0 => STDIN,
+                1 => STDOUT,
+                2 => STDERR,
+            ];
+
+            $process = proc_open("nano " . escapeshellarg($relativePath), $descriptorspec, $pipes);
+
+            if (is_resource($process)) {
+                proc_close($process);
+            }
         }
 
-        $this->line(resource_path("$folderName"));
+        $this->line("Announcement created with the title:");
+        $this->info($title);
+        $this->line("Announcement created with the title:  in folder:");
+        $this->info("resources/$folderName");
+        $this->line("Use these commands to publish the new announcement:");
+        $this->info("php artisan announcement:publish");
+        $this->info("php hawki announcement -publish");
     }
 }

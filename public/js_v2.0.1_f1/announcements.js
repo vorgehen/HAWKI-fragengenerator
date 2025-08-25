@@ -47,9 +47,8 @@ function renderAnnouncement(announcement){
 
 function showAnnouncementModal(announcement, view) {
     // Insert the rendered content
-
-    const modal = document.getElementById('announcements-modal');
-    const contentWrapper = modal.querySelector('.modal-content');
+    const modal = document.querySelector('#announcements-modal');
+    const contentWrapper = modal.querySelector('.content-box');
     const html = md.render(view);
     contentWrapper.innerHTML = html;
 
@@ -58,14 +57,51 @@ function showAnnouncementModal(announcement, view) {
         a.setAttribute("rel", "noopener noreferrer");
     });
 
+
+    const btnBar = document.createElement('div');
+    btnBar.classList.add('modal-buttons-bar');
+
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = "btn-lg-fill align-end";
+    confirmBtn.textContent = translation.Confirm;
+    confirmBtn.addEventListener('click', function() {
+        reportAnnouncementFeedback(announcement.id, true); // or whatever your parameters are
+        closeAnnouncementModal(modal);
+    });
+
+    if(announcement.type === "force"){
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = "btn-lg-stroke align-end";
+        cancelBtn.textContent = translation.Cancel;
+        cancelBtn.addEventListener('click', () => {
+            forceLogoutUser(modal);
+        });
+        btnBar.appendChild(cancelBtn);
+    }
+    btnBar.appendChild(confirmBtn);
+
+    contentWrapper.appendChild(btnBar);
+
     modal.style.display = 'flex'
 
 }
 
-function closeAnnouncementModal(overlay) {
-    document.body.removeChild(overlay);
+function closeAnnouncementModal(annModal) {
+    annModal.style.display = 'none';
+    annModal.querySelector('.content-box').innerHTML = "";
     moveToNextAnnouncement();
 }
+
+
+async function forceLogoutUser(announcementId){
+    const confirmed = await openModal(ModalType.WARNING , "To contninue using HAWKI you need to accept this. click on confirm to logout from HAWKI.");
+    if (!confirmed) {
+        return;
+    }
+    logout();
+}
+
 
 function moveToNextAnnouncement() {
     currentAnnouncementIndex++;
@@ -87,11 +123,9 @@ function markAnnouncementAsSeen(announcementId) {
     .catch(error => console.error('Error marking announcement as seen:', error));
 }
 
-function reportAnnouncementFeedback(announcementId, action){
-    // Tell server if the user has accepted the announcement
-    const endpoint = action === 'accepted' ? 'accepted' : 'dismissed';
+function reportAnnouncementFeedback(announcementId){
 
-    fetch(`/req/announcement/${endpoint}/${announcementId}`, {
+    fetch(`/req/announcement/report/${announcementId}`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -102,7 +136,7 @@ function reportAnnouncementFeedback(announcementId, action){
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log(`Announcement ${action}:`, announcementId);
+            console.log(`Announcement Confirmed`);
         }
     })
     .catch(error => console.error('Error reporting announcement feedback:', error));

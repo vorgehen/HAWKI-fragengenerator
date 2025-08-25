@@ -11,6 +11,7 @@ use App\Http\Middleware\ExternalCommunicationCheck;
 use App\Http\Middleware\PreventBackHistory;
 use App\Http\Middleware\SessionExpiryChecker;
 use App\Http\Middleware\TokenCreationCheck;
+use App\Http\Middleware\MandatorySignatureCheck;
 
 use App\Services\AI\AIProviderFactory;
 use App\Services\AI\AIConnectionService;
@@ -43,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
         Route::aliasMiddleware('prevent_back', PreventBackHistory::class);
         Route::aliasMiddleware('expiry_check', SessionExpiryChecker::class);
         Route::aliasMiddleware('token_creation', TokenCreationCheck::class);
+        Route::aliasMiddleware('signature_check', MandatorySignatureCheck::class);
 
         // Register AI services
         $this->app->singleton(AIProviderFactory::class, function ($app) {

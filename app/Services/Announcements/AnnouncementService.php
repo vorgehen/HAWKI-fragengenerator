@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Session;
 use App\Models\Announcements\Announcement;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+
 
 use App\Http\Controllers\LanguageController;
 use Illuminate\Support\Facades\Log;
@@ -18,7 +20,7 @@ class AnnouncementService
      * Create a new announcement
      *
      * Example:
-     * $service->createAnnouncement('announcements.terms_update', 'news', true);
+     * $service->createAnnouncement('announcements.terms_update', 'info', true);
      */
     public function createAnnouncement(
         string $title,
@@ -49,6 +51,30 @@ class AnnouncementService
 
         return $announcement;
     }
+
+    public function getUserAnnouncements(){
+        $announcements = Auth::user()->unreadAnnouncements();
+
+        // Collect force announcements
+        $forceAnnouncements = [];
+        foreach ($announcements as $announcement) {
+            if (isset($announcement['type']) && $announcement->type === 'force') {
+                $forceAnnouncements[] = $announcement;
+            }
+        }
+
+        Session::put('force_announcements', $forceAnnouncements);
+        return $announcements->map(function($ann){
+            return[
+                'id' =>$ann->id,
+                'title'=>$ann->title,
+                'type'=>$ann->type,
+                'expires_at'=>$ann->expires_at
+            ];
+        });
+    }
+
+
 
     /**
      * Find active announcements (system-wide)

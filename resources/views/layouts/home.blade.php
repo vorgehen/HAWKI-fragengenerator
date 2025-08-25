@@ -63,7 +63,6 @@
 		</div>
 	</div>
 
-	@include('partials.home.modals.confirm-modal')
 	@include('partials.home.modals.guidelines-modal')
 	@include('partials.home.modals.add-member-modal')
 	@include('partials.home.modals.session-expiry-modal')
@@ -80,6 +79,7 @@
     @foreach ($templates as $temp)
         @include('partials.home.templates.' . $viewName = str_replace('.blade', '',  $temp->getFilenameWithoutExtension()))
     @endforeach
+	@include('partials.home.modals.confirm-modal')
 
 </body>
 </html>

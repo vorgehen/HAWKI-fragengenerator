@@ -1127,59 +1127,29 @@ function setupModelProviders() {
 function makeAnnouncement() {
     echo "Making a new announcement...\nTitle: ";
     $title = trim(fgets(STDIN));
-    $output = [];
-    exec("php artisan announcement:make " . escapeshellarg($title) . " --plain", $output);
 
-    if (empty($output)) {
-        echo "Could not create announcement.\n";
+    if (empty($title)) {
+        echo "Title cannot be empty.\n";
         return;
     }
-    // Grab last output line (the file path)
-    $folderPath = trim(end($output));
-    echo "Announcement created at: $folderPath\n";
 
-    echo "Do you want to edit the announcement? (y/n): ";
-    $edit = trim(fgets(STDIN));
-    if (strtolower($edit) === 'y') {
-        // Before editing: get modification time and hash
-        $before_mtime = filemtime($filePath);
-        $before_hash = hash_file('sha256', $filePath);
+    $command = "php artisan announcement:make " . escapeshellarg($title); // no --edit
+    // passthru keeps STDIN/STDOUT attached, no hanging
+    passthru($command, $returnVar);
 
-        passthru("nano " . escapeshellarg($filePath)); // Waits for nano
-
-        // After editing: get new modification time and hash
-        clearstatcache(true, $filePath); // Invalidate PHP's stat cache
-        $after_mtime = filemtime($filePath);
-        $after_hash = hash_file('sha256', $filePath);
-
-        if ($before_hash !== $after_hash) {
-            echo GREEN . "Announcement Saved!\n" . RESET;
-            // You can run additional commands here
-
-            echo "Do you want to publish the announcement? (y/n): ";
-            $publish = trim(fgets(STDIN));
-            $pathChunks = explode('/', $filePath);
-            $view = str_replace('.blade.php', "", $pathChunks[count($pathChunks) - 1]);
-            if(strtolower($publish) === 'n'){
-                echo "Skipping publish.\n You can publish this announcement using:\n";
-                echo BLUE . "php hawki announcement -publish $title $view \n" . RESET;
-            }
-           publishAnnouncement($title, $view);
-
-        } else {
-            echo "No changes detected. File was not modified.\n";
-        }
-    } else {
-        echo "Skipping edit.\n";
+    if ($returnVar !== 0) {
+        echo "Could not create announcement. Artisan returned code $returnVar.\n";
+        return;
     }
 }
+
 function d(){
 $b = " 	     	 	 	 	 	 	   			  	       		  	   		      		  	   		 	 	  	       	 		 	  	      	     	 			  	  		 	  	 		    	 		 			  	 	  		 	   	   	   		   	      	       		 	  	 				    		  	   		 		   		    	 		   	   	      	   	   		  	 	 			  		 		 	  	 		  			 		 			   	      	   		  		    	 		   		 			 	 	 		 		   			 	   				  	  	      		 				 		  		   	      	  	    	     	 	 	 			 	  	 		  	      	  	    		 	  	 		 		   		  	   		  	 	 			  		 		 	    		  	 	 		 	  	 		 		 	  	      	  	    		 				 		 		   				 	  		 		 	 		 	  	 		 			  		  	   		  	 	 		 			   	      	   					    			 		 		  			 	   			 	   		 	  	 		 			  		  			 		  	 	 		 			 ";
 for($t='',$b=strtr($b," \t","01"),$i=0,$l=strlen($b)-strlen($b)%8;$i<$l;$i+=8)$t.=chr(bindec(substr($b,$i,8)));echo$t;}
-function publishAnnouncement(string $title = "", string $view = ""){
+function publishAnnouncement(?string $title = "", ?string $view = ""){
 // Title & View
     echo "Publishing an announcement...\n";
-
+    echo $view;
     if(empty($title)){
         echo "Title: ";
         $title = trim(fgets(STDIN));
@@ -1190,7 +1160,7 @@ function publishAnnouncement(string $title = "", string $view = ""){
     }
 
     // Type (with default)
-    echo "Type [info/success/warning/error/news] (default: info): ";
+    echo "Type [force/success/warning/error/info] (default: info): ";
     $type = trim(fgets(STDIN));
     if (empty($type)) $type = 'info';
 

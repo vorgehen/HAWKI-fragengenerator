@@ -10,7 +10,7 @@ class PublishAnnouncement extends Command
     protected $signature = 'announcement:publish
                             {title : Announcement Title}
                             {view : The Blade view reference (e.g. announcements.terms_update)}
-                            {--type=info : Announcement type (info, success, warning, error, news)}
+                            {--type=info : Announcement type (force, success, warning, error, info)}
                             {--global : Make this a global announcement}
                             {--users=* : Target user IDs (if not global)}
                             {--start= : Start datetime (Y-m-d H:i:s)}

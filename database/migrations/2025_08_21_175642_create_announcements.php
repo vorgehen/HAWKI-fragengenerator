@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->string('view');
-            $table->enum('type', ['mandatory', 'success', 'warning', 'error', 'info'])->default('info');
+            $table->enum('type', ['force', 'success', 'warning', 'error', 'info'])->default('info');
             $table->boolean('is_global')->default(true);
             $table->json('target_users')->nullable();
             $table->timestamp('starts_at')->nullable();

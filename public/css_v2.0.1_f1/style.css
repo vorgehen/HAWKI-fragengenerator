@@ -252,9 +252,15 @@ svg{
     direction: ltr;
 }
 
+.content-box{
+    padding-bottom: 3rem;
+}
+
+
 .modal-buttons-bar{
     display: flex;
     justify-content: space-between;
+    margin-top: 3rem;
 }
 
 #member-info-modal .modal-panel{

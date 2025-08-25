@@ -8,6 +8,7 @@ use App\Services\Chat\AiConv\AiConvService;
 use App\Services\Chat\Room\RoomService;
 use App\Services\Storage\AvatarStorageService;
 use App\Services\System\SettingsService;
+use App\Services\Announcements\AnnouncementService;
 
 use Illuminate\Http\Request;
 // use Illuminate\Support\Facades\View;
@@ -70,8 +71,8 @@ class HomeController extends Controller
 
         $models = $this->aiConnService->getAvailableModels();
 
-
-        $announcements = $user->unreadAnnouncements();
+        $announcementService = new AnnouncementService();
+        $announcements = $announcementService->getUserAnnouncements();
 
 
         // Pass translation, authenticationMethod, and authForms to the view

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Announcements\AnnouncementService;
+use Dotenv\Exception\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -53,28 +54,14 @@ class AnnouncementController extends Controller
     /**
      * Mark announcement as accepted
      */
-    public function markAccepted(Request $request, int $id): JsonResponse
+    public function submitReport(int $id): JsonResponse
     {
+        // $validate
         $user = Auth::user();
         $success = $this->announcementService->markAnnouncementAsAccepted($user, $id);
-
         return response()->json([
             'success' => $success,
             'message' => $success ? 'Announcement marked as accepted' : 'Failed to mark announcement as accepted'
-        ], $success ? 200 : 400);
-    }
-
-    /**
-     * Mark announcement as dismissed
-     */
-    public function markDismissed(Request $request, int $id): JsonResponse
-    {
-        $user = Auth::user();
-        $success = $this->announcementService->markAnnouncementAsDismissed($user, $id);
-
-        return response()->json([
-            'success' => $success,
-            'message' => $success ? 'Announcement marked as dismissed' : 'Failed to mark announcement as dismissed'
         ], $success ? 200 : 400);
     }
 }
