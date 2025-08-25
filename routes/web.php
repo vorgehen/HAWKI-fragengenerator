@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AccessTokenController;
 use App\Http\Controllers\AiConvController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthenticationController;
 use App\Http\Controllers\EncryptionController;
 use App\Http\Controllers\HomeController;
@@ -124,6 +125,12 @@ Route::middleware('prevent_back')->group(function () {
         Route::post('/req/inv/roomInvitationAccept',  [InvitationController::class, 'onAcceptInvitation']);
         Route::get('/req/inv/requestInvitation/{slug}',  [InvitationController::class, 'getInvitationWithSlug']);
         Route::get('/req/inv/requestUserInvitations',  [InvitationController::class, 'getUserInvitations']);
+
+        // Announcement routes
+        Route::get('/req/announcement/render/{id}', [AnnouncementController::class, 'render']);
+        Route::post('/req/announcement/seen/{id}', [AnnouncementController::class, 'markSeen']);
+        Route::post('/req/announcement/accepted/{id}', [AnnouncementController::class, 'markAccepted']);
+        Route::post('/req/announcement/dismissed/{id}', [AnnouncementController::class, 'markDismissed']);
 
 
         Route::post('/req/downloadKeychain',  [EncryptionController::class, 'downloadKeychain']);

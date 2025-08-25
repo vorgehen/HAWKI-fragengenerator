@@ -39,6 +39,7 @@
     <script src="{{ asset('js_v2.0.1_f1/file_manager.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/attachment_handler.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/model_list_filtering.js') }}"></script>
+    <script src="{{ asset('js_v2.0.1_f1/announcements.js') }}"></script>
 
 	@if(config('sanctum.allow_external_communication'))
 		<script src="{{ asset('js_v2.0.1_f1/sanctum_functions.js') }}"></script>
@@ -67,6 +68,7 @@
 	@include('partials.home.modals.add-member-modal')
 	@include('partials.home.modals.session-expiry-modal')
 	@include('partials.home.modals.file-viewer-modal')
+	@include('partials.home.modals.announcements-modal')
 
 	@include('partials.overlay')
 
@@ -131,6 +133,8 @@
 
 		initializeGUI();
 		checkWindowSize(800, 600);
+
+        initAnnouncements(@json($announcements));
 
 
 		setTimeout(() => {

@@ -1,0 +1,150 @@
+<?php
+
+namespace App\Services\Announcements;
+
+use Illuminate\Support\Facades\Session;
+use App\Models\Announcements\Announcement;
+use App\Models\User;
+use Illuminate\Support\Collection;
+
+use App\Http\Controllers\LanguageController;
+use Illuminate\Support\Facades\Log;
+use Exception;
+
+
+class AnnouncementService
+{
+    /**
+     * Create a new announcement
+     *
+     * Example:
+     * $service->createAnnouncement('announcements.terms_update', 'news', true);
+     */
+    public function createAnnouncement(
+        string $title,
+        string $view,
+        string $type = 'info',
+        bool $isGlobal = true,
+        ?array $targetUsers = null,
+        ?string $startsAt = null,
+        ?string $expiresAt = null
+    ): Announcement {
+        $announcement = Announcement::create([
+            'title' => $title,
+            'view' => $view,
+            'type' => $type,
+            'is_global' => $isGlobal,
+            'starts_at' => $startsAt,
+            'expires_at' => $expiresAt,
+        ]);
+
+        $userIds = $isGlobal
+            ? User::pluck('id')->all()      // all users
+            : ($targetUsers ?? []);
+
+        if (!empty($userIds)) {
+            $pivotData = array_fill_keys($userIds, ['accepted_at' => null]);
+            $announcement->users()->attach($pivotData);
+        }
+
+        return $announcement;
+    }
+
+    /**
+     * Find active announcements (system-wide)
+     */
+    public function getActiveAnnouncements(): Collection
+    {
+        $now = now();
+
+        return Announcement::query()
+            ->where(function ($q) use ($now) {
+                $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+            })
+            ->where(function ($q) use ($now) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>=', $now);
+            })
+            ->get();
+    }
+
+    /**
+     * Validate user access to announcement
+     */
+    public function validateUserAccess(User $user, Announcement $announcement): bool
+    {
+        if ($announcement->is_global) {
+            return true;
+        }
+
+        // For non-global announcements, check if user is in the target list
+        return $user->announcements()->where('announcement_id', $announcement->id)->exists();
+    }
+
+    /**
+     * Get announcement for rendering with access validation
+     */
+    public function getAnnouncementForUser(User $user, int $announcementId): ?Announcement
+    {
+        $announcement = Announcement::find($announcementId);
+
+        if (!$announcement) {
+            return null;
+        }
+
+        if (!$this->validateUserAccess($user, $announcement)) {
+            return null;
+        }
+
+        return $announcement;
+    }
+
+
+    /**
+     * Render announcement Blade and return to frontend
+     */
+
+    public function renderAnnouncement(Announcement $announcement){
+        $view = $announcement->view;
+        $lang = Session::get('language')['id'];
+        $file = resource_path("announcements/$view/$lang.md");
+        $content = file_get_contents($file);
+        return $content;
+    }
+
+    /**
+     * Mark announcement as seen for user
+     */
+    public function markAnnouncementAsSeen(User $user, int $announcementId): bool
+    {
+        try {
+            $announcement = Announcement::find($announcementId);
+            if (!$announcement || !$this->validateUserAccess($user, $announcement)) {
+                return false;
+            }
+
+            $user->markAnnouncementAsSeen($announcementId);
+            return true;
+
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Mark announcement as accepted for user
+     */
+    public function markAnnouncementAsAccepted(User $user, int $announcementId): bool
+    {
+        try {
+            $announcement = Announcement::find($announcementId);
+            if (!$announcement || !$this->validateUserAccess($user, $announcement)) {
+                return false;
+            }
+
+            $user->markAnnouncementAsAccepted($announcementId);
+            return true;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+}

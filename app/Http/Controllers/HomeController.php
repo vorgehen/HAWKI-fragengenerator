@@ -2,10 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\AiConvController;
-use App\Http\Controllers\RoomController;
 use App\Http\Controllers\LanguageController;
-use App\Http\Controllers\InvitationController;
 
 use App\Services\Chat\AiConv\AiConvService;
 use App\Services\Chat\Room\RoomService;
@@ -13,11 +10,9 @@ use App\Services\Storage\AvatarStorageService;
 use App\Services\System\SettingsService;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redirect;
 // use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
 use App\Services\AI\AIConnectionService;
@@ -75,6 +70,10 @@ class HomeController extends Controller
 
         $models = $this->aiConnService->getAvailableModels();
 
+
+        $announcements = $user->unreadAnnouncements();
+
+
         // Pass translation, authenticationMethod, and authForms to the view
         return view('modules.' . $requestModule,
                     compact('translation',
@@ -84,7 +83,9 @@ class HomeController extends Controller
                             'userData',
                             'activeModule',
                             'activeOverlay',
-                            'models'));
+                            'models',
+                            'announcements'
+                        ));
     }
 
     public function print($module, $slug, AiConvService $aiConvService, RoomService $roomService, AvatarStorageService $avatarStorage){

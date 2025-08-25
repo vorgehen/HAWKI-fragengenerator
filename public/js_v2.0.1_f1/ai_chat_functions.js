@@ -18,7 +18,6 @@ function initializeAiChatModule(chatsObject){
     });
 
     chats = chatsObject;
-    console.log(chatsObject)
     chats.forEach(conv => {
         createChatItem(conv);
     });

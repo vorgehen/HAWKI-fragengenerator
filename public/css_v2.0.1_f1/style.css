@@ -228,8 +228,13 @@ svg{
     overflow: hidden;
     padding-top: 1rem;
     padding-bottom: 1rem;
-    padding-left: 1rem;
+    padding-left: 0rem;
 }
+.modal-panel.wide{
+    width: 60em;
+}
+
+
 .modal-content-wrapper{
     direction: rtl;
     overflow-y: scroll;
