@@ -3,6 +3,7 @@
 namespace App\Services\Profile;
 
 
+use App\Models\User;
 use App\Models\PrivateUserData;
 use App\Models\PasskeyBackup;
 
@@ -54,7 +55,7 @@ class ProfileService{
     public function resetProfile(): void{
         try{
             $user = Auth::user();
-            $this->deleteUserData();
+            $this->deleteUserData($user);
 
             $userInfo = [
                 'username' => $user->username,
@@ -74,12 +75,9 @@ class ProfileService{
     }
 
 
-    private function deleteUserData(): void{
+    public function deleteUserData(User $user): void{
 
         try{
-            $user = Auth::user();
-
-
             $roomService = new RoomService();
             $rooms = $user->rooms()->get();
 

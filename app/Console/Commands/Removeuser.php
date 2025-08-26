@@ -26,7 +26,7 @@ class Removeuser extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(ProfileService $profileService)
     {
         // Ask for confirmation
         if ($this->confirm('The user and all the related messages will be permanently removed. Do you want to continue?', true)) {
@@ -61,9 +61,7 @@ class Removeuser extends Command
                 return;
             }
 
-
-            $profileService = new ProfileService();
-            $profileService->resetProfile();
+            $profileService->deleteUserData($user);
             $this->info('Profile Reset Successfull!');
 
         } else {

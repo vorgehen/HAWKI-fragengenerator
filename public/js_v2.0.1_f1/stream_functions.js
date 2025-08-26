@@ -347,7 +347,7 @@ function convertMsgObjToLog(messages){
     for(let i = 0; i < messages.length; i++){
         msg = messages[i];
         const role = msg.message_role === 'assistant' ? 'assistant' : 'user';
-        const msgTxt = msg.content;
+        const msgTxt = msg.content.text;
         const filteredText = detectMentioning(msgTxt).filteredText;
         const messageObject = {
             role: role,

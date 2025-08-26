@@ -5,10 +5,11 @@ namespace App\Services\Profile\Traits;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use laravel\Sanctum\NewAccessToken;
 
 trait ApiTokenHandler{
 
-    public function createApiToken(string $name){
+    public function createApiToken(string $name): NewAccessToken{
         $user = Auth::user();
         return $user->createToken($name);
     }
@@ -32,7 +33,7 @@ trait ApiTokenHandler{
         try{
             $user = Auth::user();
             $token = $user->tokens()->where('id', $tokenId);
-            $deleted = $token->delete();
+            $token->delete();
         }
         catch(Exception $e){
             Log::error($e->getMessage());

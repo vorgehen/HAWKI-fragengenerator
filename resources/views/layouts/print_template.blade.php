@@ -22,6 +22,8 @@
 	<script src="{{ asset('js_v2.0.1_f1/syntax_modifier.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/encryption.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/export.js') }}"></script>
+    <script src="{{ asset('js_v2.0.1_f1/file_manager.js') }}"></script>
+    <script src="{{ asset('js_v2.0.1_f1/attachment_handler.js') }}"></script>
 
 
 </head>
@@ -52,6 +54,7 @@
 			<div class="message-header">
 				<div class="message-author"></div>
 			</div>
+			<div class="attachments"></div>
 
 			<div class="message-content">
 				<span class="assistant-mention"></span>
@@ -62,6 +65,7 @@
 	</div>
 </template>
 
+@include('partials.home.templates.attachment-template')
 </body>
 </html>
 
@@ -72,7 +76,7 @@
 	const userAvatarUrl = @json($userData['avatar_url']);
 	const hawkiAvatarUrl = @json($userData['hawki_avatar_url']);
 	const activeModule = @json($activeModule);
-    const data = @json($chatData);
+    const chatData = @json($chatData);
 	const activeLocale = {!! json_encode(Session::get('language')) !!};
 
 	const modelsList = @json($models).models;

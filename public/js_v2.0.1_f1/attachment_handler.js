@@ -161,7 +161,7 @@ function createAttachmentThumbnail(fileData) {
     const attachClone = attachTemp.content.cloneNode(true);
     const attachment = attachClone.querySelector(".attachment");
     attachment.dataset.fileId = fileData.uuid ?? fileData.tempId;
-
+    attachment.dataset.mime = fileData.mime;
     attachment.querySelector('.name-tag').innerText = fileData.name;
 
     const iconImg = attachment.querySelector('img');
