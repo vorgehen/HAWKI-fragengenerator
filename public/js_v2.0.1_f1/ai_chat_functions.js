@@ -548,6 +548,8 @@ async function requestDeleteConv() {
                 clearChatlog();
                 clearInput();
                 chatlogElement.classList.remove('active');
+                chatlogElement.classList.add('start-state');
+
                 history.replaceState(null, '', `/chat`);
             }
 

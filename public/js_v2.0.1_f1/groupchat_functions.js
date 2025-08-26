@@ -1270,21 +1270,7 @@ async function requestDeleteRoom() {
         const data = await response.json();
 
         if (data.success) {
-            const listItem = document.querySelector(`.selection-item[slug="${activeRoom.slug}"]`);
-            const list = listItem.parentElement;
-            listItem.remove();
-
-            if(list.childElementCount > 0){
-                loadRoom(list.firstElementChild, null);
-                switchDyMainContent('chat');
-
-            }
-            else{
-                switchDyMainContent('group-welcome-panel');
-                history.replaceState(null, '', `/groupchat`);
-            }
-
-
+            removeListItem(activeRoom.slug);
         } else {
             console.error('Room removal was not successful!');
         }
@@ -1315,9 +1301,7 @@ async function leaveRoom(){
         const data = await response.json();
 
         if (data.success) {
-            const listItem = document.querySelector(`.selection-item[slug="${activeRoom.slug}"]`);
-            const list = listItem.parentElement;
-            listItem.remove();
+            removeListItem(activeRoom.slug);
             loadRoom(list.firstElementChild, null);
             switchDyMainContent('chat');
 
@@ -1329,6 +1313,22 @@ async function leaveRoom(){
     }
 }
 
+
+function removeListItem(slug){
+        const listItem = document.querySelector(`.selection-item[slug="${slug}"]`);
+        const list = listItem.parentElement;
+        listItem.remove();
+
+        if(list.childElementCount > 0){
+            loadRoom(list.firstElementChild, null);
+            switchDyMainContent('chat');
+
+        }
+        else{
+            switchDyMainContent('group-welcome-panel');
+            history.replaceState(null, '', `/groupchat`);
+        }
+}
 
 async function removeMemberFromRoom(username){
 
