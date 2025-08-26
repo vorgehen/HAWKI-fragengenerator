@@ -11,11 +11,23 @@ use App\Http\Middleware\ExternalCommunicationCheck;
 use App\Http\Middleware\PreventBackHistory;
 use App\Http\Middleware\SessionExpiryChecker;
 use App\Http\Middleware\TokenCreationCheck;
-use Illuminate\Support\Facades\Route;
-use Dotenv\Dotenv;
+use App\Http\Middleware\MandatorySignatureCheck;
 
 use App\Services\AI\AIProviderFactory;
 use App\Services\AI\AIConnectionService;
+
+use App\Services\Storage\StorageServiceFactory;
+use App\Services\Storage\DefaultStorageService;
+use App\Services\Storage\FileStorageService;
+use App\Services\Storage\AvatarStorageService;
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Contracts\Foundation\Application;
+use League\Flysystem\WebDAV\WebDAVAdapter;
+use Sabre\DAV\Client;
+
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,24 +44,55 @@ class AppServiceProvider extends ServiceProvider
         Route::aliasMiddleware('prevent_back', PreventBackHistory::class);
         Route::aliasMiddleware('expiry_check', SessionExpiryChecker::class);
         Route::aliasMiddleware('token_creation', TokenCreationCheck::class);
-        
+        Route::aliasMiddleware('signature_check', MandatorySignatureCheck::class);
+
         // Register AI services
         $this->app->singleton(AIProviderFactory::class, function ($app) {
             return new AIProviderFactory();
         });
-        
+
         $this->app->singleton(AIConnectionService::class, function ($app) {
             return new AIConnectionService(
                 $app->make(AIProviderFactory::class)
             );
         });
+
+        $this->app->singleton(
+            DefaultStorageService::class,
+            fn(Application $app) => $app->make(StorageServiceFactory::class)->getDefaultStorage()
+        );
+
+        $this->app->singleton(
+            AvatarStorageService::class,
+            fn(Application $app) => $app->make(StorageServiceFactory::class)->getAvatarStorage()
+        );
+
+        $this->app->singleton(
+            FileStorageService::class,
+            fn(Application $app) => $app->make(StorageServiceFactory::class)->getFileStorage()
+        );
+
     }
 
-    /**
-     * Bootstrap any application services.
-     */
+
     public function boot(): void
     {
+        // Register WebDAV driver for NextCloud support
+        Storage::extend('webdav', function ($app, $config) {
+            $client = new Client([
+                'baseUri' => $config['base_uri'],
+                'userName' => $config['username'],
+                'password' => $config['password'],
+            ]);
 
+            $adapter = new WebDAVAdapter($client, $config['prefix'] ?? '');
+
+            return new \Illuminate\Filesystem\FilesystemAdapter(
+                new \League\Flysystem\Filesystem($adapter),
+                $adapter,
+                $config
+            );
+        });
     }
+
 }

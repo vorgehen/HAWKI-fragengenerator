@@ -17,7 +17,7 @@
 
 body {
     overflow: hidden;
-    -ms-overflow-style: none; 
+    -ms-overflow-style: none;
     font-family: "Fira Sans", sans-serif;
     color: var(--text-color);
     background-color: var(--background-main);
@@ -105,8 +105,8 @@ label{
     width: 0px;
 }
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
 input:-webkit-autofill:active  {
     transition: background-color 3s;
     background-color: var(--background-secondary) !important;
@@ -206,7 +206,7 @@ svg{
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
     color: var(--text-color);
-  
+
     /* -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -228,7 +228,13 @@ svg{
     overflow: hidden;
     padding-top: 1rem;
     padding-bottom: 1rem;
+    padding-left: 0rem;
 }
+.modal-panel.wide{
+    width: 60em;
+}
+
+
 .modal-content-wrapper{
     direction: rtl;
     overflow-y: scroll;
@@ -246,9 +252,15 @@ svg{
     direction: ltr;
 }
 
+.content-box{
+    padding-bottom: 3rem;
+}
+
+
 .modal-buttons-bar{
     display: flex;
     justify-content: space-between;
+    margin-top: 3rem;
 }
 
 #member-info-modal .modal-panel{
@@ -262,7 +274,7 @@ svg{
 /* SECTION: BUTTONS */
 
 button{
-    color: var(--text-color);    
+    color: var(--text-color);
 }
 button:disabled{
     opacity: 0.5;
@@ -503,7 +515,7 @@ button:disabled{
 
 .burger-dropdown{
     position: absolute;
-    
+
     display: none;
     opacity: 0;
 
@@ -514,7 +526,7 @@ button:disabled{
     border: var(--border-stroke-thin);
     border-radius: var(--border-radius-normal);
     overflow: hidden;
-    
+
     transition: all var(--transition-fast);
 }
 
@@ -538,10 +550,15 @@ button:disabled{
     z-index: 99;
     transition: font-weight 0.05s;
 }
-.burger-item:hover{
+.burger-item:not(:disabled):hover{
     background-color: var(--background-secondary);
     font-weight: 700;
 }
+/* .burger-item:disabled:hover,
+.burger-item[disabled]:hover{
+    background-color: red;
+} */
+
 .burger-item .loading{
     display: none;
 }

@@ -7,24 +7,21 @@ let rooms;
 let typingStatusDiv;
 let activeRoom = null;
 
-function initializeGroupChatModule(roomsObject){
-
+function initializeGroupChatModule(roomsData){
+    rooms = roomsData;
     roomMsgTemp = document.getElementById('message-template');
     roomItemTemplate = document.getElementById('selection-item-template');
     inputField = document.querySelector(".input-field");
     typingStatusDiv = document.querySelector('.isTypingStatus');
 
-
-    rooms = roomsObject.original;
-
-    if(rooms){
-        rooms.forEach(roomItem => {
-            createRoomItem(roomItem.room);
+    if(roomsData){
+        roomsData.forEach(roomItem => {
+            createRoomItem(roomItem);
             if(roomItem.hasUnreadMessages){
-              flagRoomUnreadMessages(roomItem.room.slug, true);
+              flagRoomUnreadMessages(roomItem.slug, true);
             }
-            connectWebSocket(roomItem.room.slug);
-            connectWhisperSocket(roomItem.room.slug)
+            connectWebSocket(roomItem.slug);
+            connectWhisperSocket(roomItem.slug)
         });
     }
     document.querySelector('.chatlog').querySelector('.scroll-container').addEventListener('scroll', function() {
@@ -33,8 +30,12 @@ function initializeGroupChatModule(roomsObject){
     document.querySelector('.chatlog').querySelector('.scroll-container').addEventListener('scroll', function() {
         setTimeout(function() {
             isScrolling = false;
-        }, 800); 
+        }, 800);
     });
+
+    const input = document.getElementById('input-container');
+    initFileUploader(input);
+
     initializeChatlogFunctions();
 }
 
@@ -70,30 +71,42 @@ async function onSendMessageToRoom(inputField) {
     }
 
     inputText = escapeHTML(inputField.value.trim());
-    inputField.value = "";
-    resizeInputField(inputField);
 
-    
+    /// UPLOAD ATTACHMENTS
+    const input = inputField.closest('.input');
+    const attachments = await uploadAttachmentQueue(input.id, 'room', activeRoom.slug);
+
+
     const roomKey = await keychainGet(activeRoom.slug);
-    const contData = await encryptWithSymKey(roomKey, inputText, false);
+    const cryptoMsg = await encryptWithSymKey(roomKey, inputText, false);
+
     const messageObj = {
-        content : contData.ciphertext,
-        iv : contData.iv,
-        tag : contData.tag,
-        threadID : activeThreadIndex,
+        'content': {
+            "text": {
+                'ciphertext': cryptoMsg.ciphertext,
+                "iv": cryptoMsg.iv,
+                "tag": cryptoMsg.tag,
+            },
+            "attachments": attachments
+        },
+        'threadID' : activeThreadIndex,
     };
 
     const submittedObj = await submitMessageToServer(messageObj, `/req/room/sendMessage/${activeRoom.slug}`)
-    submittedObj.content = inputText;
-
-    // console.log('submittedObj')
-    // console.log(submittedObj)
+    submittedObj.content.text = inputText;
     submittedObj.filteredContent = detectMentioning(inputText),
+
+    // empty input field
+    inputField.value = "";
+    resizeInputField(inputField);
+    const fileAtchs = input.querySelector('.file-attachments');
+    fileAtchs.querySelector('.attachments-list').innerHTML = "";
+    fileAtchs.classList.remove('active');
 
     addMessageToChatlog(submittedObj);
 
-    // console.log(messageObj);
-    // if HAWKI is targeted send copy to stream controller
+
+    /// if HAWKI is targeted send copy to stream controller
     if(submittedObj.filteredContent.aiMention && submittedObj.filteredContent.aiMention.toLowerCase().includes(aiHandle.toLowerCase())){
 
         const aiCryptoSalt = await fetchServerSalt('AI_CRYPTO_SALT');
@@ -108,9 +121,9 @@ async function onSendMessageToRoom(inputField) {
             'key': aiKeyBase64,
             'stream': false,
         }
-        // console.log('buildRequestObject');
+
         buildRequestObject(msgAttributes,  async (updatedText, done) => {
-            // console.log('waiting');
+
         });
     }
 
@@ -119,7 +132,7 @@ async function onSendMessageToRoom(inputField) {
 
 const connectWebSocket = (roomSlug) => {
     const webSocketChannel = `Rooms.${roomSlug}`;
-    // console.log('connected to > ' + roomSlug);
+
     window.Echo.private(webSocketChannel)
         .listen('RoomMessageEvent', async (e) => {
             try {
@@ -148,13 +161,12 @@ const connectWebSocket = (roomSlug) => {
                         flagRoomUnreadMessages(roomSlug, true);
                     }
                 }
-    
+
                 if(data.type === "messageUpdate"){
                     handleUpdateMessage(data.messageData, roomSlug)
                 }
-    
+
                 if(data.type === "aiGenerationStatus"){
-                    // console.log('aiGenerationStatus', data.messageData.isGenerating);
                     if (data.messageData.isGenerating) {
                         // Display the typing indicator for the user
                         addUserToTypingList(data.messageData.model);
@@ -179,7 +191,6 @@ async function handleUserMessages(messageData, slug){
 
     let element = document.getElementById(messageData.message_id);
     if (!element) {
-        // console.log('USER MESSAGE RECEIED >>> ',messageData);
         element = addMessageToChatlog(messageData, true);
         activateMessageControls(element);
     }
@@ -207,12 +218,9 @@ async function handleAIMessage(messageData, slug){
 
     messageData.content = await decryptWithSymKey(aiKey, messageData.content, messageData.iv, messageData.tag);
 
-    // console.log(messageData);
-
     // CREATE AND UPDATE MESSAGE
     let element = document.getElementById(messageData.message_id);
     if (!element) {
-        // console.log('AI Message', messageData);
         element = addMessageToChatlog(messageData, true);
         activateMessageControls(element);
     }else{
@@ -221,7 +229,6 @@ async function handleAIMessage(messageData, slug){
 
     // Observe unread messages
     if(element.dataset.read_stat === 'false'){
-        // console.log(element);
         observer.observe(element);
     }
     if(!element.querySelector('.branch')){
@@ -293,7 +300,6 @@ function onGroupchatType() {
 
 function startTyping() {
     const webSocketChannel = `Rooms.${activeRoom.slug}`;
-    // console.log('Started typing', webSocketChannel);
 
     Echo.private(webSocketChannel)
         .whisper('typing', {
@@ -303,7 +309,6 @@ function startTyping() {
 }
 
 function stopTyping() {
-    // console.log('Stopped typing');
     isTyping = false;
     const webSocketChannel = `Rooms.${activeRoom.slug}`;
 
@@ -317,11 +322,8 @@ function stopTyping() {
 function connectWhisperSocket(roomSlug){
 
     const webSocketChannel = `Rooms.${roomSlug}`;
-    // console.log('whisper listening to ', webSocketChannel);
     Echo.private(webSocketChannel)
     .listenForWhisper('typing', (e) => {
-
-        // console.log('whisper received ', e.user);
         if (activeRoom.slug !== roomSlug) return;
 
         if (e.typing) {
@@ -359,7 +361,7 @@ function removeUserFromTypingList(user) {
 
 function updateTypingStatus() {
     const users = Object.keys(typingUsers);
-    
+
     if (users.length === 0) {
         typingStatusDiv.textContent = '';
         typingStatusDiv.style.display = 'none'; // Hide if no one is typing
@@ -392,9 +394,9 @@ function openRoomCreatorPanel(){
     }
 
     const roomCreationPanel = document.getElementById('room-creation');
-    
+
     defaultPromt = translation.Default_Prompt;
-    
+
     roomCreationPanel.querySelector('#chat-name-input').value = '';
     roomCreationPanel.querySelector('#user-search-bar').value = '';
     roomCreationPanel.querySelector('#room-description-input').value = '';
@@ -454,12 +456,13 @@ async function createNewRoom(){
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                onSuccessfullRoomCreation(data);
+                onSuccessfullRoomCreation(data.roomData);
+
             } else {
                 // Handle unexpected response
                 console.error('Unexpected response:', data);
                 alert('Failed to create room. Please try again.');
-            }  
+            }
         })
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
@@ -467,14 +470,12 @@ async function createNewRoom(){
 }
 
 
-async function onSuccessfullRoomCreation(data){
+async function onSuccessfullRoomCreation(roomData){
 
     const inputs = document.querySelector('.inputs-list');
     const description = inputs.querySelector('#room-description-input').value;
     const systemPrompt = inputs.querySelector('#system-prompt-input').value;
     const avatar_url = inputs.querySelector('#room-creation-avatar').getAttribute('src');
-
-    const roomData = data.roomData;
 
     //generate encryption key
     const roomKey = await generateKey();
@@ -499,7 +500,7 @@ async function onSuccessfullRoomCreation(data){
     attributes ={
         'systemPrompt':systemPromptStr,
         'description':descriptionStr,
-        'img':avatar_url     
+        'img':avatar_url
     }
 
     updateRoomInfo(roomData.slug, attributes)
@@ -517,7 +518,7 @@ async function onSuccessfullRoomCreation(data){
     });
 
     await createAndSendInvitations(usersList, roomData.slug);
-    
+
     //close UI
     finishRoomCreation();
     //create sidebar button
@@ -557,7 +558,7 @@ async function createAndSendInvitations(usersList, roomSlug){
         if (invitee.publicKey) {
 
             const encryptedRoomKey = await encryptWithPublicKey(roomKey, base64ToArrayBuffer(invitee.publicKey));
-            
+
             invitation = {
                 username: invitee.username,
                 encryptedRoomKey: encryptedRoomKey.ciphertext, // This should be just the encrypted data for public key
@@ -601,7 +602,7 @@ async function requestStoreInvitationsOnServer(invitations, slug){
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
         body: JSON.stringify({invitations})
     });
@@ -613,7 +614,7 @@ async function sendInvitationEmail(mailContent){
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
         body: JSON.stringify(mailContent)
     });
@@ -634,7 +635,7 @@ async function handleUserInvitations() {
         if(!response.ok){
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         if(data.formattedInvitations){
 
@@ -670,7 +671,7 @@ async function handleTempLinkInvitation(tempLink){
     const parsedLink = JSON.parse(tempLink);
     tempHash = parsedLink.tempHash;
     slug = parsedLink.slug;
-    
+
     // GET INVITATION OBJECT
     try{
         const response = await fetch(`/req/inv/requestInvitation/${slug}`, {
@@ -684,7 +685,7 @@ async function handleTempLinkInvitation(tempLink){
         if(!response.ok){
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         roomKey = await decryptWithTempHash(data.invitation, tempHash, data.iv, data.tag);
         if(roomKey){
@@ -703,11 +704,11 @@ async function finishInvitationHandling(invitation_id, roomKey){
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
         body: JSON.stringify({ invitation_id: invitation_id })
     });
-    
+
     const data = await response.json();
     if(data.success){
 
@@ -751,7 +752,6 @@ function createRoomItem(roomData){
 
 
 async function loadRoom(btn=null, slug=null){
-
     if(rooms.length === 0){
         history.replaceState(null, '', `/groupchat`);
         switchDyMainContent('group-welcome-panel');
@@ -762,8 +762,20 @@ async function loadRoom(btn=null, slug=null){
         return;
     }
 
-    if(!slug) slug = btn.getAttribute('slug'); 
+    if(!slug) slug = btn.getAttribute('slug');
     if(!btn) btn = document.querySelector(`.selection-item[slug="${slug}"]`);
+
+
+    let roomData;
+    try{
+        roomData = await RequestRoomContent(slug);
+    }
+    catch{
+        console.error('room not found', slug);
+        history.replaceState(null, '', `/groupchat`);
+        switchDyMainContent('group-welcome-panel');
+        return;
+    }
 
     const lastActive = document.getElementById('rooms-list').querySelector('.selection-item.active');
     if(lastActive){
@@ -774,12 +786,8 @@ async function loadRoom(btn=null, slug=null){
     switchDyMainContent('chat');
     history.replaceState(null, '', `/groupchat/${slug}`);
 
-    const roomData = await RequestRoomContent(slug);
-    if(!roomData){
-        return;
-    }
-    
     clearChatlog();
+    clearInput();
 
     activeRoom = roomData;
     const chatControlPanel = document.querySelector('#room-control-panel');
@@ -820,7 +828,9 @@ async function loadRoom(btn=null, slug=null){
 
     for (const msgData of roomData.messagesData) {
         const key = msgData.message_role === 'assistant' ? aiKey : roomKey;
-        msgData.content = await decryptWithSymKey(key, msgData.content, msgData.iv, msgData.tag, false);
+        msgData.content.text = await decryptWithSymKey(key, msgData.content.text.ciphertext,
+                                                            msgData.content.text.iv,
+                                                            msgData.content.text.tag, false);
     }
     filterRoleElements(roomData.role);
     loadMessagesOnGUI(roomData.messagesData);
@@ -880,7 +890,7 @@ async function RequestRoomContent(slug){
         if(!response.ok){
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         return data;
     }
@@ -897,7 +907,7 @@ const MemberRoles = {
 };
 function filterRoleElements(roleId) {
     const role = Object.values(MemberRoles).find(r => r.id === roleId);
-    
+
     if (!role) {
         throw new Error('Invalid User Role.');
     }
@@ -923,7 +933,7 @@ function filterRoleElements(roleId) {
             toggleDisplay(elements, false);
         }
     }
-} 
+}
 
 //#endregion
 
@@ -935,7 +945,19 @@ async function searchUser(searchBar) {
 
     if (query.length > 2) { // Start searching after 3 characters
         try {
-            const response = await fetch(`/req/search?query=${encodeURIComponent(query)}`);
+            // const response = await fetch(`/req/room/search?query=${encodeURIComponent(query)}`);
+            const response = await fetch(`/req/room/search`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    "query": encodeURIComponent(query)
+                })
+
+            });
+
             const data = await response.json();
 
             if (data.success) {
@@ -956,7 +978,7 @@ async function searchUser(searchBar) {
                         ignoreList.push(username);
                     }
                 });
-                
+
                 data.users.forEach(user => {
                     // Check if the user's username is already in the ignoreList
                     const isAlreadyAdded = ignoreList.some(invitedUsername => invitedUsername === user.username);
@@ -975,7 +997,7 @@ async function searchUser(searchBar) {
                         resultPanel.innerHTML = '';
                         resultPanel.style.display = "none";
                     })
-                    
+
                     resultPanel.appendChild(option);
 
                 });
@@ -1019,7 +1041,7 @@ function onAddUserButton(btn){
 }
 
 function addUserToList(searchBar) {
-    
+
     const selectedUser = searchBar.value.trim();
     if (!selectedUser || !tempSearchResult || tempSearchResult.length === 0) {
         // alert('Please select a valid user.');
@@ -1062,7 +1084,7 @@ function removeAddedMember(btn){
 
 function generateRandomColor() {
     const r = Math.floor(Math.random() * 128) + 127; // Random value between 127 and 255
-    const g = Math.floor(Math.random() * 128) + 127; 
+    const g = Math.floor(Math.random() * 128) + 127;
     const b = Math.floor(Math.random() * 128) + 127;
     return `rgba(${r}, ${g}, ${b}, 0.7)`;
 }
@@ -1076,7 +1098,6 @@ function openRoomCP(){
     const editBtns = cp.querySelectorAll('#edit-abort');
     editBtns.forEach(btn => {
         if(btn.closest('.edit-panel').parentElement.querySelector('.text-field').getAttribute('contenteditable') === true){
-            // console.log('switching edit panel')
             abortTextPanelEdit(btn);
         }
     });
@@ -1096,7 +1117,7 @@ function openRoomCP(){
     descField.addEventListener('paste', function(e) {
         // Prevent the default paste behavior
         e.preventDefault();
-        
+
         // Get clipboard data as plain text
         const text = (e.clipboardData || window.clipboardData).getData('text');
 
@@ -1144,7 +1165,7 @@ function editTextPanel(btn) {
         selection.addRange(range);
     }
     else if(document.selection)//IE 8 and lower
-    { 
+    {
         range = document.body.createTextRange();
         range.moveToElementText(textField);
         range.collapse(false);
@@ -1192,9 +1213,9 @@ function confirmTextPanelEdit(btn){
 
 async function submitInfoField(){
 
-    const roomCP = document.getElementById('room-control-panel');    
+    const roomCP = document.getElementById('room-control-panel');
 
-    
+
     const chatName = roomCP.querySelector('#chat-name').textContent;
     document.getElementById('rooms-list')
             .querySelector(`.selection-item[slug="${activeRoom.slug}"`)
@@ -1249,23 +1270,7 @@ async function requestDeleteRoom() {
         const data = await response.json();
 
         if (data.success) {
-            // console.log('Room removed successfully');
-
-            const listItem = document.querySelector(`.selection-item[slug="${activeRoom.slug}"]`);
-            const list = listItem.parentElement;
-            listItem.remove();
-
-            if(list.childElementCount > 0){
-                loadRoom(list.firstElementChild, null);
-                switchDyMainContent('chat');
-
-            }
-            else{
-                switchDyMainContent('group-welcome-panel');
-                history.replaceState(null, '', `/groupchat`);
-            }
-
-
+            removeListItem(activeRoom.slug);
         } else {
             console.error('Room removal was not successful!');
         }
@@ -1296,9 +1301,7 @@ async function leaveRoom(){
         const data = await response.json();
 
         if (data.success) {
-            const listItem = document.querySelector(`.selection-item[slug="${activeRoom.slug}"]`);
-            const list = listItem.parentElement;
-            listItem.remove();
+            removeListItem(activeRoom.slug);
             loadRoom(list.firstElementChild, null);
             switchDyMainContent('chat');
 
@@ -1310,6 +1313,22 @@ async function leaveRoom(){
     }
 }
 
+
+function removeListItem(slug){
+        const listItem = document.querySelector(`.selection-item[slug="${slug}"]`);
+        const list = listItem.parentElement;
+        listItem.remove();
+
+        if(list.childElementCount > 0){
+            loadRoom(list.firstElementChild, null);
+            switchDyMainContent('chat');
+
+        }
+        else{
+            switchDyMainContent('group-welcome-panel');
+            history.replaceState(null, '', `/groupchat`);
+        }
+}
 
 async function removeMemberFromRoom(username){
 
@@ -1333,7 +1352,6 @@ async function removeMemberFromRoom(username){
         const data = await response.json();
 
         if (data.success) {
-            // console.log('user removed from room');
             return true;
         } else {
             console.error('Removeing user was not successful!');
@@ -1341,7 +1359,7 @@ async function removeMemberFromRoom(username){
     } catch (error) {
         console.error('Failed to remove user!');
     }
-    
+
 }
 
 //#endregion
@@ -1352,7 +1370,6 @@ function selectRoomAvatar(btn, upload = false){
 
     const imageElement = btn.parentElement.querySelector('.selectable-image');
     const initials = btn.parentElement.querySelector('#control-panel-chat-initials');
-    // console.log(imageElement);
     openImageSelection(imageElement.getAttribute('src'), function(croppedImage) {
         imageElement.style.display = 'block';
         if(initials){
@@ -1367,7 +1384,6 @@ function selectRoomAvatar(btn, upload = false){
 }
 
 async function uploadRoomAvatar(imgBase64){
-    // console.log(activeRoom)
     const url = `/req/room/updateInfo/${activeRoom.slug}`;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
@@ -1384,7 +1400,7 @@ async function uploadRoomAvatar(imgBase64){
 
         if (data.success) {
             // console.log('Image Uploaded Successfully');
-            
+
         } else {
             console.error('Upload not successfull');
         }
@@ -1404,7 +1420,7 @@ async function updateRoomInfo(slug, attributes){
     }
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    const url = `/req/room/updateInfo/${slug}`; 
+    const url = `/req/room/updateInfo/${slug}`;
 
     let requestObj = {};
     if(attributes.systemPrompt) requestObj.system_prompt = attributes.systemPrompt;
@@ -1425,11 +1441,11 @@ async function updateRoomInfo(slug, attributes){
         if(!response.ok){
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         if(data.success){
             // console.log('Room Information updated successfully');
-        }        
+        }
     }
     catch (err){
         console.error('Error fetching data:', error);
