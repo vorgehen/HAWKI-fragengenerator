@@ -69,27 +69,34 @@ class User extends Authenticatable
     {
         $now = now();
 
-        return $this->announcements()
+        return Announcement::query()
             ->where(function ($q) use ($now) {
                 $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
             })
             ->where(function ($q) use ($now) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>=', $now);
             })
-            ->whereNull('announcement_user.accepted_at')
+            ->where(function ($q) {
+                $q->where('is_global', true)
+                ->orWhereJsonContains('target_users', $this->id);
+            })
+            ->whereDoesntHave('users', function ($q) {
+                $q->where('user_id', $this->id)->whereNotNull('accepted_at');
+            })
             ->get();
     }
+
     public function markAnnouncementAsSeen($announcementId)
     {
-        $this->announcements()->updateExistingPivot($announcementId, [
-            'seen_at' => now(),
+        $this->announcements()->syncWithoutDetaching([
+            $announcementId => ['seen_at' => now()],
         ]);
     }
 
     public function markAnnouncementAsAccepted($announcementId)
     {
-        $this->announcements()->updateExistingPivot($announcementId, [
-            'accepted_at' => now(),
+        $this->announcements()->syncWithoutDetaching([
+            $announcementId => ['accepted_at' => now()],
         ]);
     }
 

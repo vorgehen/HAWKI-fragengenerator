@@ -31,25 +31,15 @@ class AnnouncementService
         ?string $startsAt = null,
         ?string $expiresAt = null
     ): Announcement {
-        $announcement = Announcement::create([
+        return Announcement::create([
             'title' => $title,
             'view' => $view,
             'type' => $type,
             'is_global' => $isGlobal,
+            'target_users' => $targetUsers,
             'starts_at' => $startsAt,
             'expires_at' => $expiresAt,
         ]);
-
-        $userIds = $isGlobal
-            ? User::pluck('id')->all()      // all users
-            : ($targetUsers ?? []);
-
-        if (!empty($userIds)) {
-            $pivotData = array_fill_keys($userIds, ['accepted_at' => null]);
-            $announcement->users()->attach($pivotData);
-        }
-
-        return $announcement;
     }
 
     public function getUserAnnouncements(){
