@@ -39,6 +39,7 @@ class MessageContentValidator
         }
         catch (ValidationException $e) {
             Log::error($e->getMessage());
+            return null;
         }
     }
 }

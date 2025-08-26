@@ -25,9 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->shouldRenderJsonWhen(function (Request $request) {
-        return $request->expectsJson() || $request->is('api/*');
-    });
-
+            return $request->expectsJson() || $request->is('api/*');
+        });
     })->withSingletons([
         DefaultStorageService::class => fn (Application $app) => $app->make(StorageServiceFactory::class)->getDefaultStorage(),
         FileStorageService::class => fn (Application $app) => $app->make(StorageServiceFactory::class)->getFileStorage(),

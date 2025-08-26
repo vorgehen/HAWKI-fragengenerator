@@ -7,6 +7,8 @@ use App\Services\Storage\FileStorageService;
 use App\Services\Chat\Attachment\Interfaces\AttachmentInterface;
 use App\Toolkit\FileConverter\DocumentConverter;
 
+use Exception;
+use Illuminate\Support\Facades\Log;
 
 class AtchDocumentHandler implements AttachmentInterface
 {
@@ -34,6 +36,7 @@ class AtchDocumentHandler implements AttachmentInterface
         if (!$results) {
             return [
                 'success' => false,
+                'uuid' => $uuid,
                 'message'=> 'Failed to extract text from file'
             ];
             // throw new \Exception('Failed to store file.');
@@ -57,20 +60,42 @@ class AtchDocumentHandler implements AttachmentInterface
             $results = $fileConverter->requestDocumentToMarkdown($file);
             return $results;
         }
-        catch(\Exception $e){
+        catch(Exception $e){
             return null;
         }
     }
 
     public function retrieveContext(string $uuid, string $category, $fileType = 'md'): ?string{
-        $files = $this->storageService->retrieveOutputFilesByType($uuid, 'private', $fileType);
-        $results = [];
-        foreach($files as $file){
-            $content = $file['contents'];
-            $html_safe = htmlspecialchars($content);
-            $results[] = $html_safe;
+        $files = $this->storageService->retrieveOutputFilesByType($uuid, $category, $fileType);
+        if($files || count($files) > 0){
+            $results = [];
+            foreach($files as $file){
+                $content = $file['contents'];
+                $html_safe = htmlspecialchars($content);
+                $results[] = $html_safe;
+            }
+            return $results[0];
         }
-        return $results[0];
+
+        try{
+            $file = $this->storageService->retrieveFile($uuid, $category);
+            $results = $this->extractFileContent($file);
+            if($results !== null){
+                foreach($results as $relativePath => $content){
+                    $filename = 'output/' . basename($relativePath);
+                    $this->storageService->storeFile($content, $filename, $uuid, $category);
+                }
+                return $this->retrieveContext($uuid, $category);
+            }
+            else{
+                return "Unable to extract content at the moment. please try again later. If the problem persists please contact the adminstrator.";
+            }
+
+        }
+        catch(Exception $e){
+            return "Unable to extract content at the moment. please try again later. If the problem persists please contact the adminstrator.";
+        }
+
     }
 
 }
