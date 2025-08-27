@@ -26,9 +26,6 @@ class GWDGFormatter implements FormatterInterface
         $messages = $rawPayload['messages'];
         $modelId = $rawPayload['model'];
 
-        // Handle special cases for specific models
-        $messages = $this->handleModelSpecificFormatting($modelId, $messages);
-
         // Load and attach attachment models if any
         $attachmentsMap = $this->loadAttachmentModelsByUuid($messages);
 
@@ -154,34 +151,6 @@ class GWDGFormatter implements FormatterInterface
                 'text' => '[ERROR: Could not process document attachment: ' . $attachment->name . ']'
             ];
         }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-        /**
-     * Handle special formatting requirements for specific models
-     *
-     * @param string $modelId
-     * @param array $messages
-     * @return array
-     */
-    protected function handleModelSpecificFormatting(string $modelId, array $messages): array
-    {
-        // Special case for o1-mini: convert system to user
-        if ($modelId === 'gemma-3-27b-it' && isset($messages[0]) && $messages[0]['role'] === 'system') {
-            $messages[0]['role'] = 'assistant';
-        }
-
-        return $messages;
     }
 
 

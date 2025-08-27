@@ -79,7 +79,7 @@ class DocumentConverter
             return true;
         } else {
             unlink($tmpZip);
-            throw new \Exception("Failed to open ZIP file.");
+            throw new Exception("Failed to open ZIP file.");
         }
     }
 }

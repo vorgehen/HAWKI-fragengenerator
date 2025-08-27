@@ -14,8 +14,6 @@ trait PasskeyHandler
 
     public function backupPassKey(array $data){
         $userInfo = json_decode(Session::get('authenticatedUserInfo'), true);
-        Log::debug($userInfo);
-        Log::debug($userInfo['username']);
         $username = $userInfo['username'];
 
         if($username != $userInfo['username']){
