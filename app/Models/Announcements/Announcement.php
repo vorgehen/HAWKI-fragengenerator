@@ -11,6 +11,7 @@ class Announcement extends Model
         'title',
         'view',
         'type',
+        'is_forced',
         'is_global',
         'target_users',
         'starts_at',

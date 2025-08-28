@@ -102,7 +102,6 @@
 
 
 	window.addEventListener('DOMContentLoaded', async (event) => {
-
 		setSessionCheckerTimer(0);
 		CheckModals()
 

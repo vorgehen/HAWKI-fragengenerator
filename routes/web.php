@@ -49,7 +49,7 @@ Route::middleware('prevent_back')->group(function () {
     Route::get('/req/announcement/render/{id}', [AnnouncementController::class, 'render']);
     Route::post('/req/announcement/seen/{id}', [AnnouncementController::class, 'markSeen']);
     Route::post('/req/announcement/report/{id}', [AnnouncementController::class, 'submitReport']);
-
+    Route::get('/req/announcement/fetchLatestPolicy', [AnnouncementController::class, 'fetchLatestPolicy']);
 
 
     //CHECKS USERS AUTH

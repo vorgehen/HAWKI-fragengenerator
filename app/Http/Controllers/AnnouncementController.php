@@ -64,4 +64,18 @@ class AnnouncementController extends Controller
             'message' => $success ? 'Announcement marked as accepted' : 'Failed to mark announcement as accepted'
         ], $success ? 200 : 400);
     }
+
+
+    public function fetchLatestPolicy(){
+
+        $announcement = $this->announcementService->fetchLatestPolicy();
+        $view = $this->announcementService->renderAnnouncement($announcement);
+        return response()->json([
+            'success'=>true,
+            'announcement'=>$announcement,
+            'view'=>$view
+        ]);
+
+    }
+
 }

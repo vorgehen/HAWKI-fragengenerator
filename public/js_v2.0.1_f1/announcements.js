@@ -18,31 +18,40 @@ function renderNextAnnouncement(){
     }
 }
 
-function renderAnnouncement(announcement){
-    // Request announcement render from server
-    fetch(`/req/announcement/render/${announcement.id}`, {
-        method: 'GET',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+async function renderAnnouncement(announcement, show = true){
+    try{
+        // Request announcement render from server
+        const response = await fetch(`/req/announcement/render/${announcement.id}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        const data = await response.json();
+        if (data.success) {
+            if (show) {
+                // Create and show announcement modal
+                showAnnouncementModal(announcement, data.view);
+                // Mark as seen immediately when displayed
+                markAnnouncementAsSeen(announcement.id);
+            } else {
+                // If show is false, return the server-rendered view
+                return data.view;
+            }
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if(data.success){
-            console.log(data);
-            // Create and show announcement modal
-            showAnnouncementModal(announcement, data.view);
-            // Mark as seen immediately when displayed
-            markAnnouncementAsSeen(announcement.id);
+        else{
+            console.error('Error loading announcement:', error);
+            // Skip to next announcement on error
+            moveToNextAnnouncement();
         }
-    })
-    .catch(error => {
+    }
+    catch (error) {
         console.error('Error loading announcement:', error);
         // Skip to next announcement on error
         moveToNextAnnouncement();
-    });
+    };
 }
 
 function showAnnouncementModal(announcement, view) {
@@ -66,16 +75,16 @@ function showAnnouncementModal(announcement, view) {
     confirmBtn.className = "btn-lg-fill align-end";
     confirmBtn.textContent = translation.Confirm;
     confirmBtn.addEventListener('click', function() {
-        reportAnnouncementFeedback(announcement.id, true); // or whatever your parameters are
+        reportAnnouncementFeedback(announcement.id); // or whatever your parameters are
         closeAnnouncementModal(modal);
     });
-
-    if(announcement.type === "force"){
+    console.log(announcement);
+    if(announcement.isForced == true){
         const cancelBtn = document.createElement('button');
         cancelBtn.className = "btn-lg-stroke align-end";
         cancelBtn.textContent = translation.Cancel;
         cancelBtn.addEventListener('click', () => {
-            forceLogoutUser(modal);
+            forceLogoutUser();
         });
         btnBar.appendChild(cancelBtn);
     }
@@ -94,7 +103,7 @@ function closeAnnouncementModal(annModal) {
 }
 
 
-async function forceLogoutUser(announcementId){
+async function forceLogoutUser(){
     const confirmed = await openModal(ModalType.WARNING , "To contninue using HAWKI you need to accept this. click on confirm to logout from HAWKI.");
     if (!confirmed) {
         return;
@@ -140,4 +149,27 @@ function reportAnnouncementFeedback(announcementId){
         }
     })
     .catch(error => console.error('Error reporting announcement feedback:', error));
+}
+
+
+async function fetchLatestPolicy() {
+    try {
+        const response = await fetch(`/req/announcement/fetchLatestPolicy`, {
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+        });
+        const data = await response.json();
+        if (data.success) {
+            return {
+                'announcement': data.announcement,
+                'view': data.view
+            }
+        }
+    } catch (error) {
+        console.error('Error reporting announcement feedback:', error);
+    }
 }

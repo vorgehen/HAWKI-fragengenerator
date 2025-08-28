@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (settingsStatus === 'true') {
         toggleSettingsPanel(true);
     }
-    
+
     //DOUBLE CHECK DARK MODE AFTER THE DOM IS LOADED.
     setupLoginBackgroud();
 
@@ -29,6 +29,7 @@ function toggleSettingsPanel(activation){
     if(activation == true){
         settingsModal.style.display = 'flex';
         settingToggleValue = 'true';
+        fetchGuidelines();
     }
     else{
         settingsModal.style.display = 'none';
@@ -38,10 +39,31 @@ function toggleSettingsPanel(activation){
     }
 }
 
+async function fetchGuidelines(){
+            // Assume fetchLatestPolicy() returns an object {view, announcement}
+        const {view, announcement} = await fetchLatestPolicy();
+
+        // Render the HTML (MD rendered to HTML string)
+        const renderedHtml = md.render(view, false);
+
+        // const parent = document.querySelector('')
+        // Insert the rendered HTML into the designated container
+        const settingsModal = document.querySelector('.settings-modal');
+        const policyContentBox = settingsModal.querySelector('#policy-content');
+        policyContentBox.innerHTML = renderedHtml;
+
+        // Add target and rel attributes for external links (XSS-protection best practice)
+        policyContentBox.querySelectorAll('a').forEach(a => {
+            a.setAttribute('target', '_blank');
+            a.setAttribute("rel", "noopener noreferrer");
+        });
+        policyContentBox.querySelector('h1').style.textAlign ='center';
+}
+
 /// Toggle about us in the settings panel.
 function ToggleSettingsContent(content, activation){
     const panel = document.querySelector('.settings-panel');
-    
+
     switch(content){
         case "aboutHAWKI":
             if(activation == true){
@@ -118,7 +140,7 @@ async function setupLoginBackgroud(){
 
     const videosUrl = '../bg_videos'
     let videosIndex;
-    
+
     await fetch(`${videosUrl}/bg_videos.json`)
     .then(response => {
         if (!response.ok) {
@@ -130,10 +152,10 @@ async function setupLoginBackgroud(){
         videosIndex = data;
     })
     .catch(error => console.error("Error fetching JSON:", error));
-    
+
     if(darkMode === 'enabled'){
         if(loginBg != null){
-            
+
             let fileIndex = Math.floor(Math.random() * videosIndex.darkmode.length);
             if(localStorage.getItem('lbgd')){
                 fileIndex = (Number(localStorage.getItem('lbgd')) + 1) % videosIndex.darkmode.length;

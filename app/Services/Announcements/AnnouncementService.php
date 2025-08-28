@@ -26,15 +26,18 @@ class AnnouncementService
         string $title,
         string $view,
         string $type = 'info',
+        bool $isForced = false,
         bool $isGlobal = true,
         ?array $targetUsers = null,
         ?string $startsAt = null,
         ?string $expiresAt = null
     ): Announcement {
+        Log::debug($isGlobal);
         return Announcement::create([
             'title' => $title,
             'view' => $view,
             'type' => $type,
+            'is_forced' => $isForced,
             'is_global' => $isGlobal,
             'target_users' => $targetUsers,
             'starts_at' => $startsAt,
@@ -44,21 +47,22 @@ class AnnouncementService
 
     public function getUserAnnouncements(){
         $announcements = Auth::user()->unreadAnnouncements();
+        Log::debug($announcements);
 
         // Collect force announcements
         $forceAnnouncements = [];
         foreach ($announcements as $announcement) {
-            if (isset($announcement['type']) && $announcement->type === 'force') {
+            if ($announcement->is_forced === true) {
                 $forceAnnouncements[] = $announcement;
             }
         }
-
         Session::put('force_announcements', $forceAnnouncements);
         return $announcements->map(function($ann){
             return[
                 'id' =>$ann->id,
                 'title'=>$ann->title,
                 'type'=>$ann->type,
+                'isForced'=>$ann->is_forced,
                 'expires_at'=>$ann->expires_at
             ];
         });
@@ -82,6 +86,14 @@ class AnnouncementService
             })
             ->get();
     }
+
+
+
+    public function fetchLatestPolicy(): Announcement{
+        return $this->getActiveAnnouncements()->where('type', 'policy')->firstOrFail();
+    }
+
+
 
     /**
      * Validate user access to announcement

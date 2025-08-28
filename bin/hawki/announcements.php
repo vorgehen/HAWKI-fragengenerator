@@ -57,7 +57,7 @@ function publishAnnouncement(?string $title = "", ?string $view = ""){
     }
 
     // Type (with default)
-    echo "Type [force/success/warning/error/info] (default: info): ";
+    echo "Type [policy, news, system, event, info] (default: info): ";
     $type = trim(fgets(STDIN));
     if (empty($type)) $type = 'info';
 

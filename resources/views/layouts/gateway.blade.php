@@ -16,6 +16,8 @@
     <script src="{{ asset('js_v2.0.1_f1/handshake_functions.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/encryption.js') }}"></script>
     <script src="{{ asset('js_v2.0.1_f1/settings_functions.js') }}"></script>
+    <script src="{{ asset('js_v2.0.1_f1/announcements.js') }}"></script>
+    @vite('resources/js/app.js')
 
 	{!! $settingsPanel !!}
 

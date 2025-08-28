@@ -19,6 +19,8 @@ use App\Services\Auth\OidcService;
 use App\Services\Auth\ShibbolethService;
 use App\Services\Auth\TestAuthService;
 
+use App\Services\Announcements\AnnouncementService;
+
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Cookie;
@@ -224,7 +226,7 @@ class AuthenticationController extends Controller
 
     /// Setup User
     /// Create backup for userkeychain on the DB
-    public function completeRegistration(Request $request)
+    public function completeRegistration(Request $request, AnnouncementService $announcementService)
     {
         try {
             // Validate input data
@@ -258,6 +260,10 @@ class AuthenticationController extends Controller
                     'isRemoved' => false
                 ]
             );
+
+            $policy = $announcementService->fetchLatestPolicy();
+            $announcementService->markAnnouncementAsSeen($user, $policy->id);
+            $announcementService->markAnnouncementAsAccepted($user, $policy->id);
 
             // Update or create the Private User Data
             PrivateUserData::create(
