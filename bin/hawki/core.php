@@ -46,6 +46,7 @@ function showHelp() {
     echo "  run -dev               - Run development servers" . PHP_EOL;
     echo "  run -build             - Build the project" . PHP_EOL;
     echo "  stop                   - Stop all running processes" . PHP_EOL;
+    echo "  update                 - (BETA) Update HAWKI to the latest version from GitHub" . PHP_EOL;
     echo "  help                   - Show this help message" . PHP_EOL . PHP_EOL;
 
     echo BOLD . GREEN . "For more information please refer to HAWKI documentation at:" . RESET . PHP_EOL;

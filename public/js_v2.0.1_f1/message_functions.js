@@ -141,10 +141,11 @@ function addMessageToChatlog(messageObj, isFromServer = false){
                 if(activeModule === 'groupchat'){
                     previewFile(thumbnail, attachment.fileData, 'room');
                 }
-            });
+            })
             const rmBtn = thumbnail.querySelector('.remove-btn');
             rmBtn.removeAttribute('onclick');
             rmBtn.disabled = true;
+            rmBtn.style.display = 'none';
 
             // Add to file preview container
             attachmentContainer.appendChild(thumbnail);
@@ -626,6 +627,7 @@ function editMessage(provider){
         atchs.forEach(atch => {
             atch.classList.add('edit-mode');
             const rmBtn = atch.querySelector('.remove-btn');
+            rmBtn.style.display = 'flex';
             rmBtn.disabled = false;
             rmBtn.addEventListener('click', async ()=> {
                 const confirm = await openModal(ModalType.WARNING, translation.Cnf_RemoveFile);
@@ -685,6 +687,7 @@ function abortEditMessage(provider){
             atch.classList.remove('edit-mode');
             const rmBtn = atch.querySelector('.remove-btn');
             rmBtn.disabled = true;
+            rmBtn.style.display = 'none';
         })
     };
 
@@ -719,6 +722,7 @@ async function confirmEditMessage(provider){
             atch.classList.remove('edit-mode');
             const rmBtn = atch.querySelector('.remove-btn');
             rmBtn.disabled = true;
+            rmBtn.style.display = 'none';
         })
     };
 
