@@ -39,6 +39,7 @@ function initializeChatlogFunctions(){
 
 function switchDyMainContent(contentID){
 
+
     const mainPanel = document.querySelector('.dy-main-panel');
 
     const contents = mainPanel.querySelectorAll('.dy-main-content');
@@ -77,6 +78,7 @@ async function submitMessageToServer(requestObj, url){
             method: "POST",
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify(requestObj)
@@ -158,6 +160,7 @@ function setSendBtnStatus(status) {
     });
 
     // Update the sendbtnstat variable
+    // Update the sendbtnstat variable
     sendbtnstat = status;
 }
 function getSendBtnStat(){
@@ -220,6 +223,7 @@ function loadMessagesOnGUI(messages) {
     messages.forEach(messageObj => {
         const addedMsg = addMessageToChatlog(messageObj, true);
         updateMessageElement(addedMsg, messageObj);
+
 
         // Observe unread messages
         if(addedMsg.dataset.read_stat === 'false'){
@@ -334,6 +338,7 @@ function setModel(modelID = null){
             model = modelsList.find(m => m.id === localStorage.getItem("definedModel"));
         }
         // if there is no defined model
+        // if there is no defined model
         // or the defined model is outdated or cruppted
         if(!model){
             model = modelsList.find(m => m.id === defaultModels.default_model);
@@ -345,12 +350,27 @@ function setModel(modelID = null){
     activeModel = model;
     localStorage.setItem("definedModel", activeModel.id);
 
+    // If the selected model is a web search model, enable the web search button
+    if (activeModel.id === defaultSearchModel) {
+        const webSearchButton = document.querySelector('.websearch-icon').parentElement;
+        if (webSearchButton) {
+            webSearchButton.classList.add('active');
+        }
+    } else {
+        const webSearchButton = document.querySelector('.websearch-icon').parentElement;
+        if (webSearchButton) {
+            webSearchButton.classList.remove('active');
+        }
+    }
 
     //UI UPDATE...
     const selectors = document.querySelectorAll('.model-selector');
     selectors.forEach(selector => {
         //if this is our target model selector
+        //if this is our target model selector
         if(JSON.parse(selector.getAttribute('value')).id === activeModel.id){
+            selector.classList.add('active');
+
             selector.classList.add('active');
 
             const labels = document.querySelectorAll('.model-selector-label');
@@ -387,11 +407,13 @@ function scrollToLast(forceScroll, targetElement = null) {
         const thread = targetElement.closest('.thread');
         const isBranchMessage = thread && thread.classList.contains('branch');
 
+
         if (isBranchMessage) {
             // Ensure thread is visible
             if (!thread.classList.contains('visible')) {
                 thread.classList.add('visible');
             }
+
 
             const messageHeight = targetElement.offsetHeight;
             // Calculate position based on thread position and the message's position in thread
@@ -399,12 +421,15 @@ function scrollToLast(forceScroll, targetElement = null) {
 
             const threadTopOffset = thread.offsetTop;
 
+
             // Position should include parent message position plus the position within the thread
             scrollTargetPosition =  threadTopOffset + messageTopOffset;
+
 
             // Add some padding to ensure message is fully visible
             // scrollTargetPosition -= 100;
         } else {
+
 
             // Add some padding to ensure message is fully visible
             const messageHeight = targetElement.offsetHeight;
