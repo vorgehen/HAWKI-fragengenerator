@@ -23,6 +23,11 @@
 
     "Logout_Warning":"To contninue using HAWKI you need to accept these conditions. <br><strong>Click on confirm to logout from HAWKI.</strong>",
 
+    "Input_Err_UploadFailed": "Failed to upload the file!",
+    "Input_Err_NotSupported": "File type not supported:",
+    "Input_Err_MaxSize": "File size exceeds maximum limit.",
+
+
     "Exp_Title":"SESSION TIMEOUT",
     "Exp_MSG":"Please login again!",
 

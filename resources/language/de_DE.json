@@ -23,6 +23,10 @@
 
     "Logout_Warning":"Um HAWKI weiterhin zu nutzen, müssen Sie diese Bedingungen akzeptieren.<strong>Klicken Sie auf „Bestätigen“, um sich von HAWKI abzumelden.</strong>",
 
+    "Input_Err_UploadFailed": "Fehler beim Hochladen der Datei!",
+    "Input_Err_NotSupported": "Dateityp wird nicht unterstützt:",
+    "Input_Err_MaxSize": "Dateigröße überschreitet das zulässige Maximum.",
+
     "Exp_Title":"SESSION-TIMEOUT",
     "Exp_MSG":"Bitte logg dich erneut ein!",
 
