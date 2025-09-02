@@ -79,7 +79,6 @@ async function submitMessageToServer(requestObj, url){
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify(requestObj)
         });
@@ -351,17 +350,23 @@ function setModel(modelID = null){
     localStorage.setItem("definedModel", activeModel.id);
 
     // If the selected model is a web search model, enable the web search button
-    if (activeModel.id === defaultSearchModel) {
-        const webSearchButton = document.querySelector('.websearch-icon').parentElement;
-        if (webSearchButton) {
-            webSearchButton.classList.add('active');
-        }
-    } else {
-        const webSearchButton = document.querySelector('.websearch-icon').parentElement;
-        if (webSearchButton) {
-            webSearchButton.classList.remove('active');
-        }
-    }
+
+
+
+    // if (activeModel.id === defaultModels.default_web_search_model) {
+    //             console.log('web search model');
+    //     websearchBtns.forEach(btn => {
+    //         webSearchButton.classList.add('active');
+    //     });
+
+    // } else {
+    //     console.log('not web search model');
+
+    //     const webSearchButton = document.querySelector('#websearch-btn').parentElement;
+    //     if (webSearchButton) {
+    //         webSearchButton.classList.remove('active');
+    //     }
+    // }
 
     //UI UPDATE...
     const selectors = document.querySelectorAll('.model-selector');
@@ -371,10 +376,16 @@ function setModel(modelID = null){
         if(JSON.parse(selector.getAttribute('value')).id === activeModel.id){
             selector.classList.add('active');
 
-            selector.classList.add('active');
-
             const labels = document.querySelectorAll('.model-selector-label');
+
             labels.forEach(label => {
+
+                if (activeModel.id === defaultModels.default_web_search_model){
+                    label.closest('.input-container').querySelector('#websearch-btn').classList.add('active');
+                }
+                else{
+                    label.closest('.input-container').querySelector('#websearch-btn').classList.remove('active');
+                }
                 label.innerHTML = activeModel.label;
             });
         }
@@ -383,6 +394,21 @@ function setModel(modelID = null){
         }
     });
 
+}
+
+// Change the Model to a websearch capable model (available models atm.: gemini-2.0-flash-exp)
+function selectWebSearchModel(button) {
+    const isActive = button.classList.contains('active');
+    const input = button.parentElement.closest('.input-container').querySelector('.input');
+
+    if (isActive) {
+        button.classList.remove('active');
+        removeInputFilter(input.id, 'web_search');
+
+    } else {
+        button.classList.add('active');
+        addInputFilter(input.id, 'web_search');
+    }
 }
 
 //#endregion

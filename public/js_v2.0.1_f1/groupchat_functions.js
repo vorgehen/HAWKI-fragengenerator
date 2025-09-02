@@ -114,12 +114,18 @@ async function onSendMessageToRoom(inputField) {
         const aiKeyRaw = await exportSymmetricKey(aiKey);
         const aiKeyBase64 = arrayBufferToBase64(aiKeyRaw);
 
+        const webSearchActive = inputField.closest('.input-container').querySelector('#websearch-btn').classList.contains('active');
+        const tools = {
+            'web_search': webSearchActive
+        }
+
         const msgAttributes = {
             'threadIndex': activeThreadIndex,
             'broadcasting': true,
             'slug': activeRoom.slug,
             'key': aiKeyBase64,
             'stream': false,
+            'tools': tools
         }
 
         buildRequestObject(msgAttributes,  async (updatedText, done) => {
@@ -187,7 +193,10 @@ const connectWebSocket = (roomSlug) => {
 async function handleUserMessages(messageData, slug){
 
     const roomKey = await keychainGet(slug);
-    messageData.content = await decryptWithSymKey(roomKey, messageData.content, messageData.iv, messageData.tag);
+    messageData.content.text = await decryptWithSymKey(roomKey,
+                                                        messageData.content.text.ciphertext,
+                                                        messageData.content.text.iv,
+                                                        messageData.content.text.tag);
 
     let element = document.getElementById(messageData.message_id);
     if (!element) {
@@ -216,7 +225,10 @@ async function handleAIMessage(messageData, slug){
     const aiCryptoSalt = await fetchServerSalt('AI_CRYPTO_SALT');
     const aiKey = await deriveKey(roomKey, slug, aiCryptoSalt);
 
-    messageData.content = await decryptWithSymKey(aiKey, messageData.content, messageData.iv, messageData.tag);
+    messageData.content.text = await decryptWithSymKey(aiKey,
+                                                        messageData.content.text.ciphertext,
+                                                        messageData.content.text.iv,
+                                                        messageData.content.text.tag);
 
     // CREATE AND UPDATE MESSAGE
     let element = document.getElementById(messageData.message_id);
@@ -248,7 +260,11 @@ async function handleUpdateMessage(messageData, slug){
         key = roomKey;
     }
 
-    messageData.content = await decryptWithSymKey(key, messageData.content, messageData.iv, messageData.tag);
+    messageData.content.text = await decryptWithSymKey(key,
+                                                    messageData.content.text.ciphertext,
+                                                    messageData.content.text.iv,
+                                                    messageData.content.text.tag);
+
     let element = document.getElementById(messageData.message_id);
 
     regenerateBtn = element.querySelector('#regenerate-btn');

@@ -113,6 +113,7 @@ class StreamController extends Controller
             'payload.messages.*.content' => 'required|array',
             'payload.messages.*.content.text' => 'required|string',
             'payload.messages.*.content.attachments' => 'nullable|array',
+            'payload.tools' => 'nullable|array',
 
             'broadcast' => 'required|boolean',
             'isUpdate' => 'nullable|boolean',
@@ -121,7 +122,6 @@ class StreamController extends Controller
             'slug' => 'nullable|string',
             'key' => 'nullable|string',
         ]);
-
 
         if ($validatedData['broadcast']) {
             $this->handleGroupChatRequest($validatedData);
