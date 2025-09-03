@@ -260,10 +260,13 @@ class AuthenticationController extends Controller
                     'isRemoved' => false
                 ]
             );
-
-            $policy = $announcementService->fetchLatestPolicy();
-            $announcementService->markAnnouncementAsSeen($user, $policy->id);
-            $announcementService->markAnnouncementAsAccepted($user, $policy->id);
+            
+            try {
+                $policy = $announcementService->fetchLatestPolicy();
+                $announcementService->markAnnouncementAsSeen($user, $policy->id);
+                $announcementService->markAnnouncementAsAccepted($user, $policy->id);
+            } catch (\Throwable) {
+            }
 
             // Update or create the Private User Data
             PrivateUserData::create(
