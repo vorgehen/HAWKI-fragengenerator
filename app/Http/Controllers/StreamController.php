@@ -11,7 +11,6 @@ use App\Services\AI\AiService;
 use App\Services\AI\UsageAnalyzerService;
 use App\Services\AI\Value\AiResponse;
 use App\Services\Chat\Message\MessageHandlerFactory;
-use App\Services\Message\LegacyMessageHelper;
 use App\Services\Storage\AvatarStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,7 +21,6 @@ class StreamController extends Controller
     public function __construct(
         private readonly UsageAnalyzerService $usageAnalyzer,
         private readonly AiService            $aiService,
-        private readonly LegacyMessageHelper  $messageHelper,
         private readonly AvatarStorageService $avatarStorage
     ){
     }
@@ -74,32 +72,50 @@ class StreamController extends Controller
     public function handleAiConnectionRequest(Request $request)
     {
         //validate payload
-        $validatedData = $request->validate([
-            'payload.model' => 'required|string',
-            'payload.stream' => 'required|boolean',
-            'payload.messages' => 'required|array',
-            'payload.messages.*.role' => 'required|string',
-            'payload.messages.*.content' => 'required|array',
-            'payload.messages.*.content.text' => 'required|string',
-            'payload.messages.*.content.attachments' => 'nullable|array',
-            'payload.tools' => 'nullable|array',
+        try {
+            $validatedData = $request->validate([
+                'payload.model' => 'required|string',
+                'payload.stream' => 'required|boolean',
+                'payload.messages' => 'required|array',
+                'payload.messages.*.role' => 'required|string',
+                'payload.messages.*.content' => 'required|array',
+                'payload.messages.*.content.text' => 'nullable|string',
+                'payload.messages.*.content.attachments' => 'nullable|array',
+                'payload.tools' => 'nullable|array',
+                
+                'broadcast' => 'required|boolean',
+                'isUpdate' => 'nullable|boolean',
+                'messageId' => ['nullable', function ($_, $value, $fail) {
+                    if ($value !== null && !is_string($value) && !is_int($value)) {
+                        $fail('The messageId must be a valid numeric string (e.g., "192.000" or "12").');
+                    }
+                }],
+                'threadIndex' => 'nullable|int',
+                'slug' => 'nullable|string',
+                'key' => 'nullable|string',
+            ]);
             
-            'broadcast' => 'required|boolean',
-            'isUpdate' => 'nullable|boolean',
-            'messageId' => ['nullable', function ($_, $value, $fail) {
-                if ($value !== null && !is_string($value) && !is_int($value)) {
-                    $fail('The messageId must be a valid numeric string (e.g., "192.000" or "12").');
+            // Ensure that nullable fields are set to default values if not provided
+            foreach ($validatedData['payload']['messages'] as &$message) {
+                if (isset($message['content']['text']) && !is_string($message['content']['text'])) {
+                    $message['content']['text'] = '';
                 }
-            }],            'threadIndex' => 'nullable|int',
-            'thread_id_version' => 'nullable|int|in:1,2', // 1 for legacy message (192.000) ID, 2 for new message ID (12), defaults to 1
-            'slug' => 'nullable|string',
-            'key' => 'nullable|string',
-        ]);
-        
+                if (isset($message['content']['attachments']) && !is_array($message['content']['attachments'])) {
+                    $message['content']['attachments'] = [];
+                }
+            }
+            unset($message);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error',
+                'errors' => $e->errors()
+            ], 422);
+        }
         
         if ($validatedData['broadcast']) {
             $this->handleGroupChatRequest($validatedData);
-            return;
+            return null;
         }
         
         $hawki = User::find(1); // HAWKI user
@@ -155,11 +171,6 @@ class StreamController extends Controller
                 $response->usage,
                 'private',
             );
-            
-            if ($response->error !== null) {
-                $flush();
-                return;
-            }
             
             $messageData = [
                 'author' => [
