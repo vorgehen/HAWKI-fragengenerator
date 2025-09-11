@@ -37,7 +37,7 @@ Route::middleware('prevent_back')->group(function () {
         Route::get('/register', [AuthenticationController::class, 'register']);
         Route::post('/req/profile/validatePasskey', [ProfileController::class, 'validatePasskey']);
         Route::post('/req/profile/backupPassKey', [ProfileController::class, 'backupPassKey']);
-        Route::get('/req/crypto/getServerSalt', [EncryptionController::class, 'getServerSalt']);
+        Route::get('/req/crypto/getServerSalt', [ProfileController::class, 'getServerSalt']);
         Route::post('/req/complete_registration', [AuthenticationController::class, 'completeRegistration']);
 
     });
@@ -151,9 +151,7 @@ Route::middleware('prevent_back')->group(function () {
         Route::get('/req/profile/requestPasskeyBackup', [ProfileController::class, 'requestPasskeyBackup']);
 
         Route::post('/req/profile/reset', [ProfileController::class, 'requestProfileRest']);
-
-        Route::post('/req/downloadKeychain',  [EncryptionController::class, 'downloadKeychain']);
-        Route::post('/req/backupKeychain',  [EncryptionController::class, 'backupKeychain']);
+        Route::post('/req/backupKeychain',  [ProfileController::class, 'backupKeychain']);
 
 
         // AI RELATED ROUTES

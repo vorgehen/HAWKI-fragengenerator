@@ -43,14 +43,16 @@ class HawkiDocConverter implements FileConverterInterface
             throw new \InvalidArgumentException("Invalid file input. Expected UploadedFile or SplFileInfo.");
         }
 
-        $response = Http::attach(
-            'file',
-            $resource,
-            $filename
-        )->post($this->config['api_url']);
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->config['api_key'],
+            'Accept'        => 'application/json',
+        ])
+        ->attach('file', $resource, $filename)
+        ->post($this->config['api_url']);
         fclose($resource);
 
         if (!$response->successful()) {
+            \Log::error('PDF extraction failed: ' . $response->body());
             throw new Exception('PDF extraction failed: ' . $response->body());
         }
 

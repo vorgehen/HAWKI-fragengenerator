@@ -48,6 +48,19 @@ services:
         depends_on:
             mysql:
                 condition: service_healthy
+    scheduler:
+        container_name: ${PROJECT_NAME}-scheduler
+        image: ${PROJECT_HAWKI_IMAGE}
+        restart: always
+        volumes:
+            - ./storage/:/var/www/html/storage
+            - ./model_providers.php:/var/www/html/config/model_providers.php:ro
+        env_file:
+            - .env
+        command: [ 'php artisan schedule:work' ]
+        depends_on:
+            mysql:
+                condition: service_healthy
     redis:
         container_name: ${PROJECT_NAME}-redis
         image: redis:latest
