@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\Storage\AvatarStorageService;
+use App\Services\Storage\FileStorageService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\Storage\FileStorageService;
-use App\Services\Storage\AvatarStorageService;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 

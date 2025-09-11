@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\PrivateUserData;
 
+use App\Services\Profile\ProfileService;
 use App\Services\System\SettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -180,8 +181,8 @@ class AuthenticationController extends Controller
         $translation = $this->languageController->getTranslation();
         $settingsPanel = (new SettingsService())->render();
 
-        $cryptoController = new EncryptionController();
-        $keychainData = $cryptoController->fetchUserKeychain();
+        $profileService = new ProfileService();
+        $keychainData = $profileService->fetchUserKeychain();
 
         $activeOverlay = false;
         if(Session::get('last-route') && Session::get('last-route') != 'handshake'){

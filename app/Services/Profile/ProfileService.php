@@ -134,4 +134,20 @@ class ProfileService{
         }
     }
 
+
+
+    /// Sends back user's encrypted keychain
+    public function fetchUserKeychain(){
+
+        $user = Auth::user();
+        $prvUserData = PrivateUserData::where('user_id', $user->id)->first();
+        $keychainData = json_encode([
+            'keychain'=> $prvUserData->keychain,
+            'KCIV'=> $prvUserData->KCIV,
+            'KCTAG'=> $prvUserData->KCTAG,
+        ]);
+
+        return $keychainData;
+    }
+
 }

@@ -4,8 +4,8 @@ namespace App\Services\Chat\Message\Interfaces;
 
 use App\Models\AiConv;
 use App\Models\AiConvMsg;
-use App\Models\Room;
 use App\Models\Message;
+use App\Models\Room;
 
 interface MessageInterface
 {

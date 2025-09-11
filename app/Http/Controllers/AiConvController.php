@@ -4,29 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\AiConv;
 use App\Models\AiConvMsg;
-use App\Models\User;
 use App\Models\Attachment;
-
+use App\Services\Chat\AiConv\AiConvService;
+use App\Services\Chat\Attachment\AttachmentService;
+use App\Services\Chat\Message\MessageContentValidator;
+use App\Services\Chat\Message\MessageHandlerFactory;
 use App\Services\Storage\FileStorageService;
+use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
-use App\Services\Chat\Message\MessageHandlerFactory;
-use App\Services\Chat\Message\MessageContentValidator;
-use App\Services\Chat\Attachment\AttachmentService;
-
-
-
-use App\Services\Chat\AiConv\AiConvService;
-
 use Illuminate\Support\Facades\Log;
-
-use Exception;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 
 class AiConvController extends Controller
