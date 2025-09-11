@@ -5,6 +5,9 @@ namespace App\Models;
 use Hamcrest\Core\IsTypeOf;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\Storage\FileStorageService;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use App\Services\Storage\AvatarStorageService;
@@ -15,7 +18,7 @@ use Illuminate\Support\Facades\Log;
 
 class Message extends Model
 {
-    // NOTE: CONTENT = RAWCONTENT
+    // NOTE: CONTENT = RAW CONTENT
 
     protected $fillable = [
         'room_id',
@@ -30,17 +33,17 @@ class Message extends Model
     ];
 
 
-    public function room()
+    public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
     }
 
-    public function member()
+    public function member(): BelongsTo
     {
         return $this->belongsTo(Member::class);
     }
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->member->user();
     }
@@ -57,7 +60,7 @@ class Message extends Model
 
         $readStat = $this->isReadBy($requestMember);
 
-        $msgData = [
+        return [
             'member_id' => $member->id,
             'member_name' => $member->user->name,
             'message_role' => $this->message_role,
@@ -68,7 +71,9 @@ class Message extends Model
                 'username' => $member->user->username,
                 'name' => $member->user->name,
                 'isRemoved' => $member->isRemoved,
-                'avatar_url' =>$avatarStorage->getFileUrl('profile_avatars', $member->user->username, $member->user->avatar_id),
+                'avatar_url' =>!empty($user->avatar_id)
+                                ? $avatarStorage->getUrl($member->user->avatar_id, 'profile_avatars')
+                                : null,
             ],
             'model' => $this->model,
 
@@ -83,20 +88,18 @@ class Message extends Model
             'created_at' => $this->created_at->format('Y-m-d+H:i'),
             'updated_at' => $this->updated_at->format('Y-m-d+H:i'),
         ];
-
-        return $msgData;
     }
 
 
 
 
-    public function isReadBy($member)
+    public function isReadBy($member): bool
     {
         $hay = json_decode($this->reader_signs, true) ?? [];
         return in_array($member->id, $hay);
     }
 
-    public function addReadSignature($member)
+    public function addReadSignature($member): void
     {
         if (!$this->isReadBy($member)) {
             $signs = json_decode($this->reader_signs, true) ?? [];
@@ -108,22 +111,20 @@ class Message extends Model
 
 
 
-    public function attachments()
+    public function attachments(): MorphMany
     {
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
 
-    public function attachmentsAsArray()
+    public function attachmentsAsArray(): ?array
     {
-        $attachments = $this->attachments;
-
-        if ($attachments->isEmpty()) {
+        if ($this->attachments->isEmpty()) {
             return null;
         }
         $storageService = app(FileStorageService::class);
 
-        return $attachments->map(function ($attach) use ($storageService) {
+        return $this->attachments->map(function ($attach) use ($storageService) {
             return [
                 'fileData' => [
                     'uuid'     => $attach->uuid,
@@ -131,10 +132,10 @@ class Message extends Model
                     'category' => $attach->category,
                     'type'     => $attach->type,
                     'mime'     => $attach->mime,
-                    'url'      => $storageService->getFileUrl(
-                        uuid: $attach->uuid,
-                        category: $attach->category
-                    ),
+//                    'url'      => $storageService->getUrl(
+//                        uuid: $attach->uuid,
+//                        category: $attach->category
+//                    ),
                 ],
             ];
         })->toArray();

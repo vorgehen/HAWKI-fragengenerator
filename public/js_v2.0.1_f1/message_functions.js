@@ -68,7 +68,9 @@ function addMessageToChatlog(messageObj, isFromServer = false){
     }
 
     /// Set Author Name
+    console.log(messageObj);
     if(messageObj.model && messageObj.message_role === 'assistant'){
+        console.log(messageObj);
         model = modelsList.find(m => m.id === messageObj.model);
         messageElement.querySelector('.message-author').innerHTML =
             model ?
@@ -133,20 +135,7 @@ function addMessageToChatlog(messageObj, isFromServer = false){
 
         messageObj.content.attachments.forEach(attachment => {
 
-            const thumbnail = createAttachmentThumbnail(attachment.fileData);
-            thumbnail.querySelector('.content').addEventListener('click', ()=> {
-                if(activeModule === 'chat'){
-                    previewFile(thumbnail, attachment.fileData, 'conv');
-                }
-                if(activeModule === 'groupchat'){
-                    previewFile(thumbnail, attachment.fileData, 'room');
-                }
-            })
-            const rmBtn = thumbnail.querySelector('.remove-btn');
-            rmBtn.removeAttribute('onclick');
-            rmBtn.disabled = true;
-            rmBtn.style.display = 'none';
-
+            const thumbnail = createAttachmentThumbnail(attachment.fileData, 'message');
             // Add to file preview container
             attachmentContainer.appendChild(thumbnail);
         });
@@ -266,24 +255,22 @@ function updateMessageElement(messageElement, messageObj, updateContent = false)
     messageElement.dataset.role = messageObj.message_role;
     const msgTxtElement = messageElement.querySelector(".message-text");
 
-    if(messageElement.classList.contains('AI')){
+    if (messageElement.classList.contains('AI')) {
         const username = messageElement.dataset.author;
-        model = modelsList.find(m => m.id === messageObj.model);
+        const model = modelsList.find(m => m.id === messageObj.model);
         messageElement.querySelector('.message-author').innerHTML =
             model ?
-            `<span>${username} </span><span class="message-author-model">(${model.label})</span>`:
-            `<span>${username} </span><span class="message-author-model">(${messageObj.model}) !!! Obsolete !!!</span>`;
+                `<span>${username} </span><span class="message-author-model">(${model.label})</span>` :
+                `<span>${username} </span><span class="message-author-model">(${messageObj.model}) !!! Obsolete !!!</span>`;
         messageElement.dataset.model = messageObj.model;
     }
 
     if(updateContent){
-        const {messageText, groundingMetadata} = deconstContent(messageObj.content);
+        const {messageText, groundingMetadata} = deconstContent(messageObj.content.text);
 
-        const filteredContent = detectMentioning(messageText);
         messageElement.dataset.rawMsg = messageText;
-        // messageElement.dataset.groundingMetadata = JSON.stringify(groundingMetadata);
-
-        if(!messageElement.classList.contains('AI')){
+        if(messageObj.message_role === "user"){
+            const filteredContent = detectMentioning(messageText);
             msgTxtElement.innerHTML = filteredContent.modifiedText;
         }
         else{
@@ -318,7 +305,6 @@ function updateMessageElement(messageElement, messageObj, updateContent = false)
         }
 
     }
-
 
     //SET MESSAGE TIME AND EDIT FLAG
     const time = messageObj.created_at.split('+')[1];
@@ -699,7 +685,6 @@ function abortEditMessage(provider){
 }
 
 async function confirmEditMessage(provider){
-
     const msgControls = provider.closest('.message-controls');
     const messageElement = provider.closest('.message');
 
@@ -806,7 +791,7 @@ async function regenerateMessage(messageElement, Done = null){
 
     let inputContainer;
     if(threadIndex == 0){
-        inputContainer = document.querySelector(`.input[id="0"`).closest('.input-container');
+        inputContainer = document.querySelector(`.input[id="0"]`).closest('.input-container');
     }
     else{
         inputContainer = messageElement.closest('.thread').querySelector('.input-container');

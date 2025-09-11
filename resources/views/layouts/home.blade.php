@@ -83,7 +83,7 @@
     @foreach ($templates as $temp)
         @include('partials.home.templates.' . $viewName = str_replace('.blade', '',  $temp->getFilenameWithoutExtension()))
     @endforeach
-	@include('partials.home.modals.confirm-modal')
+    @include('partials.home.modals.confirm-modal')
 
 </body>
 </html>
@@ -103,11 +103,22 @@
 	const defaultModels = @json($models).defaultModels;
 	const systemModels = @json($models).systemModels;
 
-	const aiHandle = "{{ config('app.aiHandle') }}";
+	const aiHandle = "{{ config('hawki.aiHandle') }}";
 
     const announcementList = @json($announcements);
 
-	window.addEventListener('DOMContentLoaded', async (event) => {
+    const converterActive = @json($converterActive);
+
+
+    window.addEventListener('DOMContentLoaded', async (event) => {
+        setModel();
+
+		const passkey = await getPassKey()
+		if(!passkey){
+			console.log('passkey not found!');
+			window.location.href = '/handshake';
+		}
+
 		setSessionCheckerTimer(0);
 		CheckModals()
 
@@ -135,10 +146,9 @@
 			sidebarBtn.querySelector('.user-inits').innerText = userInitials
 		}
 
-		setModel(null);
 
 		initializeGUI();
-		checkWindowSize(800, 600);
+		checkWindowSize(800, 200);
 
         initAnnouncements(announcementList);
 

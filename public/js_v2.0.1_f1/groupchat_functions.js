@@ -6,7 +6,7 @@ let roomItemTemplate;
 let rooms;
 let typingStatusDiv;
 let activeRoom = null;
-
+let roomCreationAvatarBlob = null;
 function initializeGroupChatModule(roomsData){
     rooms = roomsData;
     roomMsgTemp = document.getElementById('message-template');
@@ -41,7 +41,7 @@ function initializeGroupChatModule(roomsData){
 
 //#region INPUT EVENTS
 function onHandleKeydownRoom(event){
-    if(event.key == "Enter" && !event.shiftKey){
+    if(event.key === "Enter" && !event.shiftKey){
         event.preventDefault();
         selectActiveThread(event.target);
         onSendMessageToRoom(event.target);
@@ -66,7 +66,7 @@ function onSendClickRoom(btn){
 
 async function onSendMessageToRoom(inputField) {
 
-    if(inputField.value.trim() == "") {
+    if(inputField.value.trim() === "") {
         return;
     }
 
@@ -89,12 +89,12 @@ async function onSendMessageToRoom(inputField) {
             },
             "attachments": attachments
         },
-        'threadID' : activeThreadIndex,
+        'threadId' : activeThreadIndex,
     };
 
     const submittedObj = await submitMessageToServer(messageObj, `/req/room/sendMessage/${activeRoom.slug}`)
     submittedObj.content.text = inputText;
-    submittedObj.filteredContent = detectMentioning(inputText),
+    submittedObj.filteredContent = detectMentioning(inputText);
 
     // empty input field
     inputField.value = "";
@@ -128,9 +128,7 @@ async function onSendMessageToRoom(inputField) {
             'tools': tools
         }
 
-        buildRequestObject(msgAttributes,  async (updatedText, done) => {
-
-        });
+        buildRequestObject(msgAttributes);
     }
 
 }
@@ -142,47 +140,45 @@ const connectWebSocket = (roomSlug) => {
     window.Echo.private(webSocketChannel)
         .listen('RoomMessageEvent', async (e) => {
             try {
-                const compressedData = atob(e.data); // Base64 decode
-                const binaryData = new Uint8Array(compressedData.split("").map(c => c.charCodeAt(0))); // Convert to Uint8Array
-                const jsonString = pako.ungzip(binaryData, { to: "string" }); // Decompress Gzip
-                const data = JSON.parse(jsonString); // Convert back to object
-
-                console.log(`Message received in room ${roomSlug}:`, data);
-                if(data.type === 'message'){
+                const receivedPacket = e.data;
+                // console.log('Received Packet', receivedPacket);
+                if(receivedPacket.type === 'message'){
+                    const messageData = await requestMessageContent(receivedPacket.data.message_id,
+                                                                            receivedPacket.data.slug);
 
                     if(activeRoom && activeRoom.slug === roomSlug){
-                        if(data.messageData.message_role !== 'assistant'){
-                            handleUserMessages(data.messageData, roomSlug)
+                        if(messageData.message_role !== 'assistant'){
+                            await handleUserMessages(messageData, roomSlug)
                         }else{
-                            handleAIMessage(data.messageData, roomSlug)
+                            await handleAIMessage(messageData, roomSlug)
                         }
-                        if(data.messageData.author.username != userInfo.username){
+                        if(messageData.author.username !== userInfo.username){
                             playSound('in');
                         }
                     }
                     else{
-                        if(data.messageData.author.username != userInfo.username){
+                        if(messageData.author.username !== userInfo.username){
                             playSound('out');
                         }
                         flagRoomUnreadMessages(roomSlug, true);
                     }
                 }
 
-                if(data.type === "messageUpdate"){
-                    handleUpdateMessage(data.messageData, roomSlug)
+                if(receivedPacket.type === "messageUpdate"){
+                    const messageData = await requestMessageContent(receivedPacket.data.message_id,
+                                                                    receivedPacket.data.slug);
+                    await handleUpdateMessage(messageData, roomSlug)
                 }
 
-                if(data.type === "aiGenerationStatus"){
-                    if (data.messageData.isGenerating) {
+                if(receivedPacket.type === "status"){
+                    if (receivedPacket.data.isGenerating) {
                         // Display the typing indicator for the user
-                        addUserToTypingList(data.messageData.model);
+                        addUserToTypingList(receivedPacket.data.model);
                     } else {
                         // Hide the typing indicator for the user
-                        removeUserFromTypingList(data.messageData.model);
+                        removeUserFromTypingList(receivedPacket.data.model);
                     }
                 }
-
-
 
             } catch (error) {
                 console.error("Failed to decompress message:", error);
@@ -190,8 +186,30 @@ const connectWebSocket = (roomSlug) => {
         });
 };
 
-async function handleUserMessages(messageData, slug){
+async function requestMessageContent(messageId, slug){
+    try{
+        const response = await fetch(`/req/room/message/get/${slug}/${messageId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+            },
+        });
 
+        if(!response.ok){
+            console.error(`HTTP error! status: ${response.status}`);
+            return null;
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('There was a problem with the fetch operation:', error);
+    }
+
+}
+
+
+async function handleUserMessages(messageData, slug){
     const roomKey = await keychainGet(slug);
     messageData.content.text = await decryptWithSymKey(roomKey,
                                                         messageData.content.text.ciphertext,
@@ -218,7 +236,6 @@ async function handleUserMessages(messageData, slug){
 }
 
 
-let rawMsg = "";
 async function handleAIMessage(messageData, slug){
 
     const roomKey = await keychainGet(slug);
@@ -247,7 +264,7 @@ async function handleAIMessage(messageData, slug){
         const thread = element.parentElement;
         checkThreadUnreadMessages(thread);
     }
-};
+}
 
 async function handleUpdateMessage(messageData, slug){
     let key;
@@ -465,14 +482,15 @@ async function createNewRoom(){
             method: "POST",
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
             },
             body: JSON.stringify(requestObj)
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                onSuccessfullRoomCreation(data.roomData);
+                onSuccessfulRoomCreation(data.roomData);
 
             } else {
                 // Handle unexpected response
@@ -486,12 +504,12 @@ async function createNewRoom(){
 }
 
 
-async function onSuccessfullRoomCreation(roomData){
+async function onSuccessfulRoomCreation(roomData){
 
     const inputs = document.querySelector('.inputs-list');
     const description = inputs.querySelector('#room-description-input').value;
     const systemPrompt = inputs.querySelector('#system-prompt-input').value;
-    const avatar_url = inputs.querySelector('#room-creation-avatar').getAttribute('src');
+    const image = roomCreationAvatarBlob;
 
     //generate encryption key
     const roomKey = await generateKey();
@@ -513,13 +531,13 @@ async function onSuccessfullRoomCreation(roomData){
         'tag':cryptSystemPrompt.tag,
     });
 
-    attributes ={
-        'systemPrompt':systemPromptStr,
-        'description':descriptionStr,
-        'img':avatar_url
-    }
 
-    updateRoomInfo(roomData.slug, attributes)
+    const formData = new FormData();
+    if(systemPromptStr) formData.append('system_prompt', systemPromptStr)
+    if(descriptionStr)formData.append('description', descriptionStr)
+    if(image) formData.append('image',  image)
+
+    updateRoomInfo(roomData.slug, formData)
     rooms.push(roomData);
 
     //create invitation
@@ -618,7 +636,8 @@ async function requestStoreInvitationsOnServer(invitations, slug){
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
         },
         body: JSON.stringify({invitations})
     });
@@ -630,7 +649,8 @@ async function sendInvitationEmail(mailContent){
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
         },
         body: JSON.stringify(mailContent)
     });
@@ -644,12 +664,14 @@ async function handleUserInvitations() {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
             },
         });
 
         if(!response.ok){
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error(`HTTP error! status: ${response.status}`);
+            return null;
         }
 
         const data = await response.json();
@@ -694,14 +716,15 @@ async function handleTempLinkInvitation(tempLink){
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
             },
         });
 
         if(!response.ok){
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error(`HTTP error! status: ${response.status}`);
+            return null;
         }
-
         const data = await response.json();
         roomKey = await decryptWithTempHash(data.invitation, tempHash, data.iv, data.tag);
         if(roomKey){
@@ -720,7 +743,8 @@ async function finishInvitationHandling(invitation_id, roomKey){
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
         },
         body: JSON.stringify({ invitation_id: invitation_id })
     });
@@ -736,7 +760,6 @@ async function finishInvitationHandling(invitation_id, roomKey){
     }
 }
 
-NOTE:
 function openInvitationPanel(){
     const modal = document.querySelector('#add-member-modal');
     modal.querySelector('#user-search-bar').value = '';
@@ -867,7 +890,7 @@ function loadRoomMembers(roomData) {
         </button>`;
 
     roomData.members.forEach(member => {
-        if (member.name === 'AI') return;
+        if (member.employeetype === 'system') return;
 
         const memberBtnTemp = document.getElementById('member-listBtn-template').content.cloneNode(true);
         const memberBtnIcon = memberBtnTemp.querySelector('#member-icon');
@@ -899,16 +922,17 @@ async function RequestRoomContent(slug){
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
             },
         });
 
         if(!response.ok){
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error(`HTTP error! status: ${response.status}`);
+            return null;
         }
 
-        const data = await response.json();
-        return data;
+        return await response.json();
     }
     catch (err){
         console.error('Error fetching data:', error);
@@ -966,7 +990,8 @@ async function searchUser(searchBar) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
                 },
                 body: JSON.stringify({
                     "query": encodeURIComponent(query)
@@ -1034,7 +1059,7 @@ async function searchUser(searchBar) {
 }
 
 function onHandleKeydownUserSearch(event, searchBar){
-    if(event.key == "Enter" && !event.shiftKey){
+    if(event.key === "Enter" && !event.shiftKey){
         event.preventDefault();
 
         const resultsPanel = searchBar.closest('.search-panel').querySelector('#searchResults');
@@ -1255,12 +1280,12 @@ async function submitInfoField(){
         'tag':cryptSystemPrompt.tag,
     });
 
-    attributes ={
-        'name':chatName,
-        'systemPrompt':systemPromptStr,
-        'description':descriptionStr
-    }
-    updateRoomInfo(activeRoom.slug, attributes);
+    const formData = new FormData();
+    if(chatName) formData.append('name', chatName);
+    if(systemPromptStr) formData.append('system_prompt', systemPromptStr)
+    if(descriptionStr)formData.append('description', descriptionStr)
+
+    updateRoomInfo(activeRoom.slug, formData);
 
 }
 
@@ -1280,7 +1305,8 @@ async function requestDeleteRoom() {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
             },
         });
         const data = await response.json();
@@ -1311,7 +1337,8 @@ async function leaveRoom(){
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
             },
         });
         const data = await response.json();
@@ -1361,7 +1388,8 @@ async function removeMemberFromRoom(username){
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
             },
             body: JSON.stringify({'username': username})
         });
@@ -1386,36 +1414,47 @@ function selectRoomAvatar(btn, upload = false){
 
     const imageElement = btn.parentElement.querySelector('.selectable-image');
     const initials = btn.parentElement.querySelector('#control-panel-chat-initials');
-    openImageSelection(imageElement.getAttribute('src'), function(croppedImage) {
+    openImageSelection(imageElement.getAttribute('src'), async function(croppedImage) {
+        let url;
+        if(upload){
+            url = await uploadRoomAvatar(croppedImage);
+        }
+        else{
+            url = URL.createObjectURL(croppedImage);
+        }
+
         imageElement.style.display = 'block';
         if(initials){
             initials.style.display = 'none';
         }
-
-        imageElement.setAttribute('src', croppedImage);
-        if(upload){
-            uploadRoomAvatar(croppedImage);
-        }
+        imageElement.setAttribute('src', url);
+        roomCreationAvatarBlob = croppedImage;
     });
 }
 
-async function uploadRoomAvatar(imgBase64){
-    const url = `/req/room/updateInfo/${activeRoom.slug}`;
+async function uploadRoomAvatar(image){
+    console.log("uploadRoomAvatar");
+    const url = `/req/room/uploadAvatar/${activeRoom.slug}`;
+
+    const temp = activeRoom ? 1 : 0;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const formData = new FormData();
+    formData.append('image', image);
 
     try {
         const response = await fetch(url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
             },
-            body: JSON.stringify({'img':imgBase64})
+            body: formData
         });
         const data = await response.json();
 
         if (data.success) {
             // console.log('Image Uploaded Successfully');
+            return data.url;
 
         } else {
             console.error('Upload not successfull');
@@ -1426,7 +1465,7 @@ async function uploadRoomAvatar(imgBase64){
 }
 
 
-async function updateRoomInfo(slug, attributes){
+async function updateRoomInfo(slug, formData){
 
     if(!slug){
         slug = activeRoom.slug;
@@ -1438,34 +1477,34 @@ async function updateRoomInfo(slug, attributes){
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const url = `/req/room/updateInfo/${slug}`;
 
-    let requestObj = {};
-    if(attributes.systemPrompt) requestObj.system_prompt = attributes.systemPrompt;
-    if(attributes.description) requestObj.description = attributes.description;
-    if(attributes.name) requestObj.name = attributes.name;
-    if(attributes.img) requestObj.img = attributes.img;
-
     try{
         const response = await fetch(url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+
             },
-            body: JSON.stringify(requestObj)
+            body: formData
         });
 
         if(!response.ok){
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.log('response');
+            console.log(response);
+            console.error(`HTTP error! status: ${response.status}`);
+            return null;
         }
 
         const data = await response.json();
+
         if(data.success){
-            // console.log('Room Information updated successfully');
+            return data;
+            console.log('Room Information updated successfully');
         }
     }
-    catch (err){
+    catch (error){
         console.error('Error fetching data:', error);
-        throw err;
+        throw error;
     }
 }
 //#endregion

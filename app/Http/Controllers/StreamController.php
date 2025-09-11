@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\RoomMessageEvent;
 use App\Jobs\SendMessage;
-use App\Models\Message;
+
 use App\Models\Room;
 use App\Models\User;
 use App\Services\AI\AiService;
@@ -12,6 +12,7 @@ use App\Services\AI\UsageAnalyzerService;
 use App\Services\AI\Value\AiResponse;
 use App\Services\Chat\Message\MessageHandlerFactory;
 use App\Services\Storage\AvatarStorageService;
+use Hawk\HawkiCrypto\SymmetricCrypto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -58,7 +59,7 @@ class StreamController extends Controller
 
         // Record usage
         $this->usageAnalyzer->submitUsageRecord($response->usage, 'api');
-        
+
         // Return response to client
         return response()->json([
             'success' => true,
@@ -82,7 +83,7 @@ class StreamController extends Controller
                 'payload.messages.*.content.text' => 'nullable|string',
                 'payload.messages.*.content.attachments' => 'nullable|array',
                 'payload.tools' => 'nullable|array',
-                
+
                 'broadcast' => 'required|boolean',
                 'isUpdate' => 'nullable|boolean',
                 'messageId' => ['nullable', function ($_, $value, $fail) {
@@ -94,7 +95,7 @@ class StreamController extends Controller
                 'slug' => 'nullable|string',
                 'key' => 'nullable|string',
             ]);
-            
+
             // Ensure that nullable fields are set to default values if not provided
             foreach ($validatedData['payload']['messages'] as &$message) {
                 if (isset($message['content']['text']) && !is_string($message['content']['text'])) {
@@ -112,14 +113,14 @@ class StreamController extends Controller
                 'errors' => $e->errors()
             ], 422);
         }
-        
+
         if ($validatedData['broadcast']) {
             $this->handleGroupChatRequest($validatedData);
             return null;
         }
-        
+
         $hawki = User::find(1); // HAWKI user
-        $avatar_url = $this->avatarStorage->getFileUrl('profile_avatars',
+        $avatar_url = $this->avatarStorage->getUrl('profile_avatars',
                                             $hawki->username,
                                             $hawki->avatar_id);
 
@@ -129,7 +130,7 @@ class StreamController extends Controller
         } else {
             // Handle standard response
             $response = $this->aiService->sendRequest($validatedData['payload']);
-            
+
             $this->usageAnalyzer->submitUsageRecord($response->usage, 'private');
 
             // Return response to client
@@ -144,7 +145,7 @@ class StreamController extends Controller
                 'content' => json_encode($response->content),
             ]);
         }
-        
+
         return null;
     }
 
@@ -158,7 +159,7 @@ class StreamController extends Controller
         header('Cache-Control: no-cache');
         header('Connection: keep-alive');
         header('Access-Control-Allow-Origin: *');
-        
+
         $onData = function (AiResponse $response) use ($user, $avatar_url, $payload) {
             $flush = static function () {
                 if (ob_get_length()) {
@@ -166,12 +167,12 @@ class StreamController extends Controller
                 }
                 flush();
             };
-            
+
             $this->usageAnalyzer->submitUsageRecord(
                 $response->usage,
                 'private',
             );
-            
+
             $messageData = [
                 'author' => [
                     'username' => $user->username,
@@ -182,14 +183,14 @@ class StreamController extends Controller
                 'isDone' => $response->isDone,
                 'content' => json_encode($response->content),
             ];
-            
+
             echo json_encode($messageData) . "\n";
             $flush();
         };
-        
+
         $this->aiService->sendStreamRequest($payload, $onData);
     }
-    
+
     /**
      * Handle group chat requests with the new architecture
      */
@@ -200,9 +201,9 @@ class StreamController extends Controller
 
         // Broadcast initial generation status
         $generationStatus = [
-            'type' => 'aiGenerationStatus',
-            'messageData' => [
-                'room_id' => $room->id,
+            'type' => 'status',
+            'data' => [
+                'slug' => $room->slug,
                 'isGenerating' => true,
                 'model' => $data['payload']['model']
             ]
@@ -219,50 +220,59 @@ class StreamController extends Controller
             $room->id
         );
 
-        // Encrypt content for storage
-        $cryptoController = new EncryptionController();
-        $encKey = base64_decode($data['key']);
-        $encryptedData = $cryptoController->encryptWithSymKey($encKey, json_encode($response->content), false);
+        $crypto = new SymmetricCrypto();
+        $encryptedData = $crypto->encrypt($response->content['text'],
+                                          base64_decode($data['key']));
 
         // Store message
         $messageHandler = MessageHandlerFactory::create('group');
         $member = $room->members()->where('user_id', 1)->firstOrFail();
 
         if ($isUpdate) {
-            $message = $room->messages->where('message_id', $data['messageId'])->first();
-            $message->update([
-                'iv' => $encryptedData['iv'],
-                'tag' => $encryptedData['tag'],
-                'content' => $encryptedData['ciphertext'],
+            $message = $messageHandler->update($room, [
+                'message_id' => $data['messageId'],
                 'model' => $data['payload']['model'],
+                'content' => [
+                    'text' => [
+                        'ciphertext' => base64_encode($encryptedData->ciphertext),
+                        'iv' => base64_encode($encryptedData->iv),
+                        'tag' => base64_encode($encryptedData->tag),
+                    ]
+                ]
             ]);
         } else {
-            $nextMessageId = $messageHandler->assignID($room, $data['threadIndex']);
-            $message = Message::create([
-                'room_id' => $room->id,
-                'member_id' => $member->id,
-                'message_id' => $nextMessageId,
-                'message_role' => 'assistant',
-                'model' => $data['payload']['model'],
-                'iv' => $encryptedData['iv'],
-                'tag' => $encryptedData['tag'],
-                'content' => $encryptedData['ciphertext'],
+            $message = $messageHandler->create($room, [
+                'threadId' => $data['threadIndex'],
+                'member' => $member,
+                'message_role'=> 'assistant',
+                'model'=> $data['payload']['model'],
+                'content' => [
+                    'text' => [
+                        'ciphertext' => base64_encode($encryptedData->ciphertext),
+                        'iv' => base64_encode($encryptedData->iv),
+                        'tag' => base64_encode($encryptedData->tag),
+                    ]
+                ]
             ]);
         }
 
-        // Queue message for broadcast
-        SendMessage::dispatch($message, $isUpdate)->onQueue('message_broadcast');
-        
+
+        $broadcastObject = [
+            'slug' => $room->slug,
+            'message_id'=> $message->message_id,
+        ];
+        SendMessage::dispatch($broadcastObject, $isUpdate)->onQueue('message_broadcast');
+
         // Update and broadcast final generation status
         $generationStatus = [
-            'type' => 'aiGenerationStatus',
-            'messageData' => [
-                'room_id' => $room->id,
+            'type' => 'status',
+            'data' => [
+                'slug' => $room->slug,
                 'isGenerating' => false,
                 'model' => $data['payload']['model']
             ]
         ];
-        
+
         broadcast(new RoomMessageEvent($generationStatus));
     }
 }

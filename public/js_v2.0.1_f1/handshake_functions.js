@@ -45,32 +45,52 @@ let backupHash = '';
 async function checkPasskey(){
 
     const msg = document.querySelector('#alert-message');
-    const enteredPasskey = String(document.getElementById('passkey-input').value);
+    const enteredPasskey = String(document.getElementById('passkey-input').dataset.realValue);
+
     // if passkey field is left empty.
     if(enteredPasskey === ''){
-        msg.innerText = "Bitte gebe ein Passkey ein."
+        msg.innerText = translation.HS_EnterPasskeyMsg
         return;
     }
 
-    const repeatField = document.getElementById('passkey-repeat');
+    const repeatWrapper = document.getElementById('passkey-repeat');
+
     //Show Repeat Passkey
-    if(repeatField.style.display === 'none'){
-        repeatField.style.display = 'block';
+    if(repeatWrapper.style.display === 'none'){
+        repeatWrapper.style.display = 'flex';
+        repeatWrapper.querySelector('input').focus();
         return;
     }
+    const repeatField = repeatWrapper.querySelector('.passkey-input')
+    const repeatedKey = String(repeatField.dataset.realValue);
 
-    const repeatedKey = String(repeatField.value);
+
     //if repeat passkey is empty
     if(repeatedKey === ''){
-        msg.innerText = "Bitte wiederhole das Passkey."
-        return;
-    }
-    //if the inputs are not the same.
-    if(enteredPasskey != repeatedKey){
-        msg.innerText = "Die Eingaben sind nicht gleich."
+        msg.innerText = translation.HS_RepeatPassKey
         return;
     }
 
+    //if the inputs are not the same.
+    if(enteredPasskey != repeatedKey){
+        msg.innerText = translation.HS_DifferentEntries
+        return;
+    }
+
+    let serverVerified = false;
+
+    try {
+        serverVerified = await validatePasskeyByServer(enteredPasskey);
+    } catch (error) {
+        console.error('Error verifying passkey with server:', error);
+        msg.innerText = "Error verifying passkey with server"
+        return;
+    }
+
+    if(!serverVerified){
+        msg.innerText = "PassKey could not be verified by the server"
+        return;
+    }
 
     // create backup hash
     backupHash = generatePasskeyBackupHash();
@@ -88,7 +108,7 @@ async function checkPasskey(){
         'tag': cryptoPasskey.tag,
         'iv': cryptoPasskey.iv,
     }
-    
+
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         // Send the registration data to the server
@@ -96,7 +116,8 @@ async function checkPasskey(){
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                "X-CSRF-TOKEN": csrfToken
+                "X-CSRF-TOKEN": csrfToken,
+                'Accept': 'application/json',
             },
             body: JSON.stringify(dataToSend)
         });
@@ -125,6 +146,51 @@ async function checkPasskey(){
 }
 
 
+async function validatePasskeyByServer(enteredKey){
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        // Send the registration data to the server
+        const response = await fetch('/req/profile/validatePasskey', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                "X-CSRF-TOKEN": csrfToken,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({passkey: enteredKey})
+        });
+
+        // Handle the server response
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Server Error:', errorData.error);
+            throw new Error(`Server Error: ${errorData.error}`);
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            return {
+                success: true,
+                message: data.message
+            };
+        }
+        else{
+            return {
+                success: false,
+                message: data.message
+            };
+        }
+
+    } catch (error) {
+        console.error('Error Creating Passkey Backup:', error);
+        throw error;
+    }
+
+}
+
+
+
 function downloadTextFile() {
 
     if(backupHash === ''){
@@ -132,20 +198,20 @@ function downloadTextFile() {
     }
     // Create a Blob from the text content
     const blob = new Blob([backupHash], { type: 'text/plain' });
-    
+
     // Create a link element
     const link = document.createElement('a');
-    
+
     // Create a URL for the Blob and set it as the href attribute
     link.href = URL.createObjectURL(blob);
     link.download = `${userInfo.username}_Key.txt`; // Set the download attribute with the filename
-    
+
     // Append the link to the document body (won't be visible to the user)
     document.body.appendChild(link);
-    
+
     // Programmatically click the link to trigger the download
     link.click();
-    
+
     // Clean up by removing the link and revoking the object URL
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
@@ -159,7 +225,7 @@ async function initializeRegistration(){
 }
 
 async function onBackupCodeComplete(){
-    // const confirmed = await openModal(ModalType.WARNING, 
+    // const confirmed = await openModal(ModalType.WARNING,
     //     'Speichere diese Datei an einem sicheren Ort. Damit können wir im Notfall deine Chats wieder herstellen.')
     // if (!confirmed) {
     //     return;
@@ -188,14 +254,14 @@ async function completeRegistration() {
     // Generate and encrypt the aiConvKey and keychain
     const aiConvKey = await generateKey();
     const keychainData = await keychainSet('aiConvKey', aiConvKey, true, false);
-    
+
 
     // Prepare the data to send to the server
     const dataToSend = {
         publicKey: publicKeyBase64,
         keychain: keychainData.ciphertext,
-        KCIV: keychainData.iv, 
-        KCTAG: keychainData.tag, 
+        KCIV: keychainData.iv,
+        KCTAG: keychainData.tag,
     };
 
     try {
@@ -206,7 +272,8 @@ async function completeRegistration() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                "X-CSRF-TOKEN": csrfToken
+                "X-CSRF-TOKEN": csrfToken,
+                'Accept': 'application/json',
             },
             body: JSON.stringify(dataToSend)
         });
@@ -239,7 +306,7 @@ async function verifyEnteredPassKey(provider){
 
     const slide = provider.closest(".slide");
     const inputField = slide.querySelector("#passkey-input");
-    const enteredKey = String(inputField.value.trim());
+    const enteredKey = String(inputField.dataset.realValue.trim());
     const errorMessage = slide.querySelector("#alert-message");
 
     if (!enteredKey) {
@@ -247,11 +314,12 @@ async function verifyEnteredPassKey(provider){
         return;
     }
 
-    if(await verifyPasskey(enteredKey)){
+    isVerified = await verifyPasskey(enteredKey);
+
+    if(isVerified){
         await setPassKey(enteredKey);
         await syncKeychain(serverKeychainCryptoData);
-        // console.log('keychain synced');
-        window.location.href = '/chat'; 
+        window.location.href = '/chat';
     }
     else{
         errorMessage.innerText = "Failed to verify passkey. Please try again.";
@@ -266,9 +334,9 @@ async function verifyPasskey(passkey) {
     try {
         const udSalt = await fetchServerSalt('USERDATA_ENCRYPTION_SALT');
         const keychainEncryptor = await deriveKey(passkey, "keychain_encryptor", udSalt);
-    
+
         const { keychain, KCIV, KCTAG } = JSON.parse(serverKeychainCryptoData);
-    
+
         const decryptedKeychain = await decryptWithSymKey(
             keychainEncryptor,
             keychain,
@@ -300,7 +368,7 @@ function uploadTextFile() {
             const reader = new FileReader();
             // Once the file is read, invoke the callback with the file content
             reader.onload = function(e) {
-                const content = e.target.result;  
+                const content = e.target.result;
                 if (isValidBackupKeyFormat(content.trim())) {
                     document.querySelector('#backup-hash-input').value = content;
                 } else {
@@ -345,12 +413,12 @@ async function extractPasskey(){
     // console.log(derivedKey);
     try{
         //encrypt Passkey as plaintext
-        const passkey = await decryptWithSymKey(derivedKey, 
+        const passkey = await decryptWithSymKey(derivedKey,
                                                 passkeyBackup.ciphertext,
                                                 passkeyBackup.iv,
-                                                passkeyBackup.tag, 
+                                                passkeyBackup.tag,
                                                 false);
-                                                
+
         if(verifyPasskey(passkey)){
             setPassKey(passkey);
             switchSlide(3);
@@ -377,23 +445,24 @@ async function requestPasskeyBackup(){
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    "X-CSRF-TOKEN": csrfToken
+                    "X-CSRF-TOKEN": csrfToken,
+                    'Accept': 'application/json',
                 },
             });
-    
+
             // Handle the server response
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Server Error:', errorData.error);
                 throw new Error(`Server Error: ${errorData.error}`);
             }
-    
+
             const data = await response.json();
             if (data.success) {
                 const passKeyJson = data.passkeyBackup;
                 return passKeyJson;
             }
-    
+
         } catch (error) {
             console.error('Error downloading passkey backup:', error);
             throw error;
@@ -402,7 +471,7 @@ async function requestPasskeyBackup(){
 
 async function redirectToChat(){
     await syncKeychain(serverKeychainCryptoData);
-    window.location.href = '/chat'; 
+    window.location.href = '/chat';
 }
 
 
@@ -414,7 +483,8 @@ async function requestProfileReset(){
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                "X-CSRF-TOKEN": csrfToken
+                "X-CSRF-TOKEN": csrfToken,
+                'Accept': 'application/json',
             },
         });
 

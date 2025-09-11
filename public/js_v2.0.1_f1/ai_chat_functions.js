@@ -30,10 +30,7 @@ function initializeAiChatModule(chatsObject){
     const input = document.getElementById('input-container');
     initFileUploader(input);
 
-
-
     initializeChatlogFunctions();
-
 }
 
 
@@ -92,7 +89,7 @@ async function sendMessageConv(inputField) {
     /// Submit Message to server.
     const messageObj = {
         'isAi': false,
-        'threadID': activeThreadIndex,
+        'threadId': activeThreadIndex,
         'completion': true,
 
         'content': {
@@ -222,7 +219,7 @@ async function buildRequestObjectForAiConv(msgAttributes, messageElement = null,
 
             const requestObj = {
                 'isAi': true,
-                'threadID': activeThreadIndex,
+                'threadId': activeThreadIndex,
                 'content':{
                     'text': {
                         'ciphertext': messageObj.ciphertext,
@@ -401,7 +398,8 @@ async function submitConvToServer(convName) {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
             },
             body: JSON.stringify(requestObject)
         });
@@ -496,7 +494,9 @@ async function RequestConvContent(slug){
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+
             },
         });
 
@@ -536,7 +536,8 @@ async function requestDeleteConv() {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
             },
         });
         const data = await response.json();
@@ -584,7 +585,8 @@ async function deleteMessage(btn){
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
             },
             body: JSON.stringify({
                 'message_id' : message.id
