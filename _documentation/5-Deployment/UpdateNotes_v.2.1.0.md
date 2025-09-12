@@ -70,12 +70,12 @@ To host the HAWKI File Converter Section.
 # To use Gwdg Docling you'll need to have the GWDG_API_KEY.
 #
 # FILE_CONVERTER:                   The converter you prefer to use "hawki_converter", "gwdg_docling"
-# HAWKI_FILE_CONVERTERS_API_URL     URL to the Hosted HAWKI converter.
+# HAWKI_FILE_CONVERTER_API_URL     URL to the Hosted HAWKI converter.
 # GWDG_FILE_CONVERTER_API_URL       URL to the GWDG converter. 'https://chat-ai.academiccloud.de/v1/documents/convert'
 
 FILE_CONVERTER=hawki_converter
 HAWKI_FILE_CONVERTER_API_URL=
-HAWKI_FILE_CONVERTER_API_KEY=""
+HAWKI_FILE_CONVERTER_API_KEY=
 GWDG_FILE_CONVERTER_API_URL='https://chat-ai.academiccloud.de/v1/documents/convert' # DEFAULT VALUE
 
 ```
@@ -153,6 +153,7 @@ docx-preview                            Rendering Docx Files
 To install the packages, run:
 
 ```
+composer update
 composer install
 npm install
 npm run build
@@ -163,6 +164,14 @@ npm run build
 To add new data models to your database run:
 ```
 php hawki migrate
+```
+
+6- **Migrate Avatars**
+
+To migrate old file structure for profile and room avatars into new system, run:
+
+```
+php artisan migrate:avatars
 ```
 
 

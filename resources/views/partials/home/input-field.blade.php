@@ -58,7 +58,7 @@
 
 
 
-                <button class="btn-xs fast-access-btn file-upload file-upload-btn" onclick="selectFile()">
+                <button class="btn-xs fast-access-btn file-upload file-upload-btn" onclick="selectFile(this)">
                     <x-icon name="paperclip"/>
                     <div class="tooltip">
                         {{ $translation["UploadFile"] }}
@@ -184,7 +184,7 @@
     </div>
     <div class="input" id="0">
         @if(!$lite)
-            <input type="file" id="file-upload-input" style="display:none;"/>
+            <input type="file" class="file-upload-input" id="file-upload-input" style="display:none;"/>
         @endif
 
         <div class="file-attachments">

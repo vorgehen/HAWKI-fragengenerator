@@ -13,11 +13,11 @@
 }
 
 
-.sidebar{
-    display: flex;
-    height: 100%;
-    flex-direction: column;
-    background-color: var(--background-main);
+.main-sidebar{
+    display: flex !important;
+    height: 100% !important;
+    flex-direction: column !important;
+    background-color: var(--background-main) !important;
 }
 .sidebar-btn{
     width: 80%;

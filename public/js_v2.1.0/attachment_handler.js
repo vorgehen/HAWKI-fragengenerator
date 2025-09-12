@@ -2,15 +2,22 @@
 const uploadQueues = new Map();
 
 // Trigger click on the file input element
-function selectFile() {
-    document.querySelector('#file-upload-input').click();
+function selectFile(sender) {
+    const inputContainer = sender.closest(".input-container");
+    const fileInput = inputContainer.querySelector('.file-upload-input');
+    if (fileInput) {
+        fileInput.click();
+    }
+    else{
+        console.error("Could not get fileinput");
+    }
 }
 
 
 function initFileUploader(inputField) {
 
     const overlay = inputField.querySelector('.drag-drop-overlay');
-    const fileInput = document.querySelector('#file-upload-input');
+    const fileInput = inputField.querySelector('.file-upload-input');
     const input = inputField.querySelector('.input');
     const ctrls = inputField.querySelector('.input-controls');
     let dragCounter = 0;
@@ -57,6 +64,7 @@ function initFileUploader(inputField) {
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
             handleSelectedFiles(this.files, input);
+            this.value = '';
         });
     }
 

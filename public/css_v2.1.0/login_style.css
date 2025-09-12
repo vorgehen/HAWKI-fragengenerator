@@ -1,4 +1,4 @@
-.wrapper {  
+.wrapper {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -152,7 +152,7 @@ main {
   z-index: 1;
   bottom: 1rem;
   right: 3rem;
-  
+
 }
 
 @media (max-width: 800px) {
@@ -173,12 +173,12 @@ main {
 }
 
 
-@media only screen 
-  and (min-device-width: 320px) 
+@media only screen
+  and (min-device-width: 320px)
   and (max-device-width: 480px)
   and (-webkit-min-device-pixel-ratio: 2)
   and (orientation: portrait) {
-    
+
     main{
       display: none;
     }

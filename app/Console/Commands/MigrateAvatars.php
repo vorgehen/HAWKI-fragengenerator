@@ -368,17 +368,22 @@ class MigrateAvatars extends Command
     protected function findAvatarFile(string $avatarId, string $folder): ?array
     {
         $commonExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
-        
+
+        // remove any extension from the avatarId
+        $basename = pathinfo($avatarId, PATHINFO_FILENAME);
+
         foreach ($commonExtensions as $ext) {
-            $path = "{$folder}/{$avatarId}.{$ext}";
+            $path = "{$folder}/{$basename}.{$ext}";
+            $this->info($path);
+
             if (Storage::disk('local')->exists($path)) {
                 return [
-                    'path' => $path,
-                    'extension' => $ext
+                    'path'      => $path,
+                    'extension' => $ext,
                 ];
             }
         }
-        
+
         return null;
     }
 
@@ -463,7 +468,7 @@ class MigrateAvatars extends Command
     protected function cleanupOldAvatarFiles(): void
     {
         $this->info('Cleaning up old avatar files...');
-        
+
         $profileDeleted = 0;
         $roomDeleted = 0;
         $errors = 0;

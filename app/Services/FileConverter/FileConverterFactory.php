@@ -38,7 +38,6 @@ class FileConverterFactory
     {
         $converters = config('file_converter.converters');
         $config = $converters[$type] ?? null;
-
         if (!$config) {
             return false;
         }
@@ -61,7 +60,7 @@ class FileConverterFactory
         if(self::isActive($fallback)) {
             return true;
         }
-
+        \Log::warning("Both File Converters are inaccessible.");
         return false;
     }
 }

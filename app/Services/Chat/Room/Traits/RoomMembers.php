@@ -92,6 +92,6 @@ trait RoomMembers{
                 'email'     => $user->email,
                 'publicKey'=> $user->publicKey
             ];
-        });
+        })->toArray();
     }
 }
