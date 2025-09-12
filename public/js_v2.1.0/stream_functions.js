@@ -175,7 +175,8 @@ function createMessageLogForAI(regenerationElement = null){
 
     let [lastWholeNum, lastDecimalNum] = lastMsgId.split('.').map(Number);
     //get last 100 messages
-    const messages = Array.from(document.querySelectorAll('.message')).slice(-100);
+    // REF-> Message Memory Limit
+    const messages = Array.from(document.querySelectorAll('.message')).slice(-20);
 
     //WHOLE CHAT LOG FOR MAIN and ONLY THE THREAD MSGS FOR THREAD
     messages.forEach(msg => {

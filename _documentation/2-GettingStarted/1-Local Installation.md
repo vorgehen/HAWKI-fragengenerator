@@ -323,7 +323,9 @@ You can either keep the workers running in separate terminals to see the printed
 The new Attachments feature in HAWKI allows user to upload files in the chat. But since the models mostly do not accept document files as input, we need to first convert these to text.
 This task can be done either by the new converter module in HAWKI Toolkit or be the provided document endpoint from GWDG.
 If you do not uncomment the FILE_CONVERTER variables in .env file, HAWKI turns off the document support for attachments automatically.
-For more information refer to the File Converter Section of this documentation.
+
+If you prefer to use HAWKI FIle Converter, and you are not using the docker deployment you can host the converter separately from the project.
+For more information refer to the [File Converter Repo](https://github.com/hawk-digital-environments/hawki-toolkit-file-converter) of this documentation.
 
 
 ### Start Development Server

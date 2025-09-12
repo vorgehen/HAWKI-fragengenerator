@@ -17,6 +17,9 @@ With HAWKI2, our university's own data protection-compliant platform for generat
 - Group chats for peer-to-peer qualification University members can now exchange ideas in interactive chat rooms—similar to WhatsApp—and additionally integrate the generative AI at any time by addressing it as an additional participant in the group. This not only facilitates extended collaboration but also provides all participants the opportunity to use and understand the generative AI together.
 
 
+- Attachments to add **PDFs**, **Word documents**, and **images** as attachments to chat messages. Files can be shared with other room members or sent to AI models as context, depending on model capabilities.
+
+
 - Export function with intelligent summarization The new automated documentation of prompts creates transparency in AI-supported work processes—an important step for use in examinations and scientific work.
 
 

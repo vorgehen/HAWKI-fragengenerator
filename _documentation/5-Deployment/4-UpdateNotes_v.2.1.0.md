@@ -57,7 +57,8 @@ OPEN_WEB_UI_API_KEY=
 
 **File Converter**
 
-This version utilizes the a file converter, you can either use HAWKI File Converter or the Docling endpoint provided by GWDG.
+This version utilizes a file converter to prepare document files as context for the AI model.
+You can either use HAWKI File Converter or the Docling endpoint provided by GWDG.
 To host the HAWKI File Converter Section.
 
 ```
@@ -70,7 +71,7 @@ To host the HAWKI File Converter Section.
 # To use Gwdg Docling you'll need to have the GWDG_API_KEY.
 #
 # FILE_CONVERTER:                   The converter you prefer to use "hawki_converter", "gwdg_docling"
-# HAWKI_FILE_CONVERTER_API_URL     URL to the Hosted HAWKI converter.
+# HAWKI_FILE_CONVERTERS_API_URL     URL to the Hosted HAWKI converter.
 # GWDG_FILE_CONVERTER_API_URL       URL to the GWDG converter. 'https://chat-ai.academiccloud.de/v1/documents/convert'
 
 FILE_CONVERTER=hawki_converter
@@ -133,6 +134,17 @@ Different file storage disk can be selected for Profile and Room Avatars and Fil
 ```
 
 
+3- **File Converter**
+
+The new Attachments feature in HAWKI allows user to upload files in the chat. But since the models mostly do not accept document files as input, we need to first convert these to text.
+This task can be done either by the new converter module in HAWKI Toolkit or be the provided document endpoint from GWDG.
+If you do not uncomment the FILE_CONVERTER variables in .env file, HAWKI turns off the document support for attachments automatically.
+
+If you prefer to use HAWKI FIle Converter, and you are not using the docker deployment you can host the converter separately from the project.
+For more information refer to the [File Converter Repo](https://github.com/hawk-digital-environments/hawki-toolkit-file-converter) of this documentation.
+
+
+
 4- **Reinstall Composer and Node packages.**
 
 The new packages include:
@@ -177,7 +189,7 @@ php artisan migrate:avatars
 
 6- **Create Schedule Service**
 
-If you are using an Apache Server create a new file in `/etc/systemd/system` for schedule worker and call it "schedule-worker.service". Insert this content:
+Whether you are using Apache or Nginx, create a new file in `/etc/systemd/system` for schedule worker and call it "schedule-worker.service". Insert this content:
 
 >**Don't forget to update paths: `/var/www/html/hawki-project`**
 
@@ -224,7 +236,7 @@ Check Status (to ensure it has started correctly):
 sudo systemctl status schedule-worker.service
 ```
 
-By default model status update runs every 15 minutes.
+By default, model status update runs every 15 minutes.
 In order to check the models statuses run:
 ```
 php artisan check:model-status

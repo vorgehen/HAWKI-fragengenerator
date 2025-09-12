@@ -155,11 +155,11 @@ For a complete guide to environment variables please refer to [.env section]() o
 
 **General**
 
->If you have used HAWKI CLI to initialize the project in the previous step, some attributes like Keys and Salts must have been automatically filled.
+>If you have used HAWKI CLI to initialize the project in the previous step, some variables like Keys and Salts must have been automatically filled.
 >
->Moreover, some of the attributes have already default values, which do not necessarily need be changed.
+>Moreover, some of the variables have already default values, which do not necessarily need be changed.
 
-Here we go through some of the important attributes that need to be set before running HAWKI on your local machine.
+Here we go through some of the important variables that need to be set before running HAWKI on your local machine.
 For local testing make sure in "Global Application Settings" the following values exits:
 
 ```
@@ -186,12 +186,12 @@ GOOGLE_API_KEY=""
 OPEN_WEB_UI_API_KEY=""
 ```
 
-alternatively you can host your own model using [Ollama](https://ollama.com/). Then add the following attributes in your `.env`:
+alternatively you can host your own model using [Ollama](https://ollama.com/). Then add the following variables in your `.env`:
 
 ```
 OLLAMA_ACTIVE=true
 ```
-then navigate to `config/model_lists/ollama_models.php` and add your model attributes in the following structure:
+then navigate to `config/model_lists/ollama_models.php` and add your model variables in the following structure:
 
 ```
 [
@@ -238,7 +238,7 @@ Using HAWKI CLI, you can configure authentication settings with:
 php hawki setup -auth
 ```
 
->If you are using **LDAP** make sure the structure of the LDAP response is set up correctly on the HAWKI side. To do that first make sure the `LDAP_ATTRIBUTES` are set correctly and in the correct order: Username, Email Address, Employee Type, Name. By default HAWKI looks for the `element zero/ variable name/ element zero` `($info[0][$ldapAttr][0])`. If for any reason the response from your LDAP server has a different structure, your can change this in `/app/Services/Auth/LdapService.php`.
+>If you are using **LDAP** make sure the structure of the LDAP response is set up correctly on the HAWKI side. To do that first make sure the `LDAP_variables` are set correctly and in the correct order: Username, Email Address, Employee Type, Name. By default HAWKI looks for the `element zero/ variable name/ element zero` `($info[0][$ldapAttr][0])`. If for any reason the response from your LDAP server has a different structure, your can change this in `/app/Services/Auth/LdapService.php`.
 
 **Test User**
 
@@ -549,6 +549,19 @@ sudo systemctl status reverb.service
 sudo systemctl status queue-worker.service
 sudo systemctl status schedule-worker.service
 ```
+
+
+##  File Converter
+
+The new Attachments feature in HAWKI allows user to upload files in the chat. But since the models mostly do not accept document files as input, we need to first convert these to text.
+This task can be done either by the new converter module in HAWKI Toolkit or be the provided document endpoint from GWDG.
+If you do not uncomment the FILE_CONVERTER variables in .env file, HAWKI turns off the document support for attachments automatically.
+
+If you prefer to use HAWKI FIle Converter, and you are not using the docker you can host the converter separately from the project.
+For more information refer to the [File Converter Repo](https://github.com/hawk-digital-environments/hawki-toolkit-file-converter) of this documentation.
+
+
+---
 
 Now that workers are running the queued messages should be successfully broadcasted to the users.
 
