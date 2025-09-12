@@ -65,3 +65,18 @@ needs or inherit your own image from the `digitalenvironments/hawki` image.
 
 Build the image: `docker build --target app_prod -t digitalenvironments/hawki:latest .`
 Or by using: `bin/env docker:build:prod`
+
+## Headsup and good to know!
+
+We encountered an issue
+when [disabling the "iptables"](https://docs.docker.com/engine/network/packet-filtering-firewalls/#prevent-docker-from-manipulating-iptables)
+in the docker daemon.json file. This does (if not configured manually) break the communication between the containers
+and the outside world.
+
+## Update notes:
+
+- **Updating to v2.1.0**: Please compare your current setup with the new `_docker_production` directory, as there are
+  some changes needed to update to version 2.1.0.
+  Especially the `.env` file has some new variables that need to be added. Also the model_providers.php file has a
+  changed format and was moved to another location, the model_lists have been added and a new services were introduced
+  to the docker-compose file (the scheduler and file-converter).
