@@ -94,7 +94,7 @@
 	const userAvatarUrl = @json($userData['avatar_url']);
 	const hawkiAvatarUrl = @json($userData['hawki_avatar_url']);
 	const activeModule = @json($activeModule);
-
+    const hawkiUsername = @json($userData['hawki_username'])
 
     const activeLocale = {!! json_encode(Session::get('language')) !!};
 	const translation = @json($translation);

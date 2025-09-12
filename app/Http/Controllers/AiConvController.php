@@ -174,7 +174,6 @@ class AiConvController extends Controller
             throw new AuthorizationException();
         }
         $url = $this->attachmentService->getFileUrl($attachment, null);
-        Log::debug('Generated Url ', [$url]);
         return response()->json([
             'success' => true,
             'url' => $url
@@ -192,7 +191,6 @@ class AiConvController extends Controller
 
             $storageService = app(FileStorageService::class);
             $stream = $storageService->streamFromSignedPath($path); // returns a resource
-            Log::debug('Download Url ', [$stream]);
             return response()->streamDownload(function () use ($stream)
             {
                 fpassthru($stream); // send stream directly to browser

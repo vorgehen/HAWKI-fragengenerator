@@ -61,6 +61,7 @@ class HomeController extends Controller
             'hawki_avatar_url'=>$hawkiAvatarUrl,
             'convs' => $user->conversations()->with('messages')->get(),
             'rooms' => $user->rooms()->with('messages')->get(),
+            'hawki_username' => User::find(1)->username,
         ];
 
         $activeModule = $requestModule;

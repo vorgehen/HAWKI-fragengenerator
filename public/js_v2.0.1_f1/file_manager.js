@@ -112,9 +112,10 @@ async function downloadFile(uuid, category, filename) {
     try {
         // Get signed file URL from your backend
         const url = await requestFileUrl(uuid, category);
-
+        console.log(url);
         // Fetch the file as blob
         const response = await fetch(url);
+        console.log(response);
         if (!response.ok) {
             throw new Error(`Download failed: ${response.statusText}`);
         }
@@ -167,7 +168,7 @@ async function previewFile(provider, fileData, category) {
         const type = checkFileFormat(fileData.mime);
 
         switch (type) {
-            case 'img':
+            case 'image':
                 await renderImage(blob);
                 break;
             case 'pdf':

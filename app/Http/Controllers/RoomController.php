@@ -263,7 +263,6 @@ class RoomController extends Controller
      * @throws Exception
      */
     public function deleteAttachment(Request $request, AttachmentService $attachmentService): JsonResponse {
-        Log::debug('attachment Delete');
 
         $validateData = $request->validate([
             'fileId' => 'required|string',

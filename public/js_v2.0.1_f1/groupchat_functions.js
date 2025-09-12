@@ -1006,7 +1006,7 @@ async function searchUser(searchBar) {
 
                 const addedList = searchBar.closest('.add-members-section').querySelector('.added-members-list');
                 ignoreList = [];
-                ignoreList.push('HAWKI');
+                ignoreList.push(hawkiUsername);
                 ignoreList.push(userInfo.username);
                 if(activeRoom){
                     activeRoom.members.forEach(member => {
