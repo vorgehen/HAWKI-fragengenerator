@@ -152,7 +152,7 @@ Route::middleware('prevent_back')->group(function () {
         Route::post('/req/profile/uploadAvatar', [ProfileController::class, 'uploadAvatar']);
         Route::get('/req/profile/requestPasskeyBackup', [ProfileController::class, 'requestPasskeyBackup']);
 
-        Route::post('/req/profile/reset', [ProfileController::class, 'requestProfileRest']);
+        Route::post('/req/profile/reset', [ProfileController::class, 'requestProfileReset']);
         Route::post('/req/backupKeychain',  [ProfileController::class, 'backupKeychain']);
 
 
