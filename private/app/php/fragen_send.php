@@ -37,8 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Validate file type
         if (in_array($fileExtension, $allowedExtensions)) {
-            // Validate file size (e.g., max 5MB)
-            if ($fileSize <= 5 * 1024 * 1024) {
+            // Validate file size (e.g., max 20MB)
+            if ($fileSize <= 20 * 1024 * 1024) {
                 // Generate a unique name for the file to avoid overwriting
                 $newFileName = uniqid('pdf_', true) . '.' . $fileExtension;
 
