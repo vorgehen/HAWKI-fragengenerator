@@ -12,7 +12,7 @@ if (!isset($_SESSION['username'])) {
     exit;
 }
 
-$uploadDir = "/var/www/FraGen-Service/resources";
+$uploadDir = "/var/www/FraGen-Service/resources/";
 
 // Ensure the upload directory exists
 if (!is_dir($uploadDir)) {
