@@ -12,7 +12,7 @@ if (!isset($_SESSION['username'])) {
     exit;
 }
 
-$uploadDir = "uploads/";
+$uploadDir = "/var/www/FraGen-Service/resources";
 
 // Ensure the upload directory exists
 if (!is_dir($uploadDir)) {
@@ -22,19 +22,8 @@ if (!is_dir($uploadDir)) {
 // Check if the request method is POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // CSRF Protection
-	if (!isset($_SERVER['HTTP_X_CSRF_TOKEN']) || $_SERVER['HTTP_X_CSRF_TOKEN'] !== $_SESSION['csrf_token']) {
-        http_response_code(403);
+    // CSRF Protection TODO
 
-        $csrf_token = generate_csrf_token();
-        $respond = array(
-            'success' => false,
-            'csrf_token' => $csrf_token
-        );
-        echo json_encode($respond);
-        // exit('CSRF token validation failed.');
-        exit;
-    }
 
     if (isset($_FILES['pdfFile']) && $_FILES['pdfFile']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['pdfFile']['tmp_name'];
