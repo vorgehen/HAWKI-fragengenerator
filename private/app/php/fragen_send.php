@@ -98,7 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'success' => $resultOK,
         'message' => $message,
         'csrf_token' => $csrf_token,
-        'id' => $new_id
+        'id' => $new_id,
+        'data'=> $data
     );
 
 
