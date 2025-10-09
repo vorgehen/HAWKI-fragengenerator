@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newFileName ="";
     $message = "";
     $new_id = 0;
+    $data ="";
 
     if (isset($_FILES['pdfFile']) && $_FILES['pdfFile']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['pdfFile']['tmp_name'];
@@ -90,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Print the response data
                 print_r($data);
                 $new_id = $data['document_id'];
-                $message =$message . " ... und vektorisiert";
+                $message =$message . " ... und vektorisiert mit call " . $url . "... curl response: " . $curl_response;
     }
 
     $csrf_token = generate_csrf_token();
