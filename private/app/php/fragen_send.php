@@ -79,13 +79,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
         // Execute the cURL request and get the response
-                $response = curl_exec($curl);
+                $curl_response = curl_exec($curl);
 
         // Close the cURL session
                 curl_close($curl);
 
         // Decode the JSON response
-                $data = json_decode($response, true);
+                $data = json_decode($curl_response, true);
 
         // Print the response data
                 print_r($data);
@@ -100,7 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'csrf_token' => $csrf_token,
         'id' => $new_id
     );
-
 
 
     // Return the JSON string
