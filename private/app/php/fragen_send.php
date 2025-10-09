@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Print the response data
                 print_r($data);
                 $new_id = $data['document_id'];
-                $message =$message . " ... und vektorisiert mit call " . $url . "... curl response: " . $curl_response;
+                $message =$message . " ... und vektorisiert mit call " . $url . "... curl response: " . $curl_response . " errNo: " . curl_errno($curl);
     }
 
     $csrf_token = generate_csrf_token();
