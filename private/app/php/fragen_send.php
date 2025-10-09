@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $curl = curl_init();
 
         // Set the URL for the API request
-                $url = "http://127.0.0.1:5000/document/" . $newFileName ;
+                $url = "http://hawki.vorgehen.de:5000/document/" . $newFileName ;
 
 
         // Set cURL options for POST request
