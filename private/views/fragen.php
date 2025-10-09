@@ -3,7 +3,11 @@
 	$translation = $_SESSION['translation'];
 ?>
 
-
+<form action="api/fragen_send" method="post" enctype="multipart/form-data">
+    <label for="pdfFile">Choose a PDF file:</label>
+    <input type="file" name="pdfFile" id="pdfFile" accept=".pdf" required>
+     <button type="submit">Upload</button>
+</form>
 <h1>PDF Datei hochladen und vektorisieren</h1>
 <!-- File upload form -->
 <form id="uploadForm">
@@ -20,7 +24,7 @@
     const status = document.getElementById('status');
 
     // Add event listener for form submission
-    form.addEventListener('submit', async (event) => {
+    form.addEventListener('submit',  (event) => {
         event.preventDefault(); // Prevent default form submission
         const feedback_send = "api/fragen_send"
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -39,7 +43,7 @@
 
         try {
             // Send the file to the server using fetch
-            const response = await fetch('api/fragen_send', {
+            const response =  fetch('api/fragen_send', {
                 method: 'POST',
                 body: formData,
                 headers: {
