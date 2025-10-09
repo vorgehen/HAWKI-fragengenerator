@@ -24,6 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // CSRF Protection TODO
 
+    $resultOK = false;
+    $newFileName ="";
+    $message = "";
+    $new_id = 0;
 
     if (isset($_FILES['pdfFile']) && $_FILES['pdfFile']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['pdfFile']['tmp_name'];
@@ -35,7 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Allowed file type
         $allowedExtensions = ['pdf'];
 
-        // Validate file type
+
+
         if (in_array($fileExtension, $allowedExtensions)) {
             // Validate file size (e.g., max 20MB)
             if ($fileSize <= 20 * 1024 * 1024) {
@@ -45,18 +50,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Move the file to the upload directory
                 $destPath = $uploadDir . $newFileName;
                 if (move_uploaded_file($fileTmpPath, $destPath)) {
-                    echo "File uploaded successfully: " . htmlspecialchars($newFileName);
+                    $message = "Datei erfolgreich hochgeladen: " . htmlspecialchars($newFileName);
+                    $resultOK = true;
                 } else {
-                    echo "Error moving the uploaded file.";
+                    $message =  "Fehler beim Verschieben der Datei.";
                 }
             } else {
-                echo "File size exceeds the 5MB limit.";
+                $message =  "Datei ist groesser als das 20MB limit.";
             }
         } else {
-            echo "Only PDF files are allowed.";
+            $message =  "Nur PDF Dateien sind erlaubt.";
         }
     } else {
-        echo "No file uploaded or an error occurred.";
+        $message =  "No file uploaded or an error occurred.";
     }
+
+    if (  $resultOK) {
+        // Initialize a cURL session
+                $curl = curl_init();
+
+        // Set the URL for the API request
+                $url = "http://127.0.0.1:5000/document/" . $newFileName ;
+
+
+        // Set cURL options for POST request
+                curl_setopt($curl, CURLOPT_URL, $url);
+                curl_setopt($curl, CURLOPT_POST, true);
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+        // Execute the cURL request and get the response
+                $response = curl_exec($curl);
+
+        // Close the cURL session
+                curl_close($curl);
+
+        // Decode the JSON response
+                $data = json_decode($response, true);
+
+        // Print the response data
+                print_r($data);
+                $new_id = $data['document_id'];
+                $message =$message . " ... und vektorisiert";
+    }
+
+    $csrf_token = generate_csrf_token();
+    $response = array(
+        'success' => $resultOK,
+        'message' => $message,
+        'csrf_token' => $csrf_token,
+        'id' => $new_id
+    );
+
+
+
+    // Return the JSON string
+    echo json_encode($response);
 }
 ?>
