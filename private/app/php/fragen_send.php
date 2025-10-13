@@ -79,12 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Generate unique document ID
     $documentId = uniqid('doc_', true);
     
-    // Create upload directory if it doesn't exist
-    $uploadDir = RESOURCES_PATH . 'uploads/pdf/';
-    if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
-    
     // Save file with unique name
     $fileName = $documentId . '_' . basename($file['name']);
     $filePath = $uploadDir . $fileName;
@@ -99,12 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // TODO: Send file to Python service for indexing
-    // Example:
-    // $pythonServiceUrl = 'http://localhost:5000/api/index_pdf';
-    // $ch = curl_init($pythonServiceUrl);
-    // curl_setopt($ch, CURLOPT_POST, 1);
-    // curl_setopt($ch, CURLOPT_POSTFIELDS, ['file' => new CURLFile($filePath), 'document_id' => $documentId]);
+    // Send file to Python service for indexing
+    $pythonServiceUrl = 'http://hawki.vorgehen.de:5000/document/" . $fileName';
+    $ch = curl_init($pythonServiceUrl);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, ['file' => new CURLFile($filePath), 'document_id' => $documentId]);
     // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     // $response = curl_exec($ch);
     // curl_close($ch);
