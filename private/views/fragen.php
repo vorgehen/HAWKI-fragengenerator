@@ -50,6 +50,7 @@ $translation = $_SESSION['translation'];
     let currentDocumentId = sessionStorage.getItem('fragen_document_id');
     let currentDocumentName = sessionStorage.getItem('fragen_document_name');
 
+
     // Initialize UI on load
     window.addEventListener('DOMContentLoaded', () => {
         if (currentDocumentId) {
@@ -57,10 +58,19 @@ $translation = $_SESSION['translation'];
         }
 
         // File input change handler
-        document.getElementById('pdfFile').addEventListener('change', function(e) {
-            const fileName = e.target.files[0]?.name || '';
-            document.getElementById('file-name').textContent = fileName;
-            document.getElementById('upload-btn').disabled = !fileName;
+        const fileInput = document.getElementById('pdfFile');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileNameDisplay = document.getElementById('file-name');
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                fileNameDisplay.textContent = file.name;
+                uploadBtn.disabled = false;
+            } else {
+                fileNameDisplay.textContent = '';
+                uploadBtn.disabled = true;
+            }
         });
     });
 
