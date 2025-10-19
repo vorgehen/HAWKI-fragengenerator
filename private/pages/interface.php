@@ -594,6 +594,7 @@
 
 				//Parsing error from json "Chunks" corrected
 				let decodedData = new TextDecoder().decode(value);
+                console.log(decodedData);
 				decodedData = incompleteSlice + decodedData;
 
 				const delimiter = '\n\n';
