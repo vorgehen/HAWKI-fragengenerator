@@ -45,22 +45,152 @@ $translation = $_SESSION['translation'];
     </div>
 </div>
 <script>
-    // Initialize the Fragen upload form when this view is loaded
+    // Initialize upload functionality for dynamically loaded content
     (function() {
-        // Function to try initialization
-        function tryInitialize() {
+        let retryCount = 0;
+        const maxRetries = 20; // Try for up to 1 second (20 * 50ms)
+
+        function initUpload() {
+            // Check if the initialization function exists
             if (typeof initializeFragenUpload === 'function') {
-                console.log('initializeFragenUpload found, calling it now');
+                console.log('Calling initializeFragenUpload');
                 initializeFragenUpload();
-            } else {
-                console.log('initializeFragenUpload not found, retrying...');
-                // Retry after a short delay
-                setTimeout(tryInitialize, 50);
+                return true;
             }
+
+            // Fallback: If function doesn't exist, try direct initialization
+            const fileInput = document.getElementById('pdfFile');
+            const uploadBtn = document.getElementById('upload-btn');
+            const fileNameDisplay = document.getElementById('file-name');
+            const uploadForm = document.getElementById('fragen-upload-form');
+
+            if (!fileInput || !uploadBtn || !fileNameDisplay || !uploadForm) {
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(initUpload, 50);
+                } else {
+                    console.error('Failed to initialize Fragen upload: Elements not found after retries');
+                }
+                return false;
+            }
+
+            console.log('Direct initialization of Fragen upload');
+
+            // Direct event listener attachment
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                console.log('File change event:', file);
+
+                if (file) {
+                    // Basic validation
+                    if (!file.name.toLowerCase().endsWith('.pdf')) {
+                        alert('Please select a PDF file');
+                        e.target.value = '';
+                        fileNameDisplay.textContent = '';
+                        uploadBtn.disabled = true;
+                        return;
+                    }
+
+                    // Check file size (10MB max)
+                    if (file.size > 10 * 1024 * 1024) {
+                        alert('File size must be less than 10MB');
+                        e.target.value = '';
+                        fileNameDisplay.textContent = '';
+                        uploadBtn.disabled = true;
+                        return;
+                    }
+
+                    fileNameDisplay.textContent = file.name;
+                    uploadBtn.disabled = false;
+                    console.log('Upload button enabled');
+                } else {
+                    fileNameDisplay.textContent = '';
+                    uploadBtn.disabled = true;
+                }
+            });
+
+            // Form submission
+            uploadForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const file = fileInput.files[0];
+                if (!file) {
+                    alert('Please select a file');
+                    return;
+                }
+
+                // Check if the interface function exists, use it if available
+                if (typeof handleFragenFormSubmit === 'function') {
+                    handleFragenFormSubmit(e);
+                    return;
+                }
+
+                // Otherwise, do basic upload
+                const formData = new FormData();
+                formData.append('pdfFile', file);
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (!csrfToken) {
+                    alert('Security token missing. Please refresh the page.');
+                    return;
+                }
+
+                uploadBtn.disabled = true;
+                document.getElementById('upload-progress').style.display = 'block';
+
+                try {
+                    const response = await fetch('api/fragen_send', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': csrfToken },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.csrf_token) {
+                        document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.csrf_token);
+                    }
+
+                    if (data.success && data.document_id) {
+                        sessionStorage.setItem('fragen_document_id', data.document_id);
+                        sessionStorage.setItem('fragen_document_name', file.name);
+
+                        alert('File uploaded successfully!');
+
+                        // Show document info
+                        document.getElementById('doc-name').textContent = file.name;
+                        document.getElementById('doc-id').textContent = 'ID: ' + data.document_id;
+                        document.getElementById('document-info').style.display = 'block';
+
+                        fileInput.value = '';
+                        fileNameDisplay.textContent = '';
+                        uploadBtn.disabled = true;
+                    } else {
+                        alert(data.message || 'Upload failed');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('An error occurred during upload');
+                } finally {
+                    document.getElementById('upload-progress').style.display = 'none';
+                    uploadBtn.disabled = false;
+                }
+            });
+
+            // Check for existing document
+            const currentDocumentId = sessionStorage.getItem('fragen_document_id');
+            const currentDocumentName = sessionStorage.getItem('fragen_document_name');
+            if (currentDocumentId && currentDocumentName) {
+                document.getElementById('doc-name').textContent = currentDocumentName;
+                document.getElementById('doc-id').textContent = 'ID: ' + currentDocumentId;
+                document.getElementById('document-info').style.display = 'block';
+            }
+
+            return true;
         }
 
-        // Start trying to initialize
-        tryInitialize();
+        // Start initialization
+        initUpload();
     })();
 </script>
 
