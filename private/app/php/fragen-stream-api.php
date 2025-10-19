@@ -78,19 +78,17 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 ]);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
-curl_setopt($ch, CURLOPT_TIMEOUT, 60); // 60 seconds timeout
-curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) {
-    echo $data;
-    // ob_flush();
-    flush();
-    return strlen($data);
-});
 
 
-curl_exec($ch);
+// Execute the request
+$response = curl_exec($ch);
 
+// Check for errors
 if (curl_errno($ch)) {
-    echo 'Error:' . curl_error($ch);
+    echo "cURL Error: " . curl_error($ch);
+} else {
+    echo "Response: " . $response;
 }
 
+// Close cURL session
 curl_close($ch);
