@@ -65,7 +65,7 @@ switch($request_path){
         exit;
     case('/api/fragen-stream-api'):
         if($_SERVER["REQUEST_METHOD"] == "POST"){
-            include_once( LIBRARY_PATH . "fragen-stram-api.php");
+            include_once( LIBRARY_PATH . "fragen-stream-api.php");
         }
         exit;
     case('/api/GWDG-api'):
