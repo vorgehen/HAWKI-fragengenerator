@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'success' => true,
         'csrf_token' => $csrf_token,
         'document_id' => $documentId,
-        'file_name' => $file['name'],
+        'document_name' => $fileName,
         'message' => 'File uploaded successfully and ready for processing.'
     ]);
     exit;

@@ -47,6 +47,10 @@ $translation = $_SESSION['translation'];
 
 
 <style>
+
+    .input-controlbar{
+        display: none;
+    }
     .fragen-upload-section {
         padding: 20px;
         max-width: 600px;
