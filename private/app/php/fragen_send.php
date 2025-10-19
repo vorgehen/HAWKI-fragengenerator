@@ -98,9 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ch = curl_init($pythonServiceUrl);
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, ['file' => new CURLFile($filePath), 'document_id' => $documentId]);
-    // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    // $response = curl_exec($ch);
-    // curl_close($ch);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    curl_close($ch);
 
     // For now, just return success with document ID
     $csrf_token = generate_csrf_token();
