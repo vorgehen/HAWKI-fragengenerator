@@ -22,16 +22,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $_SESSION['last_activity'] = time();
 
 
-$requestPayload = file_get_contents('php://input');
-// Decode the JSON payload into an associative array
-$decodedPayload = json_decode($requestPayload, true);
+$requestData = json_decode($jsonString, true);
 
+// Validate JSON
+if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(400);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'error' => 'Invalid JSON in request body.'
+    ]);
+    exit;
+}
+
+// Extract document_id and messages
+$documentId = isset($requestData['document_id']) ? $requestData['document_id'] : null;
+$messages = isset($requestData['messages']) ? $requestData['messages'] : [];
+
+// Validate document_id
+if (empty($documentId)) {
+    http_response_code(400);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'error' => 'document_id is required.'
+    ]);
+    exit;
+}
+
+// Validate messages
+if (empty($messages) || !is_array($messages)) {
+    http_response_code(400);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'error' => 'messages array is required.'
+    ]);
+    exit;
+}
 
 
 // Python service URL
-$messagesEncoded = base64_encode(json_encode($requestPayload));
+$messagesEncoded = base64_encode(json_encode($messages));
 $pythonServiceUrl = 'http://hawki.vorgehen.de:5000/document/'  . $documentId . '/' . $messagesEncoded;
-
 
 
 
