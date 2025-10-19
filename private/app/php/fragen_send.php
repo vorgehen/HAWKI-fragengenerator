@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Send file to Python service for indexing
-    $pythonServiceUrl = 'http://hawki.vorgehen.de:5000/document/" . $fileName';
+    $pythonServiceUrl = 'http://hawki.vorgehen.de:5000/document/' . $fileName;
     $ch = curl_init($pythonServiceUrl);
     curl_setopt($ch, CURLOPT_POST, 1);
      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
