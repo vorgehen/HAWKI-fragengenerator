@@ -24,6 +24,15 @@ function load(element, filename){
         if(filename == "chat.php"){
             loadMessagesFromLocalStorage();
         }
+        if(filename == "fragen.php"){
+            // Initialize Fragen upload functionality
+            if(typeof initializeFragenUpload === 'function'){
+                console.log('Calling initializeFragenUpload from load function');
+                initializeFragenUpload();
+            } else {
+                console.error('initializeFragenUpload function not found');
+            }
+        }
     });
 
   
