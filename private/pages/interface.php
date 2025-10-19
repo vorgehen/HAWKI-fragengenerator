@@ -578,7 +578,7 @@
 
 			while (true) {
 				const { done, value } = await reader.read();
-
+                console.log(value);
 				if (done) {
 					console.log('Stream closed.');
 
