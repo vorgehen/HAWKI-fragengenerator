@@ -77,10 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Generate unique document ID
-    $documentId = uniqid('doc_', true);
+    $nameId = uniqid('doc_', true);
     
     // Save file with unique name
-    $fileName = $documentId . '_' . basename($file['name']);
+    $fileName = $nameId . '_' . basename($file['name']);
     $filePath = $uploadDir . $fileName;
     
     if (!move_uploaded_file($file['tmp_name'], $filePath)) {
@@ -97,10 +97,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pythonServiceUrl = 'http://hawki.vorgehen.de:5000/document/" . $fileName';
     $ch = curl_init($pythonServiceUrl);
     curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, ['file' => new CURLFile($filePath), 'document_id' => $documentId]);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $response = curl_exec($ch);
+     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $pythonResponse = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
+
+    // Check for cURL errors
+    if ($pythonResponse === false) {
+        error_log("cURL Error: " . $curlError);
+        $csrf_token = generate_csrf_token();
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to process PDF with FraGen service.',
+            'csrf_token' => $csrf_token
+        ]);
+        exit;
+    }
+
+    // Parse Python service response
+    $pythonData = json_decode($pythonResponse, true);
+
+    // Check if JSON parsing was successful
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("JSON decode error: " . json_last_error_msg());
+        error_log("Python response: " . $pythonResponse);
+        $csrf_token = generate_csrf_token();
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid response from Python service.',
+            'csrf_token' => $csrf_token
+        ]);
+        exit;
+    }
+    // Extract information from Python service response
+    $documentId  = $pythonData['document_id'];
 
     // For now, just return success with document ID
     $csrf_token = generate_csrf_token();
