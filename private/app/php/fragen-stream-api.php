@@ -46,6 +46,7 @@ if (empty($documentId)) {
     echo json_encode([
         'error' => 'document_id is required.'
     ]);
+    error_log('document_id is required.');
     exit;
 }
 
@@ -56,6 +57,7 @@ if (empty($messages) || !is_array($messages)) {
     echo json_encode([
         'error' => 'messages array is required.'
     ]);
+    error_log('messages array is required.');
     exit;
 }
 
@@ -63,7 +65,7 @@ if (empty($messages) || !is_array($messages)) {
 // Python service URL
 $messagesEncoded = base64_encode(json_encode($messages));
 $pythonServiceUrl = 'http://hawki.vorgehen.de:5000/document/'  . $documentId . '/' . $messagesEncoded;
-
+error_log($pythonServiceUrl);;
 
 
 $ch = curl_init();
