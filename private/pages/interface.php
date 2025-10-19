@@ -443,24 +443,18 @@
 	}
 
 	function OnSendClick(){
+        const fragenSection = document.querySelector('.fragen-upload-section');
 
+        if (fragenSection) {
+            streamAPI = "api/fragen-stream-api";
+        }
 
 		if(!isReceivingData) {
-            streamAPI = "api/fragen-stream-api";
 			request();
 		} else{
 			abortCtrl.abort();
 		}
 	}
-
-    function OnFragenClick(){
-        if(!isReceivingData){
-            streamAPI = "api/fragen-stream-api";
-            request();
-        } else{
-            abortCtrl.abort();
-        }
-    }
 
 	async function request(){
 		const messagesElement = document.querySelector(".messages");
@@ -497,7 +491,9 @@
 
         // Check if we're in Fragen context and include document_id
         const fragenSection = document.querySelector('.fragen-upload-section');
-        {if (fragenSection)
+
+            if (fragenSection) {
+
             const documentId = getCurrentDocumentId();
             if (documentId) {
                 requestObject.document_id = documentId;
