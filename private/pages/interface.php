@@ -895,7 +895,6 @@
 		})
 	}
 	//#endregion
-
     //#region FRAGEN UPLOAD FUNCTIONS
     //----------------------------------------------------------------------------------------//
     /**
@@ -920,156 +919,135 @@
             const uploadForm = document.getElementById('fragen-upload-form');
 
             // Validate elements exist
-            if (!fileInput || !uploadBtn || !fileNameDisplay) {
+            if (!fileInput || !uploadBtn || !fileNameDisplay || !uploadForm) {
                 console.error('Required elements not found for fragen upload');
-                console.log('fileInput:', fileInput, 'uploadBtn:', uploadBtn, 'fileNameDisplay:', fileNameDisplay);
+                console.log('fileInput:', fileInput, 'uploadBtn:', uploadBtn, 'fileNameDisplay:', fileNameDisplay, 'uploadForm:', uploadForm);
                 return;
             }
 
             console.log('Fragen upload initialized successfully');
+            console.log('Initial button state - disabled:', uploadBtn.disabled);
 
-            // Remove any existing event listeners by cloning
-            const newFileInput = fileInput.cloneNode(true);
-            fileInput.parentNode.replaceChild(newFileInput, fileInput);
+            // Attach file input change handler directly (no cloning needed)
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const currentUploadBtn = document.getElementById('upload-btn');
+                const currentFileNameDisplay = document.getElementById('file-name');
 
-            // Attach file input change handler to the new element
-            newFileInput.addEventListener('change', function(e) {
-                handleFragenFileInputChange(e);
+                console.log('File change event triggered');
+                console.log('File selected:', file ? file.name : 'none');
+                console.log('File object:', file);
+
+                if (file) {
+                    // Validate file type
+                    if (file.type && file.type !== 'application/pdf') {
+                        console.log('Invalid file type:', file.type);
+                        showFragenStatus('Please select a valid PDF file', 'error');
+                        e.target.value = '';
+                        currentFileNameDisplay.textContent = '';
+                        currentUploadBtn.disabled = true;
+                        return;
+                    }
+
+                    // Also check file extension as backup
+                    const fileName = file.name.toLowerCase();
+                    if (!fileName.endsWith('.pdf')) {
+                        console.log('Invalid file extension:', fileName);
+                        showFragenStatus('Please select a PDF file', 'error');
+                        e.target.value = '';
+                        currentFileNameDisplay.textContent = '';
+                        currentUploadBtn.disabled = true;
+                        return;
+                    }
+
+                    // Validate file size (e.g., max 10MB)
+                    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+                    if (file.size > maxSize) {
+                        console.log('File too large:', file.size);
+                        showFragenStatus('File size must be less than 10MB', 'error');
+                        e.target.value = '';
+                        currentFileNameDisplay.textContent = '';
+                        currentUploadBtn.disabled = true;
+                        return;
+                    }
+
+                    console.log('File validation passed, enabling upload button');
+                    currentFileNameDisplay.textContent = file.name;
+                    currentUploadBtn.disabled = false;
+                    console.log('Button disabled state after enabling:', currentUploadBtn.disabled);
+                } else {
+                    console.log('No file selected');
+                    currentFileNameDisplay.textContent = '';
+                    currentUploadBtn.disabled = true;
+                }
             });
 
             // Attach form submission handler
-            if (uploadForm) {
-                // Remove existing listener by cloning
-                const newForm = uploadForm.cloneNode(true);
-                uploadForm.parentNode.replaceChild(newForm, uploadForm);
+            uploadForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-                newForm.addEventListener('submit', function(e) {
-                    handleFragenFormSubmit(e);
-                });
-            }
-        }, 100);
-    }
+                const currentFileInput = document.getElementById('pdfFile');
+                const file = currentFileInput.files[0];
 
-    /**
-     * Handle file input change event for Fragen
-     */
-    function handleFragenFileInputChange(e) {
-        const file = e.target.files[0];
-        const uploadBtn = document.getElementById('upload-btn');
-        const fileNameDisplay = document.getElementById('file-name');
+                console.log('Form submitted, file:', file);
 
-        console.log('File selected:', file ? file.name : 'none');
-        console.log('File object:', file);
+                if (!file) {
+                    showFragenStatus('Please select a file', 'error');
+                    return;
+                }
 
-        if (file) {
-            // Validate file type
-            if (file.type && file.type !== 'application/pdf') {
-                console.log('Invalid file type:', file.type);
-                showFragenStatus('Please select a valid PDF file', 'error');
-                e.target.value = '';
-                fileNameDisplay.textContent = '';
-                uploadBtn.disabled = true;
-                return;
-            }
+                // Create FormData and append file
+                const formData = new FormData();
+                formData.append('pdfFile', file);
 
-            // Also check file extension as backup
-            const fileName = file.name.toLowerCase();
-            if (!fileName.endsWith('.pdf')) {
-                console.log('Invalid file extension:', fileName);
-                showFragenStatus('Please select a PDF file', 'error');
-                e.target.value = '';
-                fileNameDisplay.textContent = '';
-                uploadBtn.disabled = true;
-                return;
-            }
+                // Get CSRF token
+                const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+                if (!csrfTokenMeta) {
+                    console.error('CSRF token not found');
+                    showFragenStatus('Security token missing. Please refresh the page.', 'error');
+                    return;
+                }
+                const csrfToken = csrfTokenMeta.getAttribute('content');
 
-            // Validate file size (e.g., max 10MB)
-            const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-            if (file.size > maxSize) {
-                console.log('File too large:', file.size);
-                showFragenStatus('File size must be less than 10MB', 'error');
-                e.target.value = '';
-                fileNameDisplay.textContent = '';
-                uploadBtn.disabled = true;
-                return;
-            }
+                // Show progress indicator
+                showFragenUploadProgress(true);
+                document.getElementById('upload-btn').disabled = true;
 
-            console.log('File validation passed, enabling upload button');
-            fileNameDisplay.textContent = file.name;
-            uploadBtn.disabled = false;
-        } else {
-            console.log('No file selected');
-            fileNameDisplay.textContent = '';
-            uploadBtn.disabled = true;
-        }
-    }
+                try {
+                    const response = await fetch('api/fragen_send', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        body: formData
+                    });
 
-    /**
-     * Handle form submission for Fragen
-     */
-    async function handleFragenFormSubmit(e) {
-        e.preventDefault();
+                    // Check if response is ok
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
 
-        const fileInput = document.getElementById('pdfFile');
-        const file = fileInput.files[0];
+                    const data = await response.json();
 
-        console.log('Form submitted, file:', file);
+                    // Update CSRF token if provided
+                    if (data.csrf_token) {
+                        csrfTokenMeta.setAttribute('content', data.csrf_token);
+                    }
 
-        if (!file) {
-            showFragenStatus('Please select a file', 'error');
-            return;
-        }
-
-        // Create FormData and append file
-        const formData = new FormData();
-        formData.append('pdfFile', file);
-
-        // Get CSRF token
-        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-        if (!csrfTokenMeta) {
-            console.error('CSRF token not found');
-            showFragenStatus('Security token missing. Please refresh the page.', 'error');
-            return;
-        }
-        const csrfToken = csrfTokenMeta.getAttribute('content');
-
-        // Show progress indicator
-        showFragenUploadProgress(true);
-        document.getElementById('upload-btn').disabled = true;
-
-        try {
-            const response = await fetch('api/fragen_send', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken
-                },
-                body: formData
+                    if (data.success && data.document_id) {
+                        handleFragenUploadSuccess(data, file.name);
+                    } else {
+                        handleFragenUploadError(data.message || 'Upload failed');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    handleFragenUploadError('An error occurred during upload: ' + error.message);
+                } finally {
+                    showFragenUploadProgress(false);
+                    document.getElementById('upload-btn').disabled = false;
+                }
             });
-
-            // Check if response is ok
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            // Update CSRF token if provided
-            if (data.csrf_token) {
-                csrfTokenMeta.setAttribute('content', data.csrf_token);
-            }
-
-            if (data.success && data.document_id) {
-                handleFragenUploadSuccess(data, file.name);
-            } else {
-                handleFragenUploadError(data.message || 'Upload failed');
-            }
-        } catch (error) {
-            console.error('Upload error:', error);
-            handleFragenUploadError('An error occurred during upload: ' + error.message);
-        } finally {
-            showFragenUploadProgress(false);
-            document.getElementById('upload-btn').disabled = false;
-        }
+        }, 100);
     }
 
     /**
