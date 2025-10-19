@@ -46,11 +46,22 @@ $translation = $_SESSION['translation'];
 </div>
 <script>
     // Initialize the Fragen upload form when this view is loaded
-    if (typeof initializeFragenUpload === 'function') {
-        initializeFragenUpload();
-    } else {
-        console.error('initializeFragenUpload function not found. Make sure interface.php is loaded.');
-    }
+    (function() {
+        // Function to try initialization
+        function tryInitialize() {
+            if (typeof initializeFragenUpload === 'function') {
+                console.log('initializeFragenUpload found, calling it now');
+                initializeFragenUpload();
+            } else {
+                console.log('initializeFragenUpload not found, retrying...');
+                // Retry after a short delay
+                setTimeout(tryInitialize, 50);
+            }
+        }
+
+        // Start trying to initialize
+        tryInitialize();
+    })();
 </script>
 
 
