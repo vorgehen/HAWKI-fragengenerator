@@ -444,9 +444,9 @@
 
 	function OnSendClick(){
 		if(!isReceivingData){
-            const fragenSection = document.querySelector('.fragen-upload-section');
+            const fragenSection2 = document.querySelector('.fragen-upload-section');
 
-                if (fragenSection) {
+            if (fragenSection2) {
                     streamAPI = "api/fragen-stream-api";
             }
 			request();
