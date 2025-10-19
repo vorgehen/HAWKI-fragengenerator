@@ -444,6 +444,11 @@
 
 	function OnSendClick(){
 		if(!isReceivingData){
+            const fragenSection = document.querySelector('.fragen-upload-section');
+
+                if (fragenSection) {
+                    streamAPI = "api/fragen-stream-api";
+            }
 			request();
 		} else{
 			abortCtrl.abort();
@@ -494,7 +499,7 @@
 
         // Check if we're in Fragen context and include document_id
         const fragenSection = document.querySelector('.fragen-upload-section');
-        if (fragenSection) {
+        {if (fragenSection)
             const documentId = getCurrentDocumentId();
             if (documentId) {
                 requestObject.document_id = documentId;
