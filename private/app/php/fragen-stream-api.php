@@ -63,7 +63,7 @@ if (empty($messages) || !is_array($messages)) {
 
 
 // Python service URL
-$messagesEncoded = base64_encode(json_encode($messages));
+$messagesEncoded = json_encode($messages);
 $pythonServiceUrl = 'http://hawki.vorgehen.de:5000/document/'  . $documentId . '/' . $messagesEncoded;
 error_log($pythonServiceUrl);;
 
