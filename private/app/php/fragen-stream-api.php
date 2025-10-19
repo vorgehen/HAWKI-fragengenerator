@@ -21,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 $_SESSION['last_activity'] = time();
 
-
+// Get the JSON request body
+$jsonString = file_get_contents("php://input");
 $requestData = json_decode($jsonString, true);
 
 // Validate JSON
