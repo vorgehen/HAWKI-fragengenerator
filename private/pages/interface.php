@@ -895,4 +895,233 @@
 		})
 	}
 	//#endregion
+
+    //#region FRAGEN UPLOAD FUNCTIONS
+    //----------------------------------------------------------------------------------------//
+    /**
+     * Initialize the Fragen upload form
+     * Called when fragen.php is loaded dynamically
+     */
+    function initializeFragenUpload() {
+        const currentDocumentId = sessionStorage.getItem('fragen_document_id');
+        const currentDocumentName = sessionStorage.getItem('fragen_document_name');
+
+        // Display existing document info if available
+        if (currentDocumentId) {
+            displayFragenDocumentInfo(currentDocumentName, currentDocumentId);
+        }
+
+        // Get DOM elements
+        const fileInput = document.getElementById('pdfFile');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileNameDisplay = document.getElementById('file-name');
+        const uploadForm = document.getElementById('fragen-upload-form');
+
+        // Validate elements exist
+        if (!fileInput || !uploadBtn || !fileNameDisplay) {
+            console.error('Required elements not found for fragen upload');
+            return;
+        }
+
+        // Attach file input change handler
+        fileInput.addEventListener('change', handleFragenFileInputChange);
+
+        // Attach form submission handler
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', handleFragenFormSubmit);
+        }
+    }
+
+    /**
+     * Handle file input change event for Fragen
+     */
+    function handleFragenFileInputChange(e) {
+        const file = e.target.files[0];
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileNameDisplay = document.getElementById('file-name');
+
+        console.log('File selected:', file ? file.name : 'none');
+
+        if (file) {
+            // Validate file type
+            if (!file.type || file.type !== 'application/pdf') {
+                showFragenStatus('Please select a valid PDF file', 'error');
+                e.target.value = '';
+                fileNameDisplay.textContent = '';
+                uploadBtn.disabled = true;
+                return;
+            }
+
+            // Validate file size (e.g., max 10MB)
+            const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+            if (file.size > maxSize) {
+                showFragenStatus('File size must be less than 10MB', 'error');
+                e.target.value = '';
+                fileNameDisplay.textContent = '';
+                uploadBtn.disabled = true;
+                return;
+            }
+
+            fileNameDisplay.textContent = file.name;
+            uploadBtn.disabled = false;
+        } else {
+            fileNameDisplay.textContent = '';
+            uploadBtn.disabled = true;
+        }
+    }
+
+    /**
+     * Handle form submission for Fragen
+     */
+    async function handleFragenFormSubmit(e) {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('pdfFile');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            showFragenStatus('Please select a file', 'error');
+            return;
+        }
+
+        // Create FormData and append file
+        const formData = new FormData();
+        formData.append('pdfFile', file);
+
+        // Get CSRF token
+        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfTokenMeta) {
+            console.error('CSRF token not found');
+            showFragenStatus('Security token missing. Please refresh the page.', 'error');
+            return;
+        }
+        const csrfToken = csrfTokenMeta.getAttribute('content');
+
+        // Show progress indicator
+        showFragenUploadProgress(true);
+        document.getElementById('upload-btn').disabled = true;
+
+        try {
+            const response = await fetch('api/fragen_send', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: formData
+            });
+
+            // Check if response is ok
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Update CSRF token if provided
+            if (data.csrf_token) {
+                csrfTokenMeta.setAttribute('content', data.csrf_token);
+            }
+
+            if (data.success && data.document_id) {
+                handleFragenUploadSuccess(data, file.name);
+            } else {
+                handleFragenUploadError(data.message || 'Upload failed');
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            handleFragenUploadError('An error occurred during upload: ' + error.message);
+        } finally {
+            showFragenUploadProgress(false);
+            document.getElementById('upload-btn').disabled = false;
+        }
+    }
+
+    /**
+     * Handle successful upload for Fragen
+     */
+    function handleFragenUploadSuccess(data, fileName) {
+        // Store the document ID and name in sessionStorage
+        sessionStorage.setItem('fragen_document_id', data.document_id);
+        sessionStorage.setItem('fragen_document_name', fileName);
+
+        showFragenStatus(data.message || 'File uploaded successfully!', 'success');
+        displayFragenDocumentInfo(fileName, data.document_id);
+
+        // Reset form
+        const fileInput = document.getElementById('pdfFile');
+        fileInput.value = '';
+        document.getElementById('file-name').textContent = '';
+        document.getElementById('upload-btn').disabled = true;
+    }
+
+    /**
+     * Handle upload error for Fragen
+     */
+    function handleFragenUploadError(message) {
+        showFragenStatus(message || 'Upload failed', 'error');
+    }
+
+    /**
+     * Show or hide upload progress indicator for Fragen
+     */
+    function showFragenUploadProgress(show) {
+        const progressElement = document.getElementById('upload-progress');
+        if (progressElement) {
+            progressElement.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    /**
+     * Display document information for Fragen
+     */
+    function displayFragenDocumentInfo(name, id) {
+        const docNameElement = document.getElementById('doc-name');
+        const docIdElement = document.getElementById('doc-id');
+        const documentInfoElement = document.getElementById('document-info');
+
+        if (docNameElement && docIdElement && documentInfoElement) {
+            docNameElement.textContent = name;
+            docIdElement.textContent = `ID: ${id}`;
+            documentInfoElement.style.display = 'block';
+        }
+    }
+
+    /**
+     * Clear the current document for Fragen
+     */
+    function clearDocument() {
+        sessionStorage.removeItem('fragen_document_id');
+        sessionStorage.removeItem('fragen_document_name');
+
+        const documentInfoElement = document.getElementById('document-info');
+        if (documentInfoElement) {
+            documentInfoElement.style.display = 'none';
+        }
+
+        showFragenStatus('Document cleared', 'info');
+    }
+
+    /**
+     * Show status message for Fragen
+     */
+    function showFragenStatus(message, type) {
+        const statusDiv = document.getElementById('upload-status');
+        if (!statusDiv) return;
+
+        statusDiv.textContent = message;
+        statusDiv.className = `status-message status-${type}`;
+        statusDiv.style.display = 'block';
+
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    /**
+     * Get current document ID for use in queries
+     */
+    function getCurrentDocumentId() {
+        return sessionStorage.getItem('fragen_document_id');
+    }
+    //#endregion
 </script>
