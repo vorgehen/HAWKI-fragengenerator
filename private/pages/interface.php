@@ -903,33 +903,51 @@
      * Called when fragen.php is loaded dynamically
      */
     function initializeFragenUpload() {
-        const currentDocumentId = sessionStorage.getItem('fragen_document_id');
-        const currentDocumentName = sessionStorage.getItem('fragen_document_name');
+        // Use setTimeout to ensure DOM is fully loaded
+        setTimeout(() => {
+            const currentDocumentId = sessionStorage.getItem('fragen_document_id');
+            const currentDocumentName = sessionStorage.getItem('fragen_document_name');
 
-        // Display existing document info if available
-        if (currentDocumentId) {
-            displayFragenDocumentInfo(currentDocumentName, currentDocumentId);
-        }
+            // Display existing document info if available
+            if (currentDocumentId) {
+                displayFragenDocumentInfo(currentDocumentName, currentDocumentId);
+            }
 
-        // Get DOM elements
-        const fileInput = document.getElementById('pdfFile');
-        const uploadBtn = document.getElementById('upload-btn');
-        const fileNameDisplay = document.getElementById('file-name');
-        const uploadForm = document.getElementById('fragen-upload-form');
+            // Get DOM elements
+            const fileInput = document.getElementById('pdfFile');
+            const uploadBtn = document.getElementById('upload-btn');
+            const fileNameDisplay = document.getElementById('file-name');
+            const uploadForm = document.getElementById('fragen-upload-form');
 
-        // Validate elements exist
-        if (!fileInput || !uploadBtn || !fileNameDisplay) {
-            console.error('Required elements not found for fragen upload');
-            return;
-        }
+            // Validate elements exist
+            if (!fileInput || !uploadBtn || !fileNameDisplay) {
+                console.error('Required elements not found for fragen upload');
+                console.log('fileInput:', fileInput, 'uploadBtn:', uploadBtn, 'fileNameDisplay:', fileNameDisplay);
+                return;
+            }
 
-        // Attach file input change handler
-        fileInput.addEventListener('change', handleFragenFileInputChange);
+            console.log('Fragen upload initialized successfully');
 
-        // Attach form submission handler
-        if (uploadForm) {
-            uploadForm.addEventListener('submit', handleFragenFormSubmit);
-        }
+            // Remove any existing event listeners by cloning
+            const newFileInput = fileInput.cloneNode(true);
+            fileInput.parentNode.replaceChild(newFileInput, fileInput);
+
+            // Attach file input change handler to the new element
+            newFileInput.addEventListener('change', function(e) {
+                handleFragenFileInputChange(e);
+            });
+
+            // Attach form submission handler
+            if (uploadForm) {
+                // Remove existing listener by cloning
+                const newForm = uploadForm.cloneNode(true);
+                uploadForm.parentNode.replaceChild(newForm, uploadForm);
+
+                newForm.addEventListener('submit', function(e) {
+                    handleFragenFormSubmit(e);
+                });
+            }
+        }, 100);
     }
 
     /**
@@ -941,11 +959,24 @@
         const fileNameDisplay = document.getElementById('file-name');
 
         console.log('File selected:', file ? file.name : 'none');
+        console.log('File object:', file);
 
         if (file) {
             // Validate file type
-            if (!file.type || file.type !== 'application/pdf') {
+            if (file.type && file.type !== 'application/pdf') {
+                console.log('Invalid file type:', file.type);
                 showFragenStatus('Please select a valid PDF file', 'error');
+                e.target.value = '';
+                fileNameDisplay.textContent = '';
+                uploadBtn.disabled = true;
+                return;
+            }
+
+            // Also check file extension as backup
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.pdf')) {
+                console.log('Invalid file extension:', fileName);
+                showFragenStatus('Please select a PDF file', 'error');
                 e.target.value = '';
                 fileNameDisplay.textContent = '';
                 uploadBtn.disabled = true;
@@ -955,6 +986,7 @@
             // Validate file size (e.g., max 10MB)
             const maxSize = 10 * 1024 * 1024; // 10MB in bytes
             if (file.size > maxSize) {
+                console.log('File too large:', file.size);
                 showFragenStatus('File size must be less than 10MB', 'error');
                 e.target.value = '';
                 fileNameDisplay.textContent = '';
@@ -962,9 +994,11 @@
                 return;
             }
 
+            console.log('File validation passed, enabling upload button');
             fileNameDisplay.textContent = file.name;
             uploadBtn.disabled = false;
         } else {
+            console.log('No file selected');
             fileNameDisplay.textContent = '';
             uploadBtn.disabled = true;
         }
@@ -978,6 +1012,8 @@
 
         const fileInput = document.getElementById('pdfFile');
         const file = fileInput.files[0];
+
+        console.log('Form submitted, file:', file);
 
         if (!file) {
             showFragenStatus('Please select a file', 'error');
