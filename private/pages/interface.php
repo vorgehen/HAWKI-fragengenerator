@@ -443,14 +443,10 @@
 	}
 
 	function OnSendClick(){
-        const fragenSection2 = document.querySelector('.fragen-upload-section');
 
-        if (fragenSection2) {
-            streamAPI = "api/fragen-stream-api";
-        }
-        
+
 		if(!isReceivingData) {
-
+            streamAPI = "api/fragen-stream-api";
 			request();
 		} else{
 			abortCtrl.abort();
