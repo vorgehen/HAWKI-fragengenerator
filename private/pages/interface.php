@@ -450,6 +450,15 @@
 		}
 	}
 
+    function OnFragenClick(){
+        if(!isReceivingData){
+            streamAPI = "api/fragen-stream-api";
+            request();
+        } else{
+            abortCtrl.abort();
+        }
+    }
+
 	async function request(){
 		const messagesElement = document.querySelector(".messages");
 		const messageTemplate = document.querySelector('#message');
@@ -482,6 +491,23 @@
 		requestObject.model = activeModel;
 		requestObject.stream = true;
 		requestObject.messages = [];
+
+        // Check if we're in Fragen context and include document_id
+        const fragenSection = document.querySelector('.fragen-upload-section');
+        if (fragenSection) {
+            const documentId = getCurrentDocumentId();
+            if (documentId) {
+                requestObject.document_id = documentId;
+                console.log('Including document_id in request:', documentId);
+            } else {
+                console.warn('No document uploaded yet for Fragen');
+                showFragenStatus('Please upload a PDF file first before asking questions.', 'error');
+                isReceivingData = false;
+                sendicon.setAttribute('d', startIcon);
+                return;
+            }
+        }
+
 		const messageElements = messagesElement.querySelectorAll(".message");
 		messageElements.forEach(messageElement => {
 			let messageObject = {};

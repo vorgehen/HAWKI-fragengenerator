@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(500);
         echo json_encode([
             'success' => false,
-            'message' => 'Invalid response from Python service.',
+            'message' => 'Invalid response from FraGen service.',
             'csrf_token' => $csrf_token
         ]);
         exit;
