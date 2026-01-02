@@ -6,7 +6,7 @@ if (!isset($_SESSION['username'])) {
     exit;
 }
 
-header('Content-Type: application/json');
+header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 header('Connection: keep-alive');
 header('Access-Control-Allow-Origin: *');
@@ -78,17 +78,35 @@ curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Accept: application/json'
 ]);
-curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) {
-    echo $data;
-    // ob_flush();
-    flush();
-    return strlen($data);
-});
 
-curl_exec($ch);
+$response = curl_exec($ch);
 
 if (curl_errno($ch)) {
-    echo 'Error:' . curl_error($ch);
+    error_log('cURL Error: ' . curl_error($ch));
+    echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => 'Error: ' . curl_error($ch)]]]]) . "\n\n";
+} else {
+    // Parse the Python service response
+    $pythonData = json_decode($response, true);
+    error_log('Python service response: ' . $response);
+
+    if ($pythonData && isset($pythonData['answer'])) {
+        // Wrap in OpenAI streaming format
+        echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $pythonData['answer']]]]]) . "\n\n";
+    } elseif ($pythonData && isset($pythonData['questions'])) {
+        // Handle questions array format
+        $questionsText = is_array($pythonData['questions']) ? implode("\n", $pythonData['questions']) : $pythonData['questions'];
+        echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $questionsText]]]]) . "\n\n";
+    } elseif ($pythonData && isset($pythonData['content'])) {
+        echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $pythonData['content']]]]]) . "\n\n";
+    } else {
+        // Fallback: send raw response as content
+        echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $response]]]]) . "\n\n";
+    }
+    echo "data: [DONE]\n\n";
 }
 
+if (ob_get_level() > 0) {
+    ob_flush();
+}
+flush();
 curl_close($ch);
