@@ -618,9 +618,16 @@
 					if(chunk.indexOf('DONE') > 0) return false;
 					if(chunk.indexOf('role') > 0) return false;
 					if(chunk.length == 0) return false;
-					
-					rawMsg += JSON.parse(chunk)["choices"][0]["delta"].content;
-					document.querySelector(".message:last-child").querySelector(".message-text").innerHTML =  FormatChunk(JSON.parse(chunk)["choices"][0]["delta"].content);
+
+					const parsed = JSON.parse(chunk);
+					console.log("parsed chunk:", parsed);
+					const content = parsed?.choices?.[0]?.delta?.content;
+					if (content === undefined || content === null) {
+						console.log("content is undefined/null, skipping");
+						return;
+					}
+					rawMsg += content;
+					document.querySelector(".message:last-child").querySelector(".message-text").innerHTML = FormatChunk(content);
 
 				})
 
