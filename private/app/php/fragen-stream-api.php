@@ -89,19 +89,23 @@ if (curl_errno($ch)) {
     $pythonData = json_decode($response, true);
     error_log('Python service response: ' . $response);
 
-    if ($pythonData && isset($pythonData['answer'])) {
-        // Wrap in OpenAI streaming format
-        echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $pythonData['answer']]]]]) . "\n\n";
+    // Extract the actual text content from Python response
+    $textContent = null;
+
+    if ($pythonData && isset($pythonData['message'])) {
+        $textContent = $pythonData['message'];
+    } elseif ($pythonData && isset($pythonData['answer'])) {
+        $textContent = $pythonData['answer'];
     } elseif ($pythonData && isset($pythonData['questions'])) {
-        // Handle questions array format
-        $questionsText = is_array($pythonData['questions']) ? implode("\n", $pythonData['questions']) : $pythonData['questions'];
-        echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $questionsText]]]]) . "\n\n";
+        $textContent = is_array($pythonData['questions']) ? implode("\n", $pythonData['questions']) : $pythonData['questions'];
     } elseif ($pythonData && isset($pythonData['content'])) {
-        echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $pythonData['content']]]]]) . "\n\n";
+        $textContent = $pythonData['content'];
     } else {
-        // Fallback: send raw response as content
-        echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $response]]]]) . "\n\n";
+        $textContent = $response;
     }
+
+    // Send as OpenAI streaming format
+    echo 'data: ' . json_encode(['choices' => [['delta' => ['content' => $textContent]]]]) . "\n\n";
     echo "data: [DONE]\n\n";
 }
 
