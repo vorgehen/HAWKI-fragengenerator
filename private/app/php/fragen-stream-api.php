@@ -65,7 +65,7 @@ if (empty($messages) || !is_array($messages)) {
 // Python service URL
 $lastElement = end($messages);
 
-$content = $lastElement->content;
+$content = $lastElement['content'];
 $pythonServiceUrl = 'http://hawki.vorgehen.de:5000/document/'  . $documentId . '/Fragen' ;
 error_log($pythonServiceUrl);;
 
